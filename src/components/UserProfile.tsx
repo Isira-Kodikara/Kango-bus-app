@@ -1,0 +1,278 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { 
+  ArrowLeft, 
+  User, 
+  MapPin, 
+  Clock, 
+  CreditCard, 
+  Settings,
+  LogOut,
+  Home,
+  Briefcase,
+  Star,
+  ChevronRight
+} from 'lucide-react';
+
+const mockTripHistory = [
+  {
+    id: 1,
+    date: '2026-01-30',
+    time: '08:45 AM',
+    bus: 'BUS-45',
+    route: 'Downtown Express',
+    from: 'Main Street Station',
+    to: 'Central Plaza',
+    fare: '$3.70',
+    rating: 5
+  },
+  {
+    id: 2,
+    date: '2026-01-29',
+    time: '06:30 PM',
+    bus: 'BUS-12',
+    route: 'City Circle',
+    from: 'Central Plaza',
+    to: 'Harbor Terminal',
+    fare: '$4.20',
+    rating: 4
+  },
+  {
+    id: 3,
+    date: '2026-01-28',
+    time: '09:15 AM',
+    bus: 'BUS-89',
+    route: 'Harbor Line',
+    from: 'Park Avenue',
+    to: 'Business District',
+    fare: '$3.50',
+    rating: 5
+  },
+];
+
+const savedLocations = [
+  { id: 1, name: 'Home', address: '123 Main Street, Downtown', icon: Home },
+  { id: 2, name: 'Work', address: '456 Business Ave, Financial District', icon: Briefcase },
+];
+
+export function UserProfile() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'history' | 'locations' | 'settings'>('history');
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => navigate('/user-home')}
+            className="p-2 hover:bg-white/20 rounded-full mr-3"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-semibold">Profile</h1>
+        </div>
+
+        {/* User info */}
+        <div className="flex items-center">
+          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mr-4">
+            <User className="w-10 h-10" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">John Doe</h2>
+            <p className="text-blue-100">john.doe@example.com</p>
+            <div className="flex items-center mt-2">
+              <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+              <span className="text-sm">4.8 Average Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white shadow-sm flex">
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
+            activeTab === 'history' 
+              ? 'text-blue-600 border-blue-600' 
+              : 'text-gray-500 border-transparent'
+          }`}
+        >
+          Trip History
+        </button>
+        <button
+          onClick={() => setActiveTab('locations')}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
+            activeTab === 'locations' 
+              ? 'text-blue-600 border-blue-600' 
+              : 'text-gray-500 border-transparent'
+          }`}
+        >
+          Saved Places
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
+            activeTab === 'settings' 
+              ? 'text-blue-600 border-blue-600' 
+              : 'text-gray-500 border-transparent'
+          }`}
+        >
+          Settings
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Trip History */}
+        {activeTab === 'history' && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Trips</h3>
+            {mockTripHistory.map((trip) => (
+              <div key={trip.id} className="bg-white rounded-2xl shadow-md p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-bold text-gray-800">{trip.bus}</div>
+                    <div className="text-sm text-gray-600">{trip.route}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600">{trip.fare}</div>
+                    <div className="flex items-center mt-1">
+                      {Array.from({ length: trip.rating }).map((_, i) => (
+                        <Star key={i} className="w-3 h-3 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                    <span className="font-medium">From:</span>
+                    <span className="ml-2">{trip.from}</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-red-600" />
+                    <span className="font-medium">To:</span>
+                    <span className="ml-2">{trip.to}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <span>{trip.date} at {trip.time}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Saved Locations */}
+        {activeTab === 'locations' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-800">Saved Places</h3>
+              <button className="text-blue-600 font-semibold text-sm">+ Add New</button>
+            </div>
+
+            {savedLocations.map((location) => {
+              const Icon = location.icon;
+              return (
+                <div key={location.id} className="bg-white rounded-2xl shadow-md p-5 flex items-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                    <Icon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800">{location.name}</div>
+                    <div className="text-sm text-gray-600">{location.address}</div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </div>
+              );
+            })}
+
+            {/* Offline mode info */}
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mt-6">
+              <div className="font-semibold text-blue-900 mb-1">Offline Mode Available</div>
+              <div className="text-sm text-blue-800">
+                Last known routes and cached bus schedules are available when offline
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings */}
+        {activeTab === 'settings' && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Account Settings</h3>
+
+            {/* Payment Methods */}
+            <div className="bg-white rounded-2xl shadow-md p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCard className="w-6 h-6 text-blue-600 mr-3" />
+                  <div>
+                    <div className="font-semibold text-gray-800">Payment Methods</div>
+                    <div className="text-sm text-gray-600">Manage cards & wallets</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+
+            {/* Emergency Contacts */}
+            <div className="bg-white rounded-2xl shadow-md p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <User className="w-6 h-6 text-red-600 mr-3" />
+                  <div>
+                    <div className="font-semibold text-gray-800">Emergency Contacts</div>
+                    <div className="text-sm text-gray-600">1 contact saved</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-white rounded-2xl shadow-md p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Settings className="w-6 h-6 text-gray-600 mr-3" />
+                  <div>
+                    <div className="font-semibold text-gray-800">Notifications</div>
+                    <div className="text-sm text-gray-600">Alerts & updates</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+
+            {/* Privacy */}
+            <div className="bg-white rounded-2xl shadow-md p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Settings className="w-6 h-6 text-gray-600 mr-3" />
+                  <div>
+                    <div className="font-semibold text-gray-800">Privacy & Data</div>
+                    <div className="text-sm text-gray-600">Location, tracking</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full bg-red-50 hover:bg-red-100 rounded-2xl shadow-md p-5 flex items-center justify-center mt-6 transition-colors"
+            >
+              <LogOut className="w-6 h-6 text-red-600 mr-3" />
+              <span className="font-semibold text-red-600">Log Out</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
