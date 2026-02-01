@@ -1,30 +1,11 @@
 /**
  * API Service Layer
  * Handles all communication between React frontend and Backend
- * Supports both real API and prototype mode (mock data)
  */
 
-import {
-  mockAuthApi,
-  mockCrewApi,
-  mockAdminApi,
-  isPrototypeMode as checkPrototypeMode,
-  enablePrototypeMode as enableMock,
-  disablePrototypeMode as disableMock,
-  getAuthToken as getMockToken,
-  getStoredUser as getMockUser,
-  storeAuthData as storeMockAuth,
-  clearAuthData as clearMockAuth,
-  isAuthenticated as checkMockAuth
-} from './mockApi';
+// API Base URL - uses environment variable in production, proxy in development
+const API_BASE_URL = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '/api';
 
-// API Base URL - uses Vite proxy in development
-const API_BASE_URL = '/api';
-
-// Re-export prototype mode functions
-export const isPrototypeMode = checkPrototypeMode;
-export const enablePrototypeMode = enableMock;
-export const disablePrototypeMode = disableMock;
 
 // Types
 export interface ApiResponse<T = unknown> {
@@ -168,9 +149,6 @@ async function apiFetch<T>(
   } catch (error) {
     console.error('API Error:', error);
 
-    // If API fails, suggest prototype mode
-    console.log('💡 Tip: Enable prototype mode to test without backend:');
-    console.log('   Run in console: enablePrototypeMode()');
 
     // Provide more specific error messages
     let errorMessage = 'Cannot connect to server.';
@@ -193,9 +171,6 @@ export const authApi = {
    * Register a new user
    */
   register: async (data: RegisterData): Promise<ApiResponse<{ user_id: number; email: string; token?: string; user?: User; requires_verification?: boolean }>> => {
-    if (isPrototypeMode()) {
-      return mockAuthApi.register(data) as Promise<ApiResponse<{ user_id: number; email: string; token?: string; user?: User; requires_verification?: boolean }>>;
-    }
 
     const response = await apiFetch<{ user_id: number; email: string; token?: string; user?: User; requires_verification?: boolean }>('/auth/user/register', {
       method: 'POST',
@@ -214,10 +189,6 @@ export const authApi = {
    * Login user
    */
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthTokens>> => {
-    if (isPrototypeMode()) {
-      return mockAuthApi.login(credentials);
-    }
-
     const response = await apiFetch<AuthTokens>('/auth/user/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -234,10 +205,6 @@ export const authApi = {
    * Verify OTP
    */
   verifyOTP: async (data: OTPData): Promise<ApiResponse<AuthTokens>> => {
-    if (isPrototypeMode()) {
-      return mockAuthApi.verifyOTP(data);
-    }
-
     const response = await apiFetch<AuthTokens>('/auth/user/verify-otp', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -254,9 +221,6 @@ export const authApi = {
    * Resend OTP
    */
   resendOTP: async (email: string): Promise<ApiResponse> => {
-    if (isPrototypeMode()) {
-      return mockAuthApi.resendOTP(email);
-    }
     return apiFetch('/auth/user/resend-otp', {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -267,9 +231,6 @@ export const authApi = {
    * Forgot password
    */
   forgotPassword: async (email: string): Promise<ApiResponse> => {
-    if (isPrototypeMode()) {
-      return { success: true, message: 'Password reset email sent (mock)' };
-    }
     return apiFetch('/auth/user/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -280,9 +241,6 @@ export const authApi = {
    * Reset password
    */
   resetPassword: async (email: string, otp: string, newPassword: string): Promise<ApiResponse> => {
-    if (isPrototypeMode()) {
-      return { success: true, message: 'Password reset successful (mock)' };
-    }
     return apiFetch('/auth/user/reset-password', {
       method: 'POST',
       body: JSON.stringify({ email, otp, new_password: newPassword }),
@@ -302,11 +260,6 @@ export const authApi = {
  */
 export const crewApi = {
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthTokens>> => {
-    if (isPrototypeMode()) {
-      // Mock mode uses crew_id, convert email to crew_id format
-      return mockCrewApi.login({ crew_id: credentials.email, password: credentials.password }) as Promise<ApiResponse<AuthTokens>>;
-    }
-
     const response = await apiFetch<AuthTokens>('/auth/crew/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -320,10 +273,6 @@ export const crewApi = {
   },
 
   register: async (data: CrewRegisterData): Promise<ApiResponse<AuthTokens>> => {
-    if (isPrototypeMode()) {
-      return { success: false, message: 'Registration not available in prototype mode' };
-    }
-
     const response = await apiFetch<AuthTokens>('/auth/crew/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -342,10 +291,6 @@ export const crewApi = {
  */
 export const adminApi = {
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthTokens>> => {
-    if (isPrototypeMode()) {
-      return mockAdminApi.login(credentials);
-    }
-
     const response = await apiFetch<AuthTokens>('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -369,19 +314,5 @@ export const api = {
   delete: <T>(endpoint: string) => apiFetch<T>(endpoint, { method: 'DELETE' }),
 };
 
-// Expose functions globally for easy console access
-if (typeof window !== 'undefined') {
-  (window as any).enablePrototypeMode = () => {
-    enableMock();
-    alert('🎭 Prototype mode enabled!\n\nDemo credentials:\n- Email: demo@kango.com\n- Password: password123');
-    window.location.reload();
-  };
-
-  (window as any).disablePrototypeMode = () => {
-    disableMock();
-    alert('🔌 Prototype mode disabled. Real API will be used.');
-    window.location.reload();
-  };
-}
 
 export default api;

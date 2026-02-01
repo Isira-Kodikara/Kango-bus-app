@@ -1,19 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Bus, Users, ShieldCheck, FlaskConical } from 'lucide-react';
+import { Bus, Users, ShieldCheck } from 'lucide-react';
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<'user' | 'crew' | 'admin'>('user');
-  const [prototypeEnabled, setPrototypeEnabled] = useState(() => {
-    return localStorage.getItem('kango_prototype_mode') === 'true';
-  });
-
-  const togglePrototypeMode = () => {
-    const newValue = !prototypeEnabled;
-    setPrototypeEnabled(newValue);
-    localStorage.setItem('kango_prototype_mode', String(newValue));
-  };
 
   const handleContinue = () => {
     if (selectedRole === 'user') {
@@ -124,27 +115,6 @@ export function WelcomeScreen() {
         <p className="text-center text-blue-100 text-sm mt-6">
           Version 1.0 • © 2026 KANGO
         </p>
-
-        {/* Prototype Mode Toggle */}
-        <div className="mt-6 flex flex-col items-center">
-          <button
-            onClick={togglePrototypeMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              prototypeEnabled
-                ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-300'
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            <FlaskConical className="w-4 h-4" />
-            {prototypeEnabled ? 'Prototype Mode ON' : 'Enable Prototype Mode'}
-          </button>
-          {prototypeEnabled && (
-            <p className="text-yellow-200 text-xs mt-2 text-center">
-              Using mock data • No backend required<br />
-              Demo: demo@kango.com / password123
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

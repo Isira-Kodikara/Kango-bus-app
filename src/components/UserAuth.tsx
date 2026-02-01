@@ -1,7 +1,7 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Mail, Lock, User, Loader2, FlaskConical } from 'lucide-react';
-import { authApi, isPrototypeMode, enablePrototypeMode, User as ApiUser } from '../lib/api';
+import { ArrowLeft, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { authApi, User as ApiUser } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
 export function UserAuth() {
@@ -17,13 +17,6 @@ export function UserAuth() {
     password: '',
     otp: ''
   });
-  const [prototypeMode, setPrototypeMode] = useState(isPrototypeMode());
-
-  const handleEnablePrototype = () => {
-    enablePrototypeMode();
-    setPrototypeMode(true);
-    setError(null);
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -89,7 +82,13 @@ export function UserAuth() {
           navigate('/user-home');
         } else {
           // Show specific error message
-          const errorMsg = response.message || (response.errors && response.errors[0]) || 'Login failed';
+          let errorMsg: string = response.message || 'Login failed';
+          if (response.errors) {
+            const errorValues = Object.values(response.errors).flat();
+            if (errorValues.length > 0) {
+              errorMsg = errorValues[0];
+            }
+          }
           if (errorMsg.includes('Invalid') || errorMsg.includes('incorrect')) {
             setError('Invalid email or password. Please check your credentials and try again.');
           } else if (errorMsg.includes('not found')) {
@@ -203,23 +202,6 @@ export function UserAuth() {
                   )}
                 </div>
               </div>
-              {!prototypeMode && error.includes('connect') && (
-                <button
-                  onClick={handleEnablePrototype}
-                  className="mt-3 flex items-center gap-2 text-sm bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors"
-                >
-                  <FlaskConical className="w-4 h-4" />
-                  Enable Prototype Mode (for testing without backend)
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Prototype Mode Indicator */}
-          {prototypeMode && (
-            <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-xl flex items-center gap-2">
-              <FlaskConical className="w-4 h-4" />
-              <span className="text-sm">Prototype Mode - Use: demo@kango.com / password123</span>
             </div>
           )}
 
