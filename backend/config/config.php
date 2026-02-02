@@ -4,18 +4,25 @@
  */
 
 // Error reporting (disable in production)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+$isProduction = getenv('RAILWAY_ENVIRONMENT') || getenv('PRODUCTION');
+if ($isProduction) {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
 
-// Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'kango_bus');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Database Configuration - Use environment variables for Railway
+define('DB_HOST', getenv('MYSQL_HOST') ?: getenv('MYSQLHOST') ?: 'localhost');
+define('DB_NAME', getenv('MYSQL_DATABASE') ?: getenv('MYSQLDATABASE') ?: 'kango_bus');
+define('DB_USER', getenv('MYSQL_USER') ?: getenv('MYSQLUSER') ?: 'root');
+define('DB_PASS', getenv('MYSQL_PASSWORD') ?: getenv('MYSQLPASSWORD') ?: '');
+define('DB_PORT', getenv('MYSQL_PORT') ?: getenv('MYSQLPORT') ?: '3306');
 define('DB_CHARSET', 'utf8mb4');
 
 // JWT Configuration
-define('JWT_SECRET', 'kango_secret_key_change_in_production_2026');
+define('JWT_SECRET', getenv('JWT_SECRET') ?: 'kango_secret_key_change_in_production_2026');
 define('JWT_EXPIRY', 86400); // 24 hours in seconds
 
 // OTP Configuration
