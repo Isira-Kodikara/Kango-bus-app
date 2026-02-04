@@ -103,8 +103,7 @@ export function AdminAuth() {
                     )}
                     {error.includes('connect') && (
                       <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
-                        <p className="text-xs text-yellow-800">Start the backend server:</p>
-                        <code className="text-xs text-yellow-700 block mt-1">php -S localhost:8000 index.php</code>
+                        <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
                       </div>
                     )}
                   </div>

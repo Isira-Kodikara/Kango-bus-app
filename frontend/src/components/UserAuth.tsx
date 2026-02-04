@@ -170,11 +170,11 @@ export function UserAuth() {
                 <div className="ml-3 flex-1">
                   <h3 className="text-sm font-semibold text-red-800">
                     {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                     error.includes('connect') || error.includes('server') ? 'Connection Error' :
-                     error.includes('not found') ? 'Account Not Found' :
-                     error.includes('already') || error.includes('taken') ? 'Account Exists' :
-                     error.includes('required') || error.includes('fill') ? 'Validation Error' :
-                     isLogin ? 'Login Error' : 'Registration Error'}
+                      error.includes('connect') || error.includes('server') ? 'Connection Error' :
+                        error.includes('not found') ? 'Account Not Found' :
+                          error.includes('already') || error.includes('taken') ? 'Account Exists' :
+                            error.includes('required') || error.includes('fill') ? 'Validation Error' :
+                              isLogin ? 'Login Error' : 'Registration Error'}
                   </h3>
                   <p className="mt-1 text-sm text-red-700">{error}</p>
                   {(error.includes('Invalid') || error.includes('password')) && isLogin && (
@@ -196,8 +196,7 @@ export function UserAuth() {
                   )}
                   {error.includes('connect') && (
                     <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
-                      <p className="text-xs text-yellow-800">Make sure the backend server is running:</p>
-                      <code className="text-xs text-yellow-700 block mt-1">php -S localhost:8000 index.php</code>
+                      <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
                     </div>
                   )}
                 </div>
