@@ -43,7 +43,7 @@ export function AdminAuth() {
       }
     } catch (err) {
       if (err instanceof Error && err.message.includes('fetch')) {
-        setError('Cannot connect to server. Please check if the backend is running on localhost:8000');
+        setError('Cannot connect to server. Please check your network connection.');
       } else {
         setError('Connection error. Please check your internet connection and try again.');
       }
@@ -90,8 +90,8 @@ export function AdminAuth() {
                   <div className="ml-3 flex-1">
                     <h3 className="text-sm font-semibold text-red-800">
                       {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                       error.includes('connect') ? 'Connection Error' :
-                       error.includes('not found') ? 'Account Not Found' : 'Login Error'}
+                        error.includes('connect') ? 'Connection Error' :
+                          error.includes('not found') ? 'Account Not Found' : 'Login Error'}
                     </h3>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
                     {(error.includes('Invalid') || error.includes('password')) && (

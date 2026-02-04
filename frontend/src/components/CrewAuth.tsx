@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { authApi, API_BASE_URL } from '../lib/api';
 import { ArrowLeft, Mail, Lock, User, CreditCard, Bus } from 'lucide-react';
 
 // Direct API call to avoid TypeScript caching issues
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 export function CrewAuth() {
   const navigate = useNavigate();
@@ -28,12 +29,12 @@ export function CrewAuth() {
       const body = isLogin
         ? { email: formData.email, password: formData.password }
         : {
-            full_name: formData.fullName,
-            email: formData.email,
-            password: formData.password,
-            nic: formData.nic,
-            bus_id: formData.busId
-          };
+          full_name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          nic: formData.nic,
+          bus_id: formData.busId
+        };
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
@@ -63,7 +64,7 @@ export function CrewAuth() {
       let errorMessage = 'Cannot connect to server.';
       if (err instanceof Error) {
         if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
-          errorMessage = 'Cannot connect to server. Make sure the backend is running on localhost:8000';
+          errorMessage = 'Cannot connect to server. Please check your network connection.';
         } else if (err.message.includes('JSON')) {
           errorMessage = 'Server returned an invalid response. Please try again.';
         }
@@ -106,8 +107,8 @@ export function CrewAuth() {
                   <div className="ml-3 flex-1">
                     <h3 className="text-sm font-semibold text-red-800">
                       {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                       error.includes('connect') ? 'Connection Error' :
-                       error.includes('not found') ? 'Account Not Found' : 'Login Error'}
+                        error.includes('connect') ? 'Connection Error' :
+                          error.includes('not found') ? 'Account Not Found' : 'Login Error'}
                     </h3>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
                     {(error.includes('Invalid') || error.includes('password')) && (

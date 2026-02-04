@@ -4,7 +4,8 @@
  */
 
 // API Base URL - uses environment variable in production, proxy in development
-const API_BASE_URL = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '/api';
+export const API_BASE_URL = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '/api';
+console.log('🔌 Connected to API at:', API_BASE_URL);
 
 
 // Types
@@ -128,10 +129,10 @@ async function apiFetch<T>(
       // Backend returns 'error' field, not 'message' for error responses
       let errorMessage = data.error || data.message ||
         (response.status === 401 ? 'Invalid email or password' :
-         response.status === 404 ? 'Account not found' :
-         response.status === 422 ? 'Please check your input and try again' :
-         response.status === 500 ? 'Server error. Please try again later.' :
-         'Request failed. Please try again.');
+          response.status === 404 ? 'Account not found' :
+            response.status === 422 ? 'Please check your input and try again' :
+              response.status === 500 ? 'Server error. Please try again later.' :
+                'Request failed. Please try again.');
 
       // If there are specific validation errors, include them
       if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
@@ -153,7 +154,7 @@ async function apiFetch<T>(
     // Provide more specific error messages
     let errorMessage = 'Cannot connect to server.';
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      errorMessage = 'Cannot connect to server. Make sure the backend is running on localhost:8000';
+      errorMessage = `Cannot connect to server. Please check your connection to ${API_BASE_URL}`;
     }
 
     return {
