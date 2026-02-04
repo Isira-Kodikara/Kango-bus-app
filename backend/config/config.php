@@ -53,14 +53,20 @@ define('MAIL_FROM_NAME', 'KANGO Bus Navigation');
 // Timezone
 date_default_timezone_set('Asia/Colombo');
 
-// CORS Headers - Dynamic Origin to allow credentials
-// We must echo back the specific origin to allow Credentials: true
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
-header("Access-Control-Allow-Origin: $origin");
+// CORS Headers - Robust handling
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if ($origin) {
+    // If an origin is provided, mirror it and allow credentials
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    // If no origin (e.g. direct API call), allow anything but NO credentials
+    header('Access-Control-Allow-Origin: *');
+}
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json; charset=UTF-8');
 
 // Handle preflight requests
