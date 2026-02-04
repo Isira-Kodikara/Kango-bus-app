@@ -1,5 +1,5 @@
 # KANGO Smart Bus Navigation
-> **Status:** Deployment Active 🚀
+> **Status:** Deployment Active 🚀 | Last Updated: Feb 4, 2026
 
 A comprehensive smart bus navigation system with real-time tracking, user management, and crew operations.
 
