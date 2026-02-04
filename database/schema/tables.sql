@@ -2,8 +2,6 @@
 -- Version 1.0
 -- This file contains all table definitions
 
-CREATE DATABASE IF NOT EXISTS kango_bus;
-USE kango_bus;
 
 -- =====================================================
 -- USER MANAGEMENT TABLES
