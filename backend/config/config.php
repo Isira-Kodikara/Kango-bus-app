@@ -3,15 +3,12 @@
  * KANGO Smart Bus Navigation - Configuration File
  */
 
-// Error reporting (disable in production)
+// Error reporting (TEMPORARILY ENABLED FOR DEBUGGING)
 $isProduction = getenv('RAILWAY_ENVIRONMENT') || getenv('PRODUCTION');
-if ($isProduction) {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-} else {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-}
+// Force errors on for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
 
 // Database Configuration - Use environment variables for Railway
 // Railway provides: MYSQLHOST, MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT
