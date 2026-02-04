@@ -1,8 +1,9 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") { exit(0); }
+// Headers are handled in config.php
+// header("Access-Control-Allow-Origin: *");
+// header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// header("Access-Control-Allow-Headers: Content-Type");
+// if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") { exit(0); }
 
 require_once __DIR__ . '/config/config.php';
 
@@ -30,15 +31,15 @@ switch (true) {
         echo json_encode(['success' => true, 'message' => 'KANGO API is running']);
         break;
 
-    case preg_match('/^\/api\/auth\/user/', $requestUri):
+    case preg_match('/^(\/api)?\/auth\/user/', $requestUri):
         require_once __DIR__ . '/api/auth/user.php';
         break;
 
-    case preg_match('/^\/api\/auth\/crew/', $requestUri):
+    case preg_match('/^(\/api)?\/auth\/crew/', $requestUri):
         require_once __DIR__ . '/api/auth/crew.php';
         break;
 
-    case preg_match('/^\/api\/auth\/admin/', $requestUri):
+    case preg_match('/^(\/api)?\/auth\/admin/', $requestUri):
         require_once __DIR__ . '/api/auth/admin.php';
         break;
 

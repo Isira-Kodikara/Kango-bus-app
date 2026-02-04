@@ -53,20 +53,8 @@ define('MAIL_FROM_NAME', 'KANGO Bus Navigation');
 // Timezone
 date_default_timezone_set('Asia/Colombo');
 
-// CORS Headers - Allow your Vercel frontend
-$allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://kango-bus-app.vercel.app',
-    'https://frontend-vert-mu-31.vercel.app' // Your current Vercel URL
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-} else if (!$isProduction) {
-    header('Access-Control-Allow-Origin: *');
-}
+// Simplified CORS for troubleshooting
+header('Access-Control-Allow-Origin: *');
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
