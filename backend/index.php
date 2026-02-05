@@ -43,10 +43,6 @@ switch (true) {
         require_once __DIR__ . '/api/auth/admin.php';
         break;
 
-    case $requestUri === '/migrate':
-        require_once __DIR__ . '/migrate.php';
-        break;
-
     default:
         http_response_code(404);
         echo json_encode([
