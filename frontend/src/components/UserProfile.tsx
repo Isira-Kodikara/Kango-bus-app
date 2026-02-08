@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { 
-  ArrowLeft, 
-  User, 
-  MapPin, 
-  Clock, 
-  CreditCard, 
+import {
+  ArrowLeft,
+  User,
+  MapPin,
+  Clock,
+  CreditCard,
   Settings,
   LogOut,
   Home,
   Briefcase,
   Star,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 
 const mockTripHistory = [
   {
@@ -61,6 +63,7 @@ export function UserProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Toaster position="top-center" />
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
         <div className="flex items-center mb-6">
@@ -93,31 +96,28 @@ export function UserProfile() {
       <div className="bg-white shadow-sm flex">
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'history' 
-              ? 'text-blue-600 border-blue-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'history'
+            ? 'text-blue-600 border-blue-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Trip History
         </button>
         <button
           onClick={() => setActiveTab('locations')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'locations' 
-              ? 'text-blue-600 border-blue-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'locations'
+            ? 'text-blue-600 border-blue-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Saved Places
         </button>
         <button
           onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'settings' 
-              ? 'text-blue-600 border-blue-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'settings'
+            ? 'text-blue-600 border-blue-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Settings
         </button>
@@ -172,13 +172,22 @@ export function UserProfile() {
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-gray-800">Saved Places</h3>
-              <button className="text-blue-600 font-semibold text-sm">+ Add New</button>
+              <button
+                className="text-blue-600 font-semibold text-sm flex items-center hover:bg-blue-50 px-2 py-1 rounded"
+                onClick={() => toast.info("Add New Location feature coming soon!")}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Add New
+              </button>
             </div>
 
             {savedLocations.map((location) => {
               const Icon = location.icon;
               return (
-                <div key={location.id} className="bg-white rounded-2xl shadow-md p-5 flex items-center">
+                <div
+                  key={location.id}
+                  className="bg-white rounded-2xl shadow-md p-5 flex items-center active:scale-95 transition-transform cursor-pointer"
+                  onClick={() => toast.success(`Navigating to ${location.name}...`)}
+                >
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
                     <Icon className="w-6 h-6 text-blue-600" />
                   </div>
@@ -207,7 +216,10 @@ export function UserProfile() {
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Account Settings</h3>
 
             {/* Payment Methods */}
-            <div className="bg-white rounded-2xl shadow-md p-5">
+            <div
+              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => toast.info("Payment Methods integration coming soon!")}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <CreditCard className="w-6 h-6 text-blue-600 mr-3" />
@@ -221,7 +233,10 @@ export function UserProfile() {
             </div>
 
             {/* Emergency Contacts */}
-            <div className="bg-white rounded-2xl shadow-md p-5">
+            <div
+              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => toast.info("Emergency Contacts feature coming soon!")}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <User className="w-6 h-6 text-red-600 mr-3" />
@@ -235,7 +250,10 @@ export function UserProfile() {
             </div>
 
             {/* Notifications */}
-            <div className="bg-white rounded-2xl shadow-md p-5">
+            <div
+              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => toast.info("Notification settings coming soon!")}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Settings className="w-6 h-6 text-gray-600 mr-3" />
@@ -249,7 +267,10 @@ export function UserProfile() {
             </div>
 
             {/* Privacy */}
-            <div className="bg-white rounded-2xl shadow-md p-5">
+            <div
+              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => toast.info("Privacy Settings coming soon!")}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Settings className="w-6 h-6 text-gray-600 mr-3" />
@@ -263,7 +284,7 @@ export function UserProfile() {
             </div>
 
             {/* Logout */}
-            <button 
+            <button
               onClick={() => navigate('/')}
               className="w-full bg-red-50 hover:bg-red-100 rounded-2xl shadow-md p-5 flex items-center justify-center mt-6 transition-colors"
             >

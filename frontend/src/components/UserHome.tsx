@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { 
-  Menu, 
-  Navigation, 
-  MapPin, 
-  Search, 
-  Clock, 
-  Users, 
+import {
+  Menu,
+  Navigation,
+  MapPin,
+  Search,
+  Clock,
+  Users,
   Bus,
   Footprints,
   ArrowRight,
@@ -14,9 +14,11 @@ import {
   User,
   X,
   ChevronUp,
-  Locate
+  Locate,
+  Map as MapIcon
 } from 'lucide-react';
-import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER } from './Map';
+import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
+import { WalkingGuidanceOverlay } from './WalkingGuidanceOverlay';
 
 // Bus data from Map component - transform for display
 const mockBuses = SAMPLE_BUSES.map(bus => {
@@ -63,6 +65,14 @@ export function UserHome() {
   const [fromSuggestions, setFromSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
   const [toSuggestions, setToSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
 
+  // Walking Guidance State
+  const [walkingGuidance, setWalkingGuidance] = useState<{
+    isActive: boolean;
+    data: any;
+  }>({ isActive: false, data: null });
+  const watchIdRef = useRef<number | null>(null);
+
+
   // Get user's current location
   useEffect(() => {
     if (navigator.geolocation) {
@@ -83,18 +93,7 @@ export function UserHome() {
     }
   }, []);
 
-  const handleSearch = () => {
-    if (destination) {
-      setShowRoutes(true);
-      setShowBottomSheet(true);
-      // Find a matching stop for destination
-      const destStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().includes(destination.toLowerCase())
-      ) || COLOMBO_BUS_STOPS[6]; // Default to Mount Lavinia
-      setDestinationCoords([destStop.lat, destStop.lng]);
-      setMapZoom(12);
-    }
-  };
+
 
   const handleLocateMe = () => {
     if (userLocation) {
@@ -125,18 +124,145 @@ export function UserHome() {
     navigate('/trip-active', { state: { bus, destination } });
   };
 
-  // Filter suggestions based on input
-  const handleFromChange = (value: string) => {
-    setCurrentLocation(value);
+  // Calculate distance between two points (Haversine)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  const startWalkingGuidance = (guidanceData: any) => {
+    setWalkingGuidance({ isActive: true, data: guidanceData });
+    setShowBottomSheet(false); // Hide routes sheet
+
+    // Start watching position
+    if (navigator.geolocation) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation([latitude, longitude]);
+
+          // Calculate distance to stop
+          const dist = calculateDistance(
+            latitude, longitude,
+            guidanceData.boarding_stop.lat,
+            guidanceData.boarding_stop.lng
+          );
+
+          // Update guidance data with new distance
+          setWalkingGuidance(prev => ({
+            ...prev,
+            data: {
+              ...prev.data,
+              current_distance_to_stop: dist
+            }
+          }));
+
+          // Auto-arrival check (within 30m)
+          if (dist < 30) {
+            handleArrivedAtStop();
+          }
+        },
+        (error) => console.error(error),
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+    }
+  };
+
+  const handleArrivedAtStop = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+    setWalkingGuidance({ isActive: false, data: null });
+    // Proceed to bus boarding flow
+    // For now, show routes again or specific boarding UI
+    setShowRoutes(true);
+    setShowBottomSheet(true);
+    alert("You've arrived at the stop! Select your bus.");
+  };
+
+  // Cleanup watch on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  const handleSearch = async () => {
+    if (destination) {
+      // Find a matching stop for destination
+      const destStop = COLOMBO_BUS_STOPS.find(s =>
+        s.name.toLowerCase().includes(destination.toLowerCase())
+      ) || COLOMBO_BUS_STOPS[6]; // Default to Mount Lavinia
+
+      const destCoords: [number, number] = [destStop.lat, destStop.lng];
+      setDestinationCoords(destCoords);
+      setMapZoom(12);
+
+      // Check for walking guidance
+      if (userLocation) {
+        try {
+          const response = await fetch('http://localhost:8000/api/check-guidance.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              origin_lat: userLocation[0],
+              origin_lng: userLocation[1],
+              destination_lat: destCoords[0],
+              destination_lng: destCoords[1],
+              user_id: 1 // hardcoded for now
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.needs_walking_guidance) {
+            startWalkingGuidance(data);
+          } else {
+            // Already at stop
+            setShowRoutes(true);
+            setShowBottomSheet(true);
+          }
+        } catch (error) {
+          console.error("Error checking guidance:", error);
+          // Fallback to normal flow
+          setShowRoutes(true);
+          setShowBottomSheet(true);
+        }
+      } else {
+        // No user location, standard flow
+        setShowRoutes(true);
+        setShowBottomSheet(true);
+      }
+    }
+  };
+
+  const filterSuggestions = (value: string) => {
     if (value.length > 0) {
       const filtered = COLOMBO_BUS_STOPS.filter(stop =>
         stop.name.toLowerCase().includes(value.toLowerCase())
       );
-      setFromSuggestions(filtered);
-      setShowFromSuggestions(filtered.length > 0);
-    } else {
-      setShowFromSuggestions(false);
+      return filtered;
     }
+    return [];
+  };
+
+  const handleFromChange = (value: string) => {
+    setCurrentLocation(value);
+    const filtered = filterSuggestions(value);
+    setFromSuggestions(filtered);
+    setShowFromSuggestions(filtered.length > 0);
   };
 
   const handleToChange = (value: string) => {
@@ -203,9 +329,18 @@ export function UserHome() {
               <User className="w-6 h-6 text-gray-700" />
             </button>
             <h1 className="text-xl font-bold text-blue-600">KANGO</h1>
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Menu className="w-6 h-6 text-gray-700" />
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={() => navigate('/journey-planner')}
+                className="p-2 hover:bg-gray-100 rounded-full mr-1"
+                title="Journey Planner"
+              >
+                <MapIcon className="w-6 h-6 text-blue-600" />
+              </button>
+              <button className="p-2 hover:bg-gray-100 rounded-full">
+                <Menu className="w-6 h-6 text-gray-700" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -338,13 +473,13 @@ export function UserHome() {
           <div className="flex justify-center py-2 bg-white rounded-t-3xl">
             <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
           </div>
-          
+
           {/* Content */}
           <div className="bg-white flex-1 overflow-y-auto px-5 pb-6">
             {/* Header with close button */}
             <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3">
               <h2 className="text-xl font-bold text-gray-800">Available Routes</h2>
-              <button 
+              <button
                 onClick={() => {
                   setShowRoutes(false);
                   setShowBottomSheet(false);
@@ -355,7 +490,7 @@ export function UserHome() {
                 <X className="w-6 h-6 text-gray-600" />
               </button>
             </div>
-            
+
             {/* Route instruction */}
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
               <div className="flex items-start">
@@ -373,16 +508,16 @@ export function UserHome() {
               {mockBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
                 const canCatch = nearestStop.walkTime <= bus.eta + 2;
-                
+
                 return (
-                  <div 
+                  <div
                     key={bus.id}
                     className="bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-blue-400 transition-all shadow-md"
                   >
                     {/* Bus Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
-                        <div 
+                        <div
                           className="w-12 h-12 rounded-xl flex items-center justify-center mr-3 flex-shrink-0"
                           style={{ backgroundColor: bus.color + '20' }}
                         >
@@ -437,6 +572,14 @@ export function UserHome() {
             </div>
           </div>
         </div>
+      )}
+      {/* Walking Guidance Overlay */}
+      {walkingGuidance.isActive && walkingGuidance.data && (
+        <WalkingGuidanceOverlay
+          guidanceData={walkingGuidance.data}
+          userLocation={userLocation}
+          onArrived={handleArrivedAtStop}
+        />
       )}
     </div>
   );

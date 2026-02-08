@@ -43,6 +43,14 @@ switch (true) {
         require_once __DIR__ . '/api/auth/admin.php';
         break;
 
+    case preg_match('/^(\/api)?\/journey-planner/', $requestUri):
+        require_once __DIR__ . '/api/journey-planner.php';
+        break;
+
+    case preg_match('/^(\/api)?\/check-guidance/', $requestUri):
+        require_once __DIR__ . '/api/check-guidance.php';
+        break;
+
     default:
         http_response_code(404);
         echo json_encode([
