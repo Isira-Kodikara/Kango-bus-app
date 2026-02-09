@@ -455,10 +455,11 @@
     color: oklch(.145 0 0);
   }
 
-  /* Fix Leaflet map z-index stacking context - Removed global override to fix UserHome */
-  /* .leaflet-container {
-    z-index: 1 !important;
-  } */
+  .leaflet-container {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+  }
 
   .leaflet-pane {
     z-index: auto !important;

@@ -25,7 +25,7 @@ export function WelcomeScreen() {
             <Bus className="w-12 h-12 text-blue-600" strokeWidth={2.5} />
           </div>
           <h1 className="text-5xl font-bold text-white mb-2">KANGO</h1>
-          <p className="text-blue-100 text-lg"> Bus Navigation</p>
+          <p className="text-blue-100 text-lg">Smart Bus Navigation</p>
         </div>
 
         {/* Role Selection Card */}
