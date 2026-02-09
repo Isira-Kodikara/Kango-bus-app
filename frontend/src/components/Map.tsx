@@ -180,6 +180,7 @@ interface MapProps {
   onStopClick?: (stop: typeof COLOMBO_BUS_STOPS[0]) => void;
   center?: [number, number];
   zoom?: number;
+  walkingPath?: [number, number][];
 }
 
 export function Map({
@@ -190,7 +191,6 @@ export function Map({
   selectedRoute = null,
   userLocation = null,
   destination = null,
-  walkingPath = undefined,
   onBusClick,
   onStopClick,
   center = COLOMBO_CENTER,

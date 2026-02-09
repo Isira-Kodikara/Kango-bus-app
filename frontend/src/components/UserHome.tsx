@@ -363,9 +363,6 @@ export function UserHome() {
           selectedRoute={selectedRouteId}
           userLocation={userLocation}
           destination={destinationCoords}
-          walkingPath={walkingGuidance.isActive && walkingGuidance.data?.walking_path?.coordinates
-            ? walkingGuidance.data.walking_path.coordinates.map((c: number[]) => [c[1], c[0]])
-            : undefined}
           onBusClick={handleBusClick}
           center={mapCenter}
           zoom={mapZoom}
