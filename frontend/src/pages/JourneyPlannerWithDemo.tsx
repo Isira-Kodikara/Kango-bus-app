@@ -101,11 +101,11 @@ const JourneyPlannerWithDemo: React.FC = () => {
             setUserLocation([lat, lng]);
             simulatorRef.current?.setPosition(lat, lng);
             setSelectionMode(null);
-            setStatusMessage('📍 Origin set! Now set Destination or Plan Journey.');
+            setStatusMessage(`📍 Origin set to ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         } else if (selectionMode === 'destination') {
             setDestination([lat, lng]);
             setSelectionMode(null);
-            setStatusMessage('🏁 Destination set! Click "Plan Journey" to start.');
+            setStatusMessage(`🏁 Destination set to ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         }
     };
 
@@ -205,49 +205,37 @@ const JourneyPlannerWithDemo: React.FC = () => {
         // 2. Bus Path (Simulated: Boarding -> Alighting)
         // In a real app, we'd have the full bus route shape. 
         // For demo, we'll create a straight line with intermediate points for smoothness
-        const busStart = [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude];
-        const busEnd = [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude];
+        // Create an "Approaching" path for the bus
+        // We start it ~200m away from the boarding stop
+        const approachingBusStart: [number, number] = [
+            journeyPlan.boarding_stop.latitude + 0.002,
+            journeyPlan.boarding_stop.longitude + 0.002
+        ];
+
         const busPath: [number, number][] = [
-            busStart as [number, number],
-            // Add a midpoint to make it slightly less "teleporty" if long distance
-            [(busStart[0] + busEnd[0]) / 2, (busStart[1] + busEnd[1]) / 2] as [number, number],
-            busEnd as [number, number]
+            approachingBusStart,
+            [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude],
+            [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude]
         ];
 
         setIsSimulating(true);
-        setStatusMessage('🏃 Simulation Started! Run!');
+        setStatusMessage('🏃 Simulation Started! Walk to the stop!');
 
         // Start User (Walking)
+        // ... (user simulation start code remains)
         simulatorRef.current.startPathSimulation(
             walkingPath,
             (pos) => setUserLocation(pos),
             speedMultiplier
         );
 
-        // Start Bus (Driving)
-        // Bus needs to arrive in 'eta_minutes'.
-        // We calculate needed speed to cover distance in that time.
-        // Simplified: We just move it at a "bus speed" * multiplier.
-        // Normal bus speed ~30km/h ~ 8.3m/s.
-        // "Late" mode: Fast bus (user misses). "Normal" mode: Slow bus (user catches).
-
-        // Let's delay the bus start slightly to make it dramatic? 
-        // Or start immediately from "far away"? 
-        // For this demo, let's assume bus starts FROM the boarding stop (waiting) 
-        // OR approaching. Let's start it approaching 500m away.
-
-        // Hack for demo: We'll just simulate the bus moving from Start->End
-        // But we want the "Catch" logic.
-        // If speedMultiplier is high (Normal), user walks fast.
-        // If busSpeedMultiplier is high (Late), bus moves fast.
-
-        // Reset bus to start
-        setBusLocation(busStart as [number, number]);
+        // Reset bus to start of approaching path
+        setBusLocation(approachingBusStart);
 
         busSimulatorRef.current.startPathSimulation(
             busPath,
             (pos) => setBusLocation(pos),
-            busSpeedMultiplier * 5 // Bus is naturally faster than walking
+            busSpeedMultiplier * 3 // Adjusted speed for drama
         );
     };
 
@@ -265,23 +253,26 @@ const JourneyPlannerWithDemo: React.FC = () => {
                 journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude
             );
 
-            // Simple Logic: 
-            // If Bus is < 20m from stop AND User differs > 50m => Miss
-            // If User is < 20m from stop => Catch (Wait for bus)
+            // Logic to prevent immediate success at start:
+            // 1. If we just started (indices are 0), don't check for end yet?
+            // Actually let's just check if we are VERY close to the stop
 
-            if (busDistToStop < 20 && userDistToStop > 50) {
-                setStatusMessage('❌ You missed the bus! Try running next time (Speed 10x).');
+            // Miss: Bus reached stop, user still far
+            if (busDistToStop < 20 && userDistToStop > 70) {
+                setStatusMessage('❌ You missed the bus! The bus arrived while you were still away.');
                 setIsSimulating(false);
                 simulatorRef.current?.stop();
                 busSimulatorRef.current?.stop();
-            } else if (userDistToStop < 20) {
-                setStatusMessage('✅ You reached the stop! Waiting for bus...');
-                // Allow bus to arrive
-                if (busDistToStop < 20) {
-                    setStatusMessage('🎉 SUCCESS! You caught the bus!');
+            }
+            // Catch: User reached stop, then bus arrives
+            else if (userDistToStop < 20) {
+                if (busDistToStop < 40) {
+                    setStatusMessage('🎉 SUCCESS! You reached the stop and boarded the bus!');
                     setIsSimulating(false);
                     simulatorRef.current?.stop();
                     busSimulatorRef.current?.stop();
+                } else {
+                    setStatusMessage('✅ You reached the stop! Waiting for the bus to arrive...');
                 }
             }
         }
@@ -446,24 +437,49 @@ const JourneyPlannerWithDemo: React.FC = () => {
                 </div>
             )}
 
-            {/* Demo Controls */}
-            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto">
-                {/* Manual Selection Tools */}
-                <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200 flex gap-2">
-                    <button
-                        onClick={() => setSelectionMode('origin')}
-                        className={`p-2 rounded ${selectionMode === 'origin' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
-                        title="Set Origin"
-                    >
-                        📍 Set Start
-                    </button>
-                    <button
-                        onClick={() => setSelectionMode('destination')}
-                        className={`p-2 rounded ${selectionMode === 'destination' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100'}`}
-                        title="Set Destination"
-                    >
-                        🏁 Set End
-                    </button>
+            {/* Demo Controls - Moved to LEFT bottom to avoid overlap with Info Card */}
+            <div className="absolute bottom-10 left-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-80">
+                {/* Location Selection Panel */}
+                <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-200 space-y-3">
+                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">Manual Trip Setup</h3>
+
+                    <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase">Current Location</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                readOnly
+                                value={`${userLocation[0].toFixed(4)}, ${userLocation[1].toFixed(4)}`}
+                                className="flex-grow text-xs bg-gray-50 p-2 rounded border border-gray-200"
+                            />
+                            <button
+                                onClick={() => setSelectionMode('origin')}
+                                className={`px-2 rounded text-xs transition-colors ${selectionMode === 'origin' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}`}
+                            >
+                                Tap Map
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase">Destination</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                readOnly
+                                value={destination ? `${destination[0].toFixed(4)}, ${destination[1].toFixed(4)}` : 'Not Selected'}
+                                className="flex-grow text-xs bg-gray-50 p-2 rounded border border-gray-200"
+                                placeholder="Tap map to select..."
+                            />
+                            <button
+                                onClick={() => setSelectionMode('destination')}
+                                className={`px-2 rounded text-xs transition-colors ${selectionMode === 'destination' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-600'}`}
+                            >
+                                Tap Map
+                            </button>
+                        </div>
+                    </div>
+
                     <button
                         onClick={() => {
                             if (userLocation && destination) {
@@ -475,9 +491,9 @@ const JourneyPlannerWithDemo: React.FC = () => {
                                 setStatusMessage('⚠️ Set Start and End points first!');
                             }
                         }}
-                        className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700 font-bold"
+                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold shadow-md transition-all active:scale-95"
                     >
-                        Planned Journey
+                        🔍 Search & Plan Journey
                     </button>
                 </div>
 
