@@ -191,10 +191,12 @@ const JourneyPlannerWithDemo: React.FC = () => {
         }
     };
 
-    const startSimulation = () => {
+    const startSimulation = async () => {
         if (!journeyPlan || !simulatorRef.current || !busSimulatorRef.current) return;
 
-        // 1. User Path (Walking)
+        setStatusMessage('📡 Fetching realistic road paths for bus...');
+
+        // 1. User Path (Walking) - Already comes from backend/Mapbox
         const pathData = journeyPlan.walking_path || journeyPlan.walking_to_boarding;
         if (!pathData?.geometry_geojson) return;
 
@@ -202,41 +204,62 @@ const JourneyPlannerWithDemo: React.FC = () => {
             (coord: number[]) => [coord[1], coord[0]] as [number, number]
         );
 
-        // 2. Bus Path (Simulated: Boarding -> Alighting)
-        // In a real app, we'd have the full bus route shape. 
-        // For demo, we'll create a straight line with intermediate points for smoothness
-        // Create an "Approaching" path for the bus
-        // We start it ~200m away from the boarding stop
-        const approachingBusStart: [number, number] = [
-            journeyPlan.boarding_stop.latitude + 0.002,
-            journeyPlan.boarding_stop.longitude + 0.002
-        ];
+        // 2. Realistic Bus Path (Driving)
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoiaXNpcmEtayIsImEiOiJjbWxjZjM1eTYwN3NxM2VweHVpNTdwMzY4In0.zVOkPmd9goVf2ygsEqBnsA';
 
-        const busPath: [number, number][] = [
-            approachingBusStart,
-            [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude],
-            [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude]
-        ];
+        try {
+            // Bus Trip: Boarding Stop -> Alighting Stop
+            const routeUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${journeyPlan.boarding_stop.longitude},${journeyPlan.boarding_stop.latitude};${journeyPlan.alighting_stop.longitude},${journeyPlan.alighting_stop.latitude}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+            const routeRes = await fetch(routeUrl);
+            const routeData = await routeRes.json();
+            const busDrivePath = routeData.routes[0].geometry.coordinates.map((c: any) => [c[1], c[0]] as [number, number]);
 
-        setIsSimulating(true);
-        setStatusMessage('🏃 Simulation Started! Walk to the stop!');
+            // Approaching Path: ~500m away on road -> Boarding Stop
+            const approchStartLng = journeyPlan.boarding_stop.longitude + 0.005;
+            const approchStartLat = journeyPlan.boarding_stop.latitude + 0.003;
+            const approachUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${approchStartLng},${approchStartLat};${journeyPlan.boarding_stop.longitude},${journeyPlan.boarding_stop.latitude}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+            const approachRes = await fetch(approachUrl);
+            const approachData = await approachRes.json();
+            const approachPath = approachData.routes[0].geometry.coordinates.map((c: any) => [c[1], c[0]] as [number, number]);
 
-        // Start User (Walking)
-        // ... (user simulation start code remains)
-        simulatorRef.current.startPathSimulation(
-            walkingPath,
-            (pos) => setUserLocation(pos),
-            speedMultiplier
-        );
+            // Combine for simulation
+            const fullBusPath = [...approachPath, ...busDrivePath];
+            setJourneyPlan((prev: any) => ({ ...prev, bus_road_geometry: busDrivePath }));
 
-        // Reset bus to start of approaching path
-        setBusLocation(approachingBusStart);
+            setIsSimulating(true);
+            setStatusMessage('🏃 Simulation Started! Walk to the stop!');
 
-        busSimulatorRef.current.startPathSimulation(
-            busPath,
-            (pos) => setBusLocation(pos),
-            busSpeedMultiplier * 3 // Adjusted speed for drama
-        );
+            // Start User (Walking)
+            simulatorRef.current.startPathSimulation(
+                walkingPath,
+                (pos: [number, number]) => setUserLocation(pos),
+                speedMultiplier
+            );
+
+            // Reset bus to start
+            setBusLocation(fullBusPath[0]);
+
+            // Start Bus (Driving)
+            busSimulatorRef.current.startPathSimulation(
+                fullBusPath,
+                (pos: [number, number]) => setBusLocation(pos),
+                busSpeedMultiplier * 3.5 // Bus is faster
+            );
+        } catch (err) {
+            console.error("Realistic path failed", err);
+            setStatusMessage('⚠️ Road fetching failed. Using fallback...');
+
+            // Fallback to straight lines
+            const fallbackBusPath: [number, number][] = [
+                [journeyPlan.boarding_stop.latitude + 0.002, journeyPlan.boarding_stop.longitude + 0.002],
+                [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude],
+                [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude]
+            ];
+            setIsSimulating(true);
+            setBusLocation(fallbackBusPath[0]);
+            simulatorRef.current.startPathSimulation(walkingPath, (pos) => setUserLocation(pos), speedMultiplier);
+            busSimulatorRef.current.startPathSimulation(fallbackBusPath, (pos) => setBusLocation(pos), busSpeedMultiplier * 3);
+        }
     };
 
     // Check for "Catch" or "Miss" during simulation
@@ -438,24 +461,25 @@ const JourneyPlannerWithDemo: React.FC = () => {
                 </div>
             )}
 
-            {/* Demo Controls - Moved to LEFT bottom to avoid overlap with Info Card */}
-            <div className="absolute bottom-10 left-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-80">
-                {/* Location Selection Panel */}
+            {/* UI PANELS - RE-ARRANGED TO AVOID OVERLAP */}
+
+            {/* 1. TOP-RIGHT: Manual Selection Tools - Moved here to not conflict with Bottom-Left Demo Controls */}
+            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-72 md:w-80">
                 <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-200 space-y-3">
-                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">Manual Trip Setup</h3>
+                    <h3 className="font-bold text-gray-800 text-sm border-b pb-2 mb-2">Manual Trip Setup</h3>
 
                     <div className="space-y-2">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase">Current Location</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Current Location</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 readOnly
-                                value={`${userLocation[0].toFixed(4)}, ${userLocation[1].toFixed(4)}`}
-                                className="flex-grow text-xs bg-gray-50 p-2 rounded border border-gray-200"
+                                value={`${userLocation[0].toFixed(3)}, ${userLocation[1].toFixed(3)}`}
+                                className="flex-grow text-[10px] bg-gray-50 p-1.5 rounded border border-gray-200"
                             />
                             <button
                                 onClick={() => setSelectionMode('origin')}
-                                className={`px-2 rounded text-xs transition-colors ${selectionMode === 'origin' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}`}
+                                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${selectionMode === 'origin' ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                             >
                                 Tap Map
                             </button>
@@ -463,18 +487,17 @@ const JourneyPlannerWithDemo: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase">Destination</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Destination</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 readOnly
-                                value={destination ? `${destination[0].toFixed(4)}, ${destination[1].toFixed(4)}` : 'Not Selected'}
-                                className="flex-grow text-xs bg-gray-50 p-2 rounded border border-gray-200"
-                                placeholder="Tap map to select..."
+                                value={destination ? `${destination[0].toFixed(3)}, ${destination[1].toFixed(3)}` : 'Tap Map ->'}
+                                className="flex-grow text-[10px] bg-gray-50 p-1.5 rounded border border-gray-200"
                             />
                             <button
                                 onClick={() => setSelectionMode('destination')}
-                                className={`px-2 rounded text-xs transition-colors ${selectionMode === 'destination' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-600'}`}
+                                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${selectionMode === 'destination' ? 'bg-green-600 text-white animate-pulse' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
                             >
                                 Tap Map
                             </button>
@@ -492,12 +515,15 @@ const JourneyPlannerWithDemo: React.FC = () => {
                                 setStatusMessage('⚠️ Set Start and End points first!');
                             }
                         }}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold shadow-md transition-all active:scale-95"
+                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold shadow-lg transition-all active:scale-95 text-xs"
                     >
-                        🔍 Search & Plan Journey
+                        🔍 SEARCH & PLAN BUS TRIP
                     </button>
                 </div>
+            </div>
 
+            {/* 2. BOTTOM-LEFT: Demo Simulation Controls */}
+            <div className="absolute bottom-10 left-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-80">
                 <DemoModeControl
                     isDemoMode={demoModeEnabled}
                     onToggleDemo={setDemoModeEnabled}
