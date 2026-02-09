@@ -339,14 +339,15 @@ const JourneyPlannerWithDemo: React.FC = () => {
                                 weight={4}
                             />
 
-                            {/* Bus Route (Solid Red - Estimated straight line for demo) */}
+                            {/* Bus Route (Solid Red - Now follows roads if data available) */}
                             <Polyline
-                                positions={[
+                                positions={journeyPlan.bus_road_geometry || [
                                     [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude],
                                     [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude]
                                 ]}
                                 color="#ef4444"
-                                weight={4}
+                                weight={5}
+                                opacity={0.7}
                             />
                         </>
                     )}
