@@ -36,8 +36,8 @@ export function WelcomeScreen() {
             {/* User Role */}
             <label
               className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'user'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-blue-300'
                 }`}
             >
               <input
@@ -58,8 +58,8 @@ export function WelcomeScreen() {
             {/* Bus Crew Role */}
             <label
               className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'crew'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-blue-300'
                 }`}
             >
               <input
@@ -80,8 +80,8 @@ export function WelcomeScreen() {
             {/* Admin Role */}
             <label
               className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'admin'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-blue-300'
                 }`}
             >
               <input
@@ -118,7 +118,7 @@ export function WelcomeScreen() {
         </div>
 
         <p className="text-center text-blue-100 text-sm mt-6">
-          Version 1.0 • © 2026 KANGO
+          Version 1.2 • © 2026 KANGO
         </p>
       </div>
     </div>
