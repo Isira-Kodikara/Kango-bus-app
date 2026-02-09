@@ -218,7 +218,7 @@ export function UserHome() {
       // Check for walking guidance
       if (userLocation) {
         try {
-          const response = await fetch('http://localhost:8000/api/check-guidance.php', {
+          const response = await fetch('/api/check-guidance.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

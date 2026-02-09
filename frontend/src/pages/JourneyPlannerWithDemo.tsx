@@ -114,7 +114,7 @@ const JourneyPlannerWithDemo: React.FC = () => {
     const fetchJourneyPlan = async (origin: { lat: number, lng: number }, dest: { lat: number, lng: number }) => {
         setStatusMessage('🔄 Planning journey...');
         try {
-            const response = await fetch('http://localhost:8000/api/journey-planner.php', {
+            const response = await fetch('/api/journey-planner.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

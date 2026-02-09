@@ -3,17 +3,20 @@
 require_once __DIR__ . '/../includes/Database.php';
 require_once __DIR__ . '/GeoUtils.php';
 
-class RouteFinderService {
+class RouteFinderService
+{
     private $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
     }
 
     /**
      * Find nearest bus stops to a location
      */
-    public function findNearestStops($lat, $lng, $limit = 5) {
+    public function findNearestStops($lat, $lng, $limit = 5)
+    {
         $sql = "SELECT id, stop_name, latitude, longitude, 
                 (6371 * acos(
                     cos(radians(:lat)) * cos(radians(latitude)) * 
@@ -22,7 +25,7 @@ class RouteFinderService {
                 )) AS distance
                 FROM stops
                 WHERE is_active = 1
-                HAVING distance < 2 -- Within 2km
+                HAVING distance < 150 -- Within 150km (Supports cross-city planning like Galle to Colombo)
                 ORDER BY distance ASC
                 LIMIT :limit";
 
@@ -40,7 +43,8 @@ class RouteFinderService {
      * Nodes: stop_ids
      * Edges: travel_time (weighted by traffic)
      */
-    private function buildGraph() {
+    private function buildGraph()
+    {
         $traffic = GeoUtils::getTrafficMultiplier();
         $graph = [];
 
@@ -51,8 +55,9 @@ class RouteFinderService {
 
         foreach ($segments as $seg) {
             $speed = $seg['default_speed_kmh'] * $traffic;
-            if ($speed <= 0) $speed = 20; // Safety fallback
-            
+            if ($speed <= 0)
+                $speed = 20; // Safety fallback
+
             $travelTimeSeconds = ($seg['distance_km'] / $speed) * 3600;
 
             if (!isset($graph[$seg['from_stop_id']])) {
@@ -73,12 +78,13 @@ class RouteFinderService {
     /**
      * Dijkstra's Algorithm to find shortest path between two stops
      */
-    public function findShortestPath($startNode, $endNode) {
+    public function findShortestPath($startNode, $endNode)
+    {
         $graph = $this->buildGraph(); // Build graph on the fly with current traffic
-        
+
         // Priority Queue (simulated with array)
         // Format: [cost, node]
-        $pq = []; 
+        $pq = [];
         $pq[] = [0, $startNode];
 
         $distances = [];
@@ -98,18 +104,21 @@ class RouteFinderService {
         while (!empty($pq)) {
             // 1. Extract min
             // Sort by cost (this is O(N log N) inside loop, suboptimal but fine for N < 1000)
-            usort($pq, function($a, $b) {
+            usort($pq, function ($a, $b) {
                 return $a[0] <=> $b[0];
             });
-            
+
             list($currentDist, $u) = array_shift($pq);
 
-            if ($u == $endNode) break; // Found target
-            
-            if (isset($visited[$u])) continue;
+            if ($u == $endNode)
+                break; // Found target
+
+            if (isset($visited[$u]))
+                continue;
             $visited[$u] = true;
 
-            if (!isset($graph[$u])) continue; // Dead end
+            if (!isset($graph[$u]))
+                continue; // Dead end
 
             // 2. Explore neighbors
             foreach ($graph[$u] as $edge) {
@@ -135,22 +144,22 @@ class RouteFinderService {
         $curr = $endNode;
         $totalTime = 0;
         $totalDistance = 0;
-        
+
         // Use a set to count distinct routes (transfers)
         $routesUsed = [];
 
         while (isset($previous[$curr])) {
             $prev = $previous[$curr];
             $rid = $routeTaken[$curr];
-            
+
             // Find specific edge info again (optional, for more detail)
             // For now just aggregate totals
             // Note: $distances[$endNode] has total time
-            
+
             $routesUsed[] = $rid;
             $curr = $prev;
         }
-        
+
         // Simple return structure
         return [
             'total_bus_time_seconds' => $distances[$endNode],
@@ -158,14 +167,15 @@ class RouteFinderService {
             'boarding_stop' => $startNode,
             'alighting_stop' => $endNode,
             // Assuming simplified single route for now as per phase 1 requirements usually implying direct or simple paths
-            'primary_route_id' => !empty($routesUsed) ? $routesUsed[0] : null 
+            'primary_route_id' => !empty($routesUsed) ? $routesUsed[0] : null
         ];
     }
 
     /**
      * Main Entry Point: Find best route from A (lat,lng) to B (lat,lng)
      */
-    public function findBestRoute($originLat, $originLng, $destLat, $destLng) {
+    public function findBestRoute($originLat, $originLng, $destLat, $destLng)
+    {
         // 1. Find nearest stops to Origin and Destination
         $startStops = $this->findNearestStops($originLat, $originLng, 3);
         $endStops = $this->findNearestStops($destLat, $destLng, 3);
@@ -180,7 +190,8 @@ class RouteFinderService {
         // 2. Iterate combinations (Start Stop -> End Stop)
         foreach ($startStops as $startStop) {
             foreach ($endStops as $endStop) {
-                if ($startStop['id'] == $endStop['id']) continue;
+                if ($startStop['id'] == $endStop['id'])
+                    continue;
 
                 // Simple Walking Time (Origin -> Start Stop)
                 // Use Haversine for speed (Phase 1/2 simplification before Mapbox call in controller)
