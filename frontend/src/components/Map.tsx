@@ -180,6 +180,7 @@ interface MapProps {
   onStopClick?: (stop: typeof COLOMBO_BUS_STOPS[0]) => void;
   center?: [number, number];
   zoom?: number;
+  walkingPath?: [number, number][]; // Array of [lat, lng]
 }
 
 export function Map({
@@ -194,6 +195,7 @@ export function Map({
   onStopClick,
   center = COLOMBO_CENTER,
   zoom = 13,
+  walkingPath = [],
 }: MapProps) {
   const mapRef = useRef<L.Map>(null);
 
@@ -303,6 +305,20 @@ export function Map({
             <strong>Destination</strong>
           </Popup>
         </Marker>
+      )}
+
+      {/* Walking Path */}
+      {walkingPath && walkingPath.length > 0 && (
+        <Polyline
+          positions={walkingPath}
+          pathOptions={{
+            color: '#3b82f6', // Blue
+            dashArray: '10, 10', // Dashed line
+            weight: 5,
+            opacity: 0.8,
+            lineCap: 'round'
+          }}
+        />
       )}
     </MapContainer>
   );

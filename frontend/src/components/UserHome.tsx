@@ -58,6 +58,7 @@ export function UserHome() {
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(COLOMBO_CENTER);
   const [mapZoom, setMapZoom] = useState(13);
+  const [walkingPath, setWalkingPath] = useState<[number, number][]>([]);
 
   // Autocomplete state
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
@@ -142,6 +143,20 @@ export function UserHome() {
 
   const startWalkingGuidance = (guidanceData: any) => {
     setWalkingGuidance({ isActive: true, data: guidanceData });
+
+    // Set walking path for map
+    if (guidanceData.walking_path && guidanceData.walking_path.steps) {
+      // Convert steps to coordinates for polyline
+      // Note: steps usually contain end locations. We might need a full geometry if available.
+      // For now, let's construct a path from user location -> steps -> station
+      const path: [number, number][] = [];
+      if (userLocation) path.push(userLocation);
+      guidanceData.walking_path.steps.forEach((step: any) => {
+        path.push([step.location[0], step.location[1]]);
+      });
+      setWalkingPath(path);
+    }
+
     setShowBottomSheet(false); // Hide routes sheet
 
     // Start watching position
@@ -183,11 +198,18 @@ export function UserHome() {
       navigator.geolocation.clearWatch(watchIdRef.current);
     }
     setWalkingGuidance({ isActive: false, data: null });
+    setWalkingPath([]); // Clear path
+
     // Proceed to bus boarding flow
-    // For now, show routes again or specific boarding UI
+    // Automatically select the route we were guiding for
+    // Check if we have a next bus in the guidance data
+    // Note regarding access to latest state inside callback:
+    // We should ideally use a ref or check the current state if available.
+    // For now, we'll just show the routes sheet.
+
     setShowRoutes(true);
     setShowBottomSheet(true);
-    alert("You've arrived at the stop! Select your bus.");
+    // Removed alert for smoother transition
   };
 
   // Cleanup watch on unmount
@@ -198,6 +220,31 @@ export function UserHome() {
       }
     };
   }, []);
+
+  // Timer for Bus ETA updates during walking
+  useEffect(() => {
+    let interval: any;
+    if (walkingGuidance.isActive && walkingGuidance.data?.next_bus) {
+      interval = setInterval(() => {
+        setWalkingGuidance(prev => {
+          if (!prev.data || !prev.data.next_bus) return prev;
+
+          const newEta = Math.max(0, prev.data.next_bus.eta_minutes - 1);
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              next_bus: {
+                ...prev.data.next_bus,
+                eta_minutes: newEta
+              }
+            }
+          };
+        });
+      }, 60000); // Update every minute
+    }
+    return () => clearInterval(interval);
+  }, [walkingGuidance.isActive]);
 
   const handleSearch = async () => {
     if (destination) {
@@ -314,6 +361,7 @@ export function UserHome() {
           onBusClick={handleBusClick}
           center={mapCenter}
           zoom={mapZoom}
+          walkingPath={walkingPath}
         />
       </div>
 
