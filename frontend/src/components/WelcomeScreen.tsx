@@ -31,15 +31,14 @@ export function WelcomeScreen() {
         {/* Role Selection Card */}
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6">Select Your Role</h2>
-          
+
           <div className="space-y-3">
             {/* User Role */}
-            <label 
-              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                selectedRole === 'user' 
-                  ? 'border-blue-500 bg-blue-50' 
+            <label
+              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'user'
+                  ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-blue-300'
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -57,12 +56,11 @@ export function WelcomeScreen() {
             </label>
 
             {/* Bus Crew Role */}
-            <label 
-              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                selectedRole === 'crew' 
-                  ? 'border-blue-500 bg-blue-50' 
+            <label
+              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'crew'
+                  ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-blue-300'
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -80,12 +78,11 @@ export function WelcomeScreen() {
             </label>
 
             {/* Admin Role */}
-            <label 
-              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                selectedRole === 'admin' 
-                  ? 'border-blue-500 bg-blue-50' 
+            <label
+              className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedRole === 'admin'
+                  ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-blue-300'
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -109,6 +106,14 @@ export function WelcomeScreen() {
             className="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-2xl transition-colors shadow-lg"
           >
             Continue
+          </button>
+
+          {/* Journey Simulator Button (For Demo) */}
+          <button
+            onClick={() => navigate('/journey-planner')}
+            className="w-full mt-3 bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-4 rounded-2xl transition-colors"
+          >
+            Try Journey Simulator (Demo)
           </button>
         </div>
 
