@@ -300,9 +300,9 @@ const JourneyPlannerWithDemo: React.FC = () => {
     }, [isSimulating, userLocation, busLocation, journeyPlan]);
 
     return (
-        <div className="relative h-screen w-full flex flex-col md:flex-row">
-            {/* Map Area */}
-            <div className="flex-grow relative h-full">
+        <div className="flex flex-col md:flex-row h-screen w-full bg-gray-100 overflow-hidden">
+            {/* 1. LEFT SIDE: Map Area (Primary) */}
+            <div className="flex-grow relative h-[50vh] md:h-full border-r border-gray-200 shadow-inner">
                 <MapContainer
                     center={userLocation}
                     zoom={15}
@@ -366,7 +366,7 @@ const JourneyPlannerWithDemo: React.FC = () => {
                                 weight={4}
                             />
 
-                            {/* Bus Route (Solid Red - Now follows roads if data available) */}
+                            {/* Bus Route (Solid Red) */}
                             <Polyline
                                 positions={journeyPlan.bus_road_geometry || [
                                     [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude],
@@ -379,169 +379,197 @@ const JourneyPlannerWithDemo: React.FC = () => {
                         </>
                     )}
                 </MapContainer>
-
-                {/* Status Overlay */}
-                {statusMessage && (
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg z-[99999] font-medium text-gray-800 border border-gray-200">
-                        {statusMessage}
-                    </div>
-                )}
             </div>
 
-            {/* UI SIDEBAR COLUMN */}
-            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-4 w-80 md:w-96 max-h-[calc(100vh-2rem)] overflow-y-auto pointer-events-none p-1 custom-scrollbar">
+            {/* 2. RIGHT SIDE: Controls & Info Sidebar */}
+            <div className="w-full md:w-[400px] flex flex-col h-[50vh] md:h-full bg-gray-50 overflow-hidden shadow-2xl z-10">
 
-                {/* 1. Journey Plan Info Card */}
-                {journeyPlan && (
-                    <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-300">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                🚌 Journey Plan
-                            </h2>
-                            <div className="text-blue-100 text-sm mt-1">
-                                {journeyPlan.route.route_number} - {journeyPlan.route.route_name}
-                            </div>
-                        </div>
-
-                        <div className="p-5 space-y-4 text-gray-800">
-                            {/* Status Banner */}
-                            <div className={`flex items-start gap-3 p-3 rounded-lg border ${journeyPlan.can_catch_next_bus
-                                ? 'bg-green-50 border-green-200 text-green-800'
-                                : 'bg-orange-50 border-orange-200 text-orange-800'
-                                }`}>
-                                <span className="text-xl mt-0.5">
-                                    {journeyPlan.can_catch_next_bus ? '✅' : '⚠️'}
-                                </span>
-                                <div>
-                                    <strong className="block text-sm font-bold">
-                                        {journeyPlan.can_catch_next_bus ? 'You can catch the bus!' : 'You might miss the next bus'}
-                                    </strong>
-                                    <span className="text-xs opacity-90">
-                                        {journeyPlan.can_catch_next_bus
-                                            ? `Bus arrives in ${journeyPlan.next_bus?.eta_minutes} mins.`
-                                            : 'Consider walking faster or waiting for the next one.'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Timeline */}
-                            <div className="relative border-l-2 border-gray-200 ml-3 pl-6 space-y-6 py-2">
-                                {/* Walk */}
-                                <div className="relative">
-                                    <span className="absolute -left-[31px] bg-blue-100 text-blue-600 p-1.5 rounded-full ring-4 ring-white">
-                                        🏃
-                                    </span>
-                                    <div className="text-sm font-semibold text-gray-900">Walk to {journeyPlan.boarding_stop.stop_name}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {Math.round(journeyPlan.walking_to_boarding.distance_meters)}m • {Math.round(journeyPlan.walking_to_boarding.duration_seconds / 60)} min
-                                    </div>
-                                </div>
-
-                                {/* Bus */}
-                                <div className="relative">
-                                    <span className="absolute -left-[31px] bg-red-100 text-red-600 p-1.5 rounded-full ring-4 ring-white">
-                                        🚌
-                                    </span>
-                                    <div className="text-sm font-semibold text-gray-900">Bus Ride</div>
-                                    <div className="text-xs text-gray-500">
-                                        {Math.round(journeyPlan.bus_travel_time_seconds / 60)} min travel time
-                                    </div>
-                                </div>
-
-                                {/* Arrive */}
-                                <div className="relative">
-                                    <span className="absolute -left-[31px] bg-green-100 text-green-600 p-1.5 rounded-full ring-4 ring-white">
-                                        🏁
-                                    </span>
-                                    <div className="text-sm font-semibold text-gray-900">Arrive at {journeyPlan.alighting_stop.stop_name}</div>
-                                </div>
-                            </div>
-
-                            {/* Total Time */}
-                            <div className="border-t pt-4 flex justify-between items-center text-gray-800">
-                                <span className="font-medium">Total Time</span>
-                                <span className="text-xl font-black">
-                                    {Math.round(journeyPlan.total_journey_time_seconds / 60)} <span className="text-sm font-normal text-gray-500">min</span>
-                                </span>
-                            </div>
-                        </div>
+                {/* Header with App Title */}
+                <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-black text-blue-600 tracking-tight">KANGO</h1>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Journey Planner</p>
                     </div>
-                )}
-
-                {/* 2. Manual Trip Setup */}
-                <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-200 space-y-3 pointer-events-auto">
-                    <h3 className="font-bold text-gray-800 text-sm border-b pb-2 mb-2">Manual Trip Setup</h3>
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Current Location</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                readOnly
-                                value={`${userLocation[0].toFixed(3)}, ${userLocation[1].toFixed(3)}`}
-                                className="flex-grow text-[10px] bg-gray-50 p-1.5 rounded border border-gray-200"
-                            />
-                            <button
-                                onClick={() => setSelectionMode('origin')}
-                                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${selectionMode === 'origin' ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-                            >
-                                Tap Map
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Destination</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                readOnly
-                                value={destination ? `${destination[0].toFixed(3)}, ${destination[1].toFixed(3)}` : 'Tap Map ->'}
-                                className="flex-grow text-[10px] bg-gray-50 p-1.5 rounded border border-gray-200"
-                            />
-                            <button
-                                onClick={() => setSelectionMode('destination')}
-                                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${selectionMode === 'destination' ? 'bg-green-600 text-white animate-pulse' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-                            >
-                                Tap Map
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={() => {
-                            if (userLocation && destination) {
-                                fetchJourneyPlan(
-                                    { lat: userLocation[0], lng: userLocation[1] },
-                                    { lat: destination[0], lng: destination[1] }
-                                );
-                            } else {
-                                setStatusMessage('⚠️ Set Start and End points first!');
-                            }
-                        }}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold shadow-lg transition-all active:scale-95 text-xs"
-                    >
-                        🔍 SEARCH & PLAN BUS TRIP
-                    </button>
                 </div>
 
-                {/* 3. Demo Simulation Controls */}
-                <div className="pointer-events-auto">
-                    <DemoModeControl
-                        isDemoMode={demoModeEnabled}
-                        onToggleDemo={setDemoModeEnabled}
-                        isSimulating={isSimulating}
-                        onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
-                        onSpeedChange={(speed) => setSpeedMultiplier(speed)}
-                        speedMultiplier={speedMultiplier}
-                        onStartSimulation={startSimulation}
-                        onStopSimulation={() => {
-                            setIsSimulating(false);
-                            simulatorRef.current?.stop();
-                            busSimulatorRef.current?.stop();
-                        }}
-                        busSpeedMultiplier={busSpeedMultiplier}
-                        onBusSpeedChange={setBusSpeedMultiplier}
-                    />
+                {/* Scrollable Content Area */}
+                <div className="flex-grow p-4 space-y-4 overflow-y-auto custom-scrollbar bg-gray-50/50">
+
+                    {/* Status Message (If any) */}
+                    {statusMessage && (
+                        <div className="bg-blue-600 text-white px-4 py-3 rounded-xl shadow-lg font-medium text-xs flex items-center gap-3 animate-in zoom-in duration-300">
+                            <span className="text-lg">ℹ️</span>
+                            <span>{statusMessage}</span>
+                        </div>
+                    )}
+
+                    {/* Manual Trip Setup */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-4">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <h3 className="font-bold text-gray-800 text-sm">Trip Setup</h3>
+                            <button
+                                onClick={() => { setDestination(null); setJourneyPlan(null); }}
+                                className="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase transition-colors"
+                            >
+                                Reset
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase">Start (Origin)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={`${userLocation[0].toFixed(4)}, ${userLocation[1].toFixed(4)}`}
+                                        className="flex-grow text-[11px] bg-gray-50 p-2 rounded-lg border border-gray-100 font-mono"
+                                    />
+                                    <button
+                                        onClick={() => setSelectionMode('origin')}
+                                        className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap ${selectionMode === 'origin' ? 'bg-blue-600 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                    >
+                                        Set Origin
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase">End (Destination)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={destination ? `${destination[0].toFixed(4)}, ${destination[1].toFixed(4)}` : 'Select on map...'}
+                                        className="flex-grow text-[11px] bg-gray-50 p-2 rounded-lg border border-gray-100 font-mono"
+                                    />
+                                    <button
+                                        onClick={() => setSelectionMode('destination')}
+                                        className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap ${selectionMode === 'destination' ? 'bg-green-600 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                    >
+                                        Set End
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                if (userLocation && destination) {
+                                    fetchJourneyPlan(
+                                        { lat: userLocation[0], lng: userLocation[1] },
+                                        { lat: destination[0], lng: destination[1] }
+                                    );
+                                } else {
+                                    setStatusMessage('Please select a destination on the map.');
+                                }
+                            }}
+                            className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold shadow-lg transition-all active:scale-95 text-xs uppercase"
+                        >
+                            🔍 Plan Bus Journey
+                        </button>
+                    </div>
+
+                    {/* Journey Results Card */}
+                    {journeyPlan && (
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-in slide-in-from-right-4 duration-300">
+                            <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 text-white">
+                                <h2 className="text-sm font-bold flex items-center gap-2">
+                                    🚌 Route {journeyPlan.route.route_number}
+                                </h2>
+                                <p className="text-[10px] text-gray-400 mt-0.5 truncate">{journeyPlan.route.route_name}</p>
+                            </div>
+
+                            <div className="p-5 space-y-5 text-gray-800">
+                                {/* Status Banner */}
+                                <div className={`flex items-start gap-3 p-3 rounded-xl border ${journeyPlan.can_catch_next_bus
+                                    ? 'bg-green-50 border-green-100 text-green-800'
+                                    : 'bg-orange-50 border-orange-100 text-orange-800'
+                                    }`}>
+                                    <span className="text-xl mt-0.5">
+                                        {journeyPlan.can_catch_next_bus ? '✅' : '⚠️'}
+                                    </span>
+                                    <div>
+                                        <strong className="block text-xs font-bold">
+                                            {journeyPlan.can_catch_next_bus ? 'On-time for boarding' : 'Risk of missing bus'}
+                                        </strong>
+                                        <span className="text-[10px] opacity-80">
+                                            {journeyPlan.can_catch_next_bus
+                                                ? `Bus arrives in ${journeyPlan.next_bus?.eta_minutes} mins.`
+                                                : 'Consider a faster pace or checking later routes.'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Modern Timeline */}
+                                <div className="space-y-6 pl-2 pr-2">
+                                    <div className="relative border-l-2 border-dashed border-gray-200 ml-4 pl-8 pb-1">
+                                        <span className="absolute -left-[17px] -top-1 bg-blue-100 text-blue-600 p-2 rounded-full border-4 border-white shadow-sm text-xs">
+                                            🚶
+                                        </span>
+                                        <div className="text-xs font-bold">Walk to {journeyPlan.boarding_stop.stop_name}</div>
+                                        <div className="text-[10px] text-gray-400 flex gap-2 items-center mt-1">
+                                            <span>{Math.round(journeyPlan.walking_to_boarding.distance_meters)}m</span>
+                                            <span className="text-gray-200">•</span>
+                                            <span>~{Math.round(journeyPlan.walking_to_boarding.duration_seconds / 60)} mins</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative border-l-2 border-dashed border-gray-200 ml-4 pl-8 pb-1">
+                                        <span className="absolute -left-[17px] -top-1 bg-red-100 text-red-600 p-2 rounded-full border-4 border-white shadow-sm text-xs">
+                                            🚌
+                                        </span>
+                                        <div className="text-xs font-bold">Bus Ride (Boarding)</div>
+                                        <div className="text-[10px] text-gray-400 mt-1">
+                                            Board Route {journeyPlan.route.route_number} for ~{Math.round(journeyPlan.bus_travel_time_seconds / 60)} mins
+                                        </div>
+                                    </div>
+
+                                    <div className="relative ml-4 pl-8">
+                                        <span className="absolute -left-[17px] -top-1 bg-green-100 text-green-600 p-2 rounded-full border-4 border-white shadow-sm text-xs">
+                                            🏁
+                                        </span>
+                                        <div className="text-xs font-bold">Arrive at Destination</div>
+                                        <div className="text-[10px] text-gray-400 mt-1">{journeyPlan.alighting_stop.stop_name}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center border border-gray-100">
+                                    <span className="text-xs font-bold text-gray-500 uppercase">Est. Total Time</span>
+                                    <span className="text-lg font-black text-gray-900">
+                                        {Math.round(journeyPlan.total_journey_time_seconds / 60)} <span className="text-[10px] font-medium text-gray-400 uppercase">min</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Demo Simulation Controls */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <DemoModeControl
+                            isDemoMode={demoModeEnabled}
+                            onToggleDemo={setDemoModeEnabled}
+                            isSimulating={isSimulating}
+                            onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
+                            onSpeedChange={(speed) => setSpeedMultiplier(speed)}
+                            speedMultiplier={speedMultiplier}
+                            onStartSimulation={startSimulation}
+                            onStopSimulation={() => {
+                                setIsSimulating(false);
+                                simulatorRef.current?.stop();
+                                busSimulatorRef.current?.stop();
+                            }}
+                            busSpeedMultiplier={busSpeedMultiplier}
+                            onBusSpeedChange={setBusSpeedMultiplier}
+                        />
+                    </div>
+                </div>
+
+                {/* Sidebar Footer */}
+                <div className="p-4 bg-white border-t border-gray-100">
+                    <p className="text-[9px] text-gray-300 text-center font-medium uppercase tracking-widest">
+                        © 2026 KANGO Systems • Colombo, Sri Lanka
+                    </p>
                 </div>
             </div>
         </div>
