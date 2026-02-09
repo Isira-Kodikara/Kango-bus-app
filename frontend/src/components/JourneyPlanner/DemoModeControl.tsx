@@ -61,7 +61,7 @@ const DemoModeControl: React.FC<DemoModeControlProps> = ({
 }) => {
     if (!isDemoMode) {
         return (
-            <div className="absolute top-4 right-4 z-[1000] bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <div className="bg-white p-3 rounded-lg shadow-md border border-gray-200">
                 <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                         type="checkbox"
@@ -76,7 +76,7 @@ const DemoModeControl: React.FC<DemoModeControlProps> = ({
     }
 
     return (
-        <div className="absolute top-4 right-4 z-[1000] bg-white p-4 rounded-lg shadow-xl border border-blue-200 w-80 animate-in fade-in slide-in-from-top-5 duration-300">
+        <div className="bg-white p-4 rounded-lg shadow-xl border border-blue-200 w-80 animate-in fade-in slide-in-from-top-5 duration-300">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
                 <div className="flex items-center space-x-2 text-blue-700 font-bold">
                     <Navigation size={20} />

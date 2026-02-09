@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import DemoModeControl, { DEMO_SCENARIOS } from '../components/JourneyPlanner/DemoModeControl';
@@ -264,15 +264,15 @@ const JourneyPlannerWithDemo: React.FC = () => {
     useEffect(() => {
         if (isSimulating && userLocation && busLocation && journeyPlan) {
             // Distance Check
-            const userDistToStop = simulatorRef.current.haversineDistance(
+            const userDistToStop = simulatorRef.current ? simulatorRef.current.haversineDistance(
                 userLocation[0], userLocation[1],
                 journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude
-            );
+            ) : 0;
 
-            const busDistToStop = simulatorRef.current.haversineDistance(
+            const busDistToStop = simulatorRef.current ? simulatorRef.current.haversineDistance(
                 busLocation[0], busLocation[1],
                 journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude
-            );
+            ) : 0;
 
             // Logic to prevent immediate success at start:
             // 1. If we just started (indices are 0), don't check for end yet?
@@ -303,11 +303,17 @@ const JourneyPlannerWithDemo: React.FC = () => {
         <div className="relative h-screen w-full flex flex-col md:flex-row">
             {/* Map Area */}
             <div className="flex-grow relative h-full">
-                <MapContainer center={userLocation} zoom={15} style={{ height: '100%', width: '100%' }}>
+                <MapContainer
+                    center={userLocation}
+                    zoom={15}
+                    style={{ height: '100%', width: '100%' }}
+                    zoomControl={false}
+                >
                     <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
+                    <ZoomControl position="bottomright" />
                     <MapUpdater center={userLocation} />
                     <MapEvents onMapClick={handleMapClick} />
 
