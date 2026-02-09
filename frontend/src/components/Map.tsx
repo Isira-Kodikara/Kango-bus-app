@@ -178,8 +178,7 @@ interface MapProps {
   destination?: [number, number] | null;
   onBusClick?: (bus: typeof SAMPLE_BUSES[0]) => void;
   onStopClick?: (stop: typeof COLOMBO_BUS_STOPS[0]) => void;
-  center?: [number, number];
-  zoom?: number;
+  walkingPath?: [number, number][];
 }
 
 export function Map({
@@ -190,6 +189,7 @@ export function Map({
   selectedRoute = null,
   userLocation = null,
   destination = null,
+  walkingPath = undefined,
   onBusClick,
   onStopClick,
   center = COLOMBO_CENTER,
@@ -224,6 +224,20 @@ export function Map({
 
       {/* Map controller for programmatic updates */}
       <MapController center={center} zoom={zoom} />
+
+      {/* Walking Path */}
+      {walkingPath && (
+        <Polyline
+          positions={walkingPath}
+          pathOptions={{
+            color: '#3b82f6', // Blue
+            weight: 5,
+            dashArray: '10, 15', // Dashed line
+            opacity: 0.8,
+            lineCap: 'round'
+          }}
+        />
+      )}
 
       {/* Route polylines */}
       {showRoutes && routesToShow.map(route => (

@@ -175,6 +175,11 @@ export function UserHome() {
         (error) => console.error(error),
         { enableHighAccuracy: true, maximumAge: 5000 }
       );
+
+      // TODO: Implement isOffRoute() check to recalculate path if user deviates significantly
+      // if (isOffRoute(latitude, longitude, guidanceData.walking_path)) {
+      //   recalculateRoute();
+      // }
     }
   };
 
@@ -311,6 +316,9 @@ export function UserHome() {
           selectedRoute={selectedRouteId}
           userLocation={userLocation}
           destination={destinationCoords}
+          walkingPath={walkingGuidance.isActive && walkingGuidance.data?.walking_path?.coordinates
+            ? walkingGuidance.data.walking_path.coordinates.map((c: number[]) => [c[1], c[0]])
+            : undefined}
           onBusClick={handleBusClick}
           center={mapCenter}
           zoom={mapZoom}
