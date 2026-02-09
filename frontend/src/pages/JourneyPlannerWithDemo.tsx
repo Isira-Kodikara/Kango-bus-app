@@ -388,90 +388,89 @@ const JourneyPlannerWithDemo: React.FC = () => {
                 )}
             </div>
 
-            {/* Info Panel (Overlay on mobile, sidebar on desktop) */}
-            {journeyPlan && (
-                <div className="absolute top-4 right-4 w-96 max-w-full bg-white rounded-xl shadow-2xl z-[99999] overflow-hidden border border-gray-100 journey-info-card m-4 md:m-0">
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white">
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            🚌 Journey Plan
-                        </h2>
-                        <div className="text-blue-100 text-sm mt-1">
-                            {journeyPlan.route.route_number} - {journeyPlan.route.route_name}
-                        </div>
-                    </div>
+            {/* UI SIDEBAR COLUMN */}
+            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-4 w-80 md:w-96 max-h-[calc(100vh-2rem)] overflow-y-auto pointer-events-none p-1 custom-scrollbar">
 
-                    <div className="p-5 space-y-4">
-                        {/* Status Banner */}
-                        <div className={`flex items-start gap-3 p-3 rounded-lg border ${journeyPlan.can_catch_next_bus
-                            ? 'bg-green-50 border-green-200 text-green-800'
-                            : 'bg-orange-50 border-orange-200 text-orange-800'
-                            }`}>
-                            <span className="text-xl mt-0.5">
-                                {journeyPlan.can_catch_next_bus ? '✅' : '⚠️'}
-                            </span>
-                            <div>
-                                <strong className="block text-sm font-bold">
-                                    {journeyPlan.can_catch_next_bus ? 'You can catch the bus!' : 'You might miss the next bus'}
-                                </strong>
-                                <span className="text-xs opacity-90">
-                                    {journeyPlan.can_catch_next_bus
-                                        ? `Bus arrives in ${journeyPlan.next_bus?.eta_minutes} mins.`
-                                        : 'Consider walking faster or waiting for the next one.'}
-                                </span>
+                {/* 1. Journey Plan Info Card */}
+                {journeyPlan && (
+                    <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                🚌 Journey Plan
+                            </h2>
+                            <div className="text-blue-100 text-sm mt-1">
+                                {journeyPlan.route.route_number} - {journeyPlan.route.route_name}
                             </div>
                         </div>
 
-                        {/* Timeline */}
-                        <div className="relative border-l-2 border-gray-200 ml-3 pl-6 space-y-6 py-2">
-                            {/* Walk */}
-                            <div className="relative">
-                                <span className="absolute -left-[31px] bg-blue-100 text-blue-600 p-1.5 rounded-full ring-4 ring-white">
-                                    🏃
+                        <div className="p-5 space-y-4 text-gray-800">
+                            {/* Status Banner */}
+                            <div className={`flex items-start gap-3 p-3 rounded-lg border ${journeyPlan.can_catch_next_bus
+                                ? 'bg-green-50 border-green-200 text-green-800'
+                                : 'bg-orange-50 border-orange-200 text-orange-800'
+                                }`}>
+                                <span className="text-xl mt-0.5">
+                                    {journeyPlan.can_catch_next_bus ? '✅' : '⚠️'}
                                 </span>
-                                <div className="text-sm font-semibold text-gray-900">Walk to {journeyPlan.boarding_stop.stop_name}</div>
-                                <div className="text-xs text-gray-500">
-                                    {Math.round(journeyPlan.walking_to_boarding.distance_meters)}m • {Math.round(journeyPlan.walking_to_boarding.duration_seconds / 60)} min
+                                <div>
+                                    <strong className="block text-sm font-bold">
+                                        {journeyPlan.can_catch_next_bus ? 'You can catch the bus!' : 'You might miss the next bus'}
+                                    </strong>
+                                    <span className="text-xs opacity-90">
+                                        {journeyPlan.can_catch_next_bus
+                                            ? `Bus arrives in ${journeyPlan.next_bus?.eta_minutes} mins.`
+                                            : 'Consider walking faster or waiting for the next one.'}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Bus */}
-                            <div className="relative">
-                                <span className="absolute -left-[31px] bg-red-100 text-red-600 p-1.5 rounded-full ring-4 ring-white">
-                                    🚌
-                                </span>
-                                <div className="text-sm font-semibold text-gray-900">Bus Ride</div>
-                                <div className="text-xs text-gray-500">
-                                    {Math.round(journeyPlan.bus_travel_time_seconds / 60)} min travel time
+                            {/* Timeline */}
+                            <div className="relative border-l-2 border-gray-200 ml-3 pl-6 space-y-6 py-2">
+                                {/* Walk */}
+                                <div className="relative">
+                                    <span className="absolute -left-[31px] bg-blue-100 text-blue-600 p-1.5 rounded-full ring-4 ring-white">
+                                        🏃
+                                    </span>
+                                    <div className="text-sm font-semibold text-gray-900">Walk to {journeyPlan.boarding_stop.stop_name}</div>
+                                    <div className="text-xs text-gray-500">
+                                        {Math.round(journeyPlan.walking_to_boarding.distance_meters)}m • {Math.round(journeyPlan.walking_to_boarding.duration_seconds / 60)} min
+                                    </div>
+                                </div>
+
+                                {/* Bus */}
+                                <div className="relative">
+                                    <span className="absolute -left-[31px] bg-red-100 text-red-600 p-1.5 rounded-full ring-4 ring-white">
+                                        🚌
+                                    </span>
+                                    <div className="text-sm font-semibold text-gray-900">Bus Ride</div>
+                                    <div className="text-xs text-gray-500">
+                                        {Math.round(journeyPlan.bus_travel_time_seconds / 60)} min travel time
+                                    </div>
+                                </div>
+
+                                {/* Arrive */}
+                                <div className="relative">
+                                    <span className="absolute -left-[31px] bg-green-100 text-green-600 p-1.5 rounded-full ring-4 ring-white">
+                                        🏁
+                                    </span>
+                                    <div className="text-sm font-semibold text-gray-900">Arrive at {journeyPlan.alighting_stop.stop_name}</div>
                                 </div>
                             </div>
 
-                            {/* Arrive */}
-                            <div className="relative">
-                                <span className="absolute -left-[31px] bg-green-100 text-green-600 p-1.5 rounded-full ring-4 ring-white">
-                                    🏁
+                            {/* Total Time */}
+                            <div className="border-t pt-4 flex justify-between items-center text-gray-800">
+                                <span className="font-medium">Total Time</span>
+                                <span className="text-xl font-black">
+                                    {Math.round(journeyPlan.total_journey_time_seconds / 60)} <span className="text-sm font-normal text-gray-500">min</span>
                                 </span>
-                                <div className="text-sm font-semibold text-gray-900">Arrive at {journeyPlan.alighting_stop.stop_name}</div>
                             </div>
                         </div>
-
-                        {/* Total Time */}
-                        <div className="border-t pt-4 flex justify-between items-center text-gray-800">
-                            <span className="font-medium">Total Time</span>
-                            <span className="text-xl font-black">
-                                {Math.round(journeyPlan.total_journey_time_seconds / 60)} <span className="text-sm font-normal text-gray-500">min</span>
-                            </span>
-                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* UI PANELS - RE-ARRANGED TO AVOID OVERLAP */}
-
-            {/* 1. TOP-RIGHT: Manual Selection Tools - Moved here to not conflict with Bottom-Left Demo Controls */}
-            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-72 md:w-80">
-                <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-200 space-y-3">
+                {/* 2. Manual Trip Setup */}
+                <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-200 space-y-3 pointer-events-auto">
                     <h3 className="font-bold text-gray-800 text-sm border-b pb-2 mb-2">Manual Trip Setup</h3>
-
                     <div className="space-y-2">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase">Current Location</label>
                         <div className="flex gap-2">
@@ -524,26 +523,26 @@ const JourneyPlannerWithDemo: React.FC = () => {
                         🔍 SEARCH & PLAN BUS TRIP
                     </button>
                 </div>
-            </div>
 
-            {/* 2. BOTTOM-LEFT: Demo Simulation Controls */}
-            <div className="absolute bottom-10 left-4 z-[1000] flex flex-col gap-2 pointer-events-auto w-80">
-                <DemoModeControl
-                    isDemoMode={demoModeEnabled}
-                    onToggleDemo={setDemoModeEnabled}
-                    isSimulating={isSimulating}
-                    onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
-                    onSpeedChange={(speed) => setSpeedMultiplier(speed)}
-                    speedMultiplier={speedMultiplier}
-                    onStartSimulation={startSimulation}
-                    onStopSimulation={() => {
-                        setIsSimulating(false);
-                        simulatorRef.current?.stop();
-                        busSimulatorRef.current?.stop();
-                    }}
-                    busSpeedMultiplier={busSpeedMultiplier}
-                    onBusSpeedChange={setBusSpeedMultiplier}
-                />
+                {/* 3. Demo Simulation Controls */}
+                <div className="pointer-events-auto">
+                    <DemoModeControl
+                        isDemoMode={demoModeEnabled}
+                        onToggleDemo={setDemoModeEnabled}
+                        isSimulating={isSimulating}
+                        onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
+                        onSpeedChange={(speed) => setSpeedMultiplier(speed)}
+                        speedMultiplier={speedMultiplier}
+                        onStartSimulation={startSimulation}
+                        onStopSimulation={() => {
+                            setIsSimulating(false);
+                            simulatorRef.current?.stop();
+                            busSimulatorRef.current?.stop();
+                        }}
+                        busSpeedMultiplier={busSpeedMultiplier}
+                        onBusSpeedChange={setBusSpeedMultiplier}
+                    />
+                </div>
             </div>
         </div>
     );
