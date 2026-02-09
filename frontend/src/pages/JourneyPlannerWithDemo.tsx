@@ -10,10 +10,17 @@ const userIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-    className: 'walking-marker' // Custom CSS class for pulse
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/9131/9131546.png', // User avatar
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+const busIcon = new L.Icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', // Bus icon
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
 });
 
 const busStopIcon = new L.Icon({
@@ -41,6 +48,21 @@ function MapUpdater({ center }: { center: [number, number] }) {
     return null;
 }
 
+// Map Click Handler for Interactive Selection
+function MapEvents({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+    const map = useMap();
+    useEffect(() => {
+        const handleClick = (e: L.LeafletMouseEvent) => {
+            onMapClick(e.latlng.lat, e.latlng.lng);
+        };
+        map.on('click', handleClick);
+        return () => {
+            map.off('click', handleClick);
+        };
+    }, [map, onMapClick]);
+    return null;
+}
+
 const JourneyPlannerWithDemo: React.FC = () => {
     // State
     const [userLocation, setUserLocation] = useState<[number, number]>([6.9271, 79.8612]); // Default Colombo
@@ -50,23 +72,45 @@ const JourneyPlannerWithDemo: React.FC = () => {
     const [demoModeEnabled, setDemoModeEnabled] = useState(false);
     const [speedMultiplier, setSpeedMultiplier] = useState(2);
     const [statusMessage, setStatusMessage] = useState<string>('');
+    const [selectionMode, setSelectionMode] = useState<'origin' | 'destination' | null>(null);
+    const [busLocation, setBusLocation] = useState<[number, number] | null>(null);
+    const [busSpeedMultiplier, setBusSpeedMultiplier] = useState(1); // 1 = normal, >1 = fast (miss bus)
 
     // Refs
     const simulatorRef = useRef<GPSSimulator | null>(null);
+    const busSimulatorRef = useRef<GPSSimulator | null>(null);
 
     // Initialize Simulator
     useEffect(() => {
         simulatorRef.current = new GPSSimulator();
         simulatorRef.current.setPosition(userLocation[0], userLocation[1]);
+
+        busSimulatorRef.current = new GPSSimulator();
+
         return () => {
             simulatorRef.current?.stop();
+            busSimulatorRef.current?.stop();
         };
     }, []);
 
     // Handle map click to set destination
     // Note: Since we use MapContainer, clicking the map needs a specific handler component or implementation.
     // However, for this demo, destinations are preset or fixed.
-    // If user interaction is needed, we'd add useMapEvents.
+    const handleMapClick = (lat: number, lng: number) => {
+        if (selectionMode === 'origin') {
+            setUserLocation([lat, lng]);
+            simulatorRef.current?.setPosition(lat, lng);
+            setSelectionMode(null);
+            setStatusMessage('📍 Origin set! Now set Destination or Plan Journey.');
+        } else if (selectionMode === 'destination') {
+            setDestination([lat, lng]);
+            setSelectionMode(null);
+            setStatusMessage('🏁 Destination set! Click "Plan Journey" to start.');
+        }
+    };
+
+    // Auto-plan when both are set? Or wait for button?
+    // Let's add a "Plan Journey" button in the UI.
 
     const handleScenarioSelect = (scenario: any) => {
         if (scenario) {
@@ -129,7 +173,14 @@ const JourneyPlannerWithDemo: React.FC = () => {
             if (!response.ok) throw new Error('Journey planning failed');
 
             const data = await response.json();
-            setJourneyPlan(data);
+
+            // Adjust for API wrapper structure if present
+            if (data.success && data.journey) {
+                setJourneyPlan(data.journey);
+            } else {
+                setJourneyPlan(data);
+            }
+
             setStatusMessage('✅ Journey Found! Ready to start.');
         } catch (error) {
             console.error(error);
@@ -141,28 +192,100 @@ const JourneyPlannerWithDemo: React.FC = () => {
     };
 
     const startSimulation = () => {
-        if (!journeyPlan || !simulatorRef.current) return;
+        if (!journeyPlan || !simulatorRef.current || !busSimulatorRef.current) return;
 
-        // Extract walking path from GeoJSON
-        // GeoJSON uses [lng, lat], we need [lat, lng]
-        const walkingPath = journeyPlan.walking_to_boarding.geometry_geojson.coordinates.map(
+        // 1. User Path (Walking)
+        const pathData = journeyPlan.walking_path || journeyPlan.walking_to_boarding;
+        if (!pathData?.geometry_geojson) return;
+
+        const walkingPath = pathData.geometry_geojson.coordinates.map(
             (coord: number[]) => [coord[1], coord[0]] as [number, number]
         );
 
-        setIsSimulating(true);
-        setStatusMessage('🏃 Walking to bus stop...');
+        // 2. Bus Path (Simulated: Boarding -> Alighting)
+        // In a real app, we'd have the full bus route shape. 
+        // For demo, we'll create a straight line with intermediate points for smoothness
+        const busStart = [journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude];
+        const busEnd = [journeyPlan.alighting_stop.latitude, journeyPlan.alighting_stop.longitude];
+        const busPath: [number, number][] = [
+            busStart as [number, number],
+            // Add a midpoint to make it slightly less "teleporty" if long distance
+            [(busStart[0] + busEnd[0]) / 2, (busStart[1] + busEnd[1]) / 2] as [number, number],
+            busEnd as [number, number]
+        ];
 
+        setIsSimulating(true);
+        setStatusMessage('🏃 Simulation Started! Run!');
+
+        // Start User (Walking)
         simulatorRef.current.startPathSimulation(
             walkingPath,
-            (pos) => {
-                setUserLocation(pos);
-            },
-            speedMultiplier // use state
+            (pos) => setUserLocation(pos),
+            speedMultiplier
         );
 
-        // Since simulation runs forever or until stop, we can add logic to detect arrival
-        // But for visual demo, user sees marker moving.
+        // Start Bus (Driving)
+        // Bus needs to arrive in 'eta_minutes'.
+        // We calculate needed speed to cover distance in that time.
+        // Simplified: We just move it at a "bus speed" * multiplier.
+        // Normal bus speed ~30km/h ~ 8.3m/s.
+        // "Late" mode: Fast bus (user misses). "Normal" mode: Slow bus (user catches).
+
+        // Let's delay the bus start slightly to make it dramatic? 
+        // Or start immediately from "far away"? 
+        // For this demo, let's assume bus starts FROM the boarding stop (waiting) 
+        // OR approaching. Let's start it approaching 500m away.
+
+        // Hack for demo: We'll just simulate the bus moving from Start->End
+        // But we want the "Catch" logic.
+        // If speedMultiplier is high (Normal), user walks fast.
+        // If busSpeedMultiplier is high (Late), bus moves fast.
+
+        // Reset bus to start
+        setBusLocation(busStart as [number, number]);
+
+        busSimulatorRef.current.startPathSimulation(
+            busPath,
+            (pos) => setBusLocation(pos),
+            busSpeedMultiplier * 5 // Bus is naturally faster than walking
+        );
     };
+
+    // Check for "Catch" or "Miss" during simulation
+    useEffect(() => {
+        if (isSimulating && userLocation && busLocation && journeyPlan) {
+            // Distance Check
+            const userDistToStop = simulatorRef.current.haversineDistance(
+                userLocation[0], userLocation[1],
+                journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude
+            );
+
+            const busDistToStop = simulatorRef.current.haversineDistance(
+                busLocation[0], busLocation[1],
+                journeyPlan.boarding_stop.latitude, journeyPlan.boarding_stop.longitude
+            );
+
+            // Simple Logic: 
+            // If Bus is < 20m from stop AND User differs > 50m => Miss
+            // If User is < 20m from stop => Catch (Wait for bus)
+
+            if (busDistToStop < 20 && userDistToStop > 50) {
+                setStatusMessage('❌ You missed the bus! Try running next time (Speed 10x).');
+                setIsSimulating(false);
+                simulatorRef.current?.stop();
+                busSimulatorRef.current?.stop();
+            } else if (userDistToStop < 20) {
+                setStatusMessage('✅ You reached the stop! Waiting for bus...');
+                // Allow bus to arrive
+                if (busDistToStop < 20) {
+                    setStatusMessage('🎉 SUCCESS! You caught the bus!');
+                    setIsSimulating(false);
+                    simulatorRef.current?.stop();
+                    busSimulatorRef.current?.stop();
+                }
+            }
+        }
+    }, [isSimulating, userLocation, busLocation, journeyPlan]);
 
     return (
         <div className="relative h-screen w-full flex flex-col md:flex-row">
@@ -174,16 +297,19 @@ const JourneyPlannerWithDemo: React.FC = () => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
                     <MapUpdater center={userLocation} />
+                    <MapEvents onMapClick={handleMapClick} />
 
                     {/* User Marker */}
                     <Marker position={userLocation} icon={userIcon}>
-                        <Popup>
-                            <div className="text-center">
-                                <strong>You are here</strong><br />
-                                {isSimulating && <span className="text-green-600 font-bold animate-pulse">Walking...</span>}
-                            </div>
-                        </Popup>
+                        <Popup>You (User)</Popup>
                     </Marker>
+
+                    {/* Bus Marker (Simulated) */}
+                    {busLocation && (
+                        <Marker position={busLocation} icon={busIcon}>
+                            <Popup>Bus (Route 100)</Popup>
+                        </Marker>
+                    )}
 
                     {/* Destination Marker */}
                     {destination && (
@@ -216,7 +342,7 @@ const JourneyPlannerWithDemo: React.FC = () => {
 
                             {/* Walking Path (Blue Dashed) */}
                             <Polyline
-                                positions={journeyPlan.walking_to_boarding.geometry_geojson.coordinates.map((c: any) => [c[1], c[0]])}
+                                positions={(journeyPlan.walking_path || journeyPlan.walking_to_boarding).geometry_geojson.coordinates.map((c: any) => [c[1], c[0]])}
                                 color="#3b82f6"
                                 dashArray="10, 10"
                                 weight={4}
@@ -321,30 +447,57 @@ const JourneyPlannerWithDemo: React.FC = () => {
             )}
 
             {/* Demo Controls */}
-            <DemoModeControl
-                isDemoMode={demoModeEnabled}
-                onToggleDemo={setDemoModeEnabled}
-                isSimulating={isSimulating}
-                onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
-                onSpeedChange={(speed) => {
-                    setSpeedMultiplier(speed);
-                    // If running, restart simulation with new speed? 
-                    // For now, simpler to just set state, effective on next start.
-                    // Or if live update needed, we'd need methods on GPSSimulator.
-                    // Let's restart if simulating:
-                    if (isSimulating) {
-                        // Stop & Start again seamlessly?
-                        // GPSSimulator doesn't support live speed change easily without restart.
-                        // User can stop/start.
-                    }
-                }}
-                speedMultiplier={speedMultiplier}
-                onStartSimulation={startSimulation}
-                onStopSimulation={() => {
-                    setIsSimulating(false);
-                    simulatorRef.current?.stop();
-                }}
-            />
+            <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto">
+                {/* Manual Selection Tools */}
+                <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200 flex gap-2">
+                    <button
+                        onClick={() => setSelectionMode('origin')}
+                        className={`p-2 rounded ${selectionMode === 'origin' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                        title="Set Origin"
+                    >
+                        📍 Set Start
+                    </button>
+                    <button
+                        onClick={() => setSelectionMode('destination')}
+                        className={`p-2 rounded ${selectionMode === 'destination' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100'}`}
+                        title="Set Destination"
+                    >
+                        🏁 Set End
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (userLocation && destination) {
+                                fetchJourneyPlan(
+                                    { lat: userLocation[0], lng: userLocation[1] },
+                                    { lat: destination[0], lng: destination[1] }
+                                );
+                            } else {
+                                setStatusMessage('⚠️ Set Start and End points first!');
+                            }
+                        }}
+                        className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700 font-bold"
+                    >
+                        Planned Journey
+                    </button>
+                </div>
+
+                <DemoModeControl
+                    isDemoMode={demoModeEnabled}
+                    onToggleDemo={setDemoModeEnabled}
+                    isSimulating={isSimulating}
+                    onSelectScenario={(scenario) => handleScenarioSelect(scenario)}
+                    onSpeedChange={(speed) => setSpeedMultiplier(speed)}
+                    speedMultiplier={speedMultiplier}
+                    onStartSimulation={startSimulation}
+                    onStopSimulation={() => {
+                        setIsSimulating(false);
+                        simulatorRef.current?.stop();
+                        busSimulatorRef.current?.stop();
+                    }}
+                    busSpeedMultiplier={busSpeedMultiplier}
+                    onBusSpeedChange={setBusSpeedMultiplier}
+                />
+            </div>
         </div>
     );
 };

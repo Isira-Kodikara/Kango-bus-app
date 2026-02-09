@@ -43,6 +43,8 @@ interface DemoModeControlProps {
     isSimulating: boolean;
     speedMultiplier: number;
     onSpeedChange: (speed: number) => void;
+    busSpeedMultiplier: number;
+    onBusSpeedChange: (speed: number) => void;
 }
 
 const DemoModeControl: React.FC<DemoModeControlProps> = ({
@@ -53,7 +55,9 @@ const DemoModeControl: React.FC<DemoModeControlProps> = ({
     onStopSimulation,
     isSimulating,
     speedMultiplier,
-    onSpeedChange
+    onSpeedChange,
+    busSpeedMultiplier,
+    onBusSpeedChange
 }) => {
     if (!isDemoMode) {
         return (
@@ -117,13 +121,40 @@ const DemoModeControl: React.FC<DemoModeControlProps> = ({
                                 key={speed}
                                 onClick={() => onSpeedChange(speed)}
                                 className={`flex-1 text-xs py-1 rounded transition-colors ${speedMultiplier === speed
-                                        ? 'bg-blue-600 text-white font-medium shadow-sm'
-                                        : 'text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {speed}x
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* Stress Test Controls */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
+                        Scenario Difficulty
+                    </label>
+                    <div className="flex space-x-2 bg-gray-100 p-1 rounded-md">
+                        <button
+                            onClick={() => onBusSpeedChange(1)}
+                            className={`flex-1 text-xs py-1 rounded transition-colors ${busSpeedMultiplier === 1
+                                ? 'bg-green-600 text-white font-medium shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            😊 Normal (Catch)
+                        </button>
+                        <button
+                            onClick={() => onBusSpeedChange(1.5)}
+                            className={`flex-1 text-xs py-1 rounded transition-colors ${busSpeedMultiplier > 1
+                                ? 'bg-red-500 text-white font-medium shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            😰 Late (Miss)
+                        </button>
                     </div>
                 </div>
 
