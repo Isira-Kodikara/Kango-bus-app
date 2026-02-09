@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import DemoModeControl, { DEMO_SCENARIOS } from '../components/JourneyPlanner/DemoModeControl';
 import { GPSSimulator } from '../services/GPSSimulator';
+import { ENDPOINTS } from '../lib/api-config';
 
 // Marker Icons
 const userIcon = new L.Icon({
@@ -156,7 +157,7 @@ const JourneyPlannerWithDemo: React.FC = () => {
     const fetchJourneyPlan = async (origin: { lat: number, lng: number }, dest: { lat: number, lng: number }) => {
         setStatusMessage('🔄 Planning journey...');
         try {
-            const response = await fetch('/api/journey-planner.php', {
+            const response = await fetch(ENDPOINTS.JOURNEY_PLANNER, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

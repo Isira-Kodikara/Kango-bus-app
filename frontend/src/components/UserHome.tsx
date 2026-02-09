@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
 import { WalkingGuidanceOverlay } from './WalkingGuidanceOverlay';
+import { ENDPOINTS } from '../lib/api-config';
 
 // Bus data from Map component - transform for display
 const mockBuses = SAMPLE_BUSES.map(bus => {
@@ -265,7 +266,7 @@ export function UserHome() {
       // Check for walking guidance
       if (userLocation) {
         try {
-          const response = await fetch('/api/check-guidance.php', {
+          const response = await fetch(ENDPOINTS.CHECK_GUIDANCE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
