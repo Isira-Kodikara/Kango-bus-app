@@ -11,7 +11,7 @@ import { TripActive } from "./components/TripActive";
 import { EmergencyAlert } from "./components/EmergencyAlert";
 
 // Add Journey Planner route
-import JourneyPlannerWithDemo from "./pages/JourneyPlannerWithDemo";
+import JourneySimulator from "./pages/JourneySimulator";
 
 export const router = createBrowserRouter([
   {
@@ -40,7 +40,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/journey-planner",
-    Component: JourneyPlannerWithDemo,
+    Component: JourneySimulator,
   },
   {
     path: "/trip-active",
