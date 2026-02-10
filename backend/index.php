@@ -51,6 +51,14 @@ switch (true) {
         require_once __DIR__ . '/api/check-guidance.php';
         break;
 
+    case preg_match('/^(\/api)?\/get-live-buses/', $requestUri):
+        require_once __DIR__ . '/api/get-live-buses.php';
+        break;
+
+    case preg_match('/^(\/api)?\/get-route-details/', $requestUri):
+        require_once __DIR__ . '/api/get-route-details.php';
+        break;
+
     default:
         http_response_code(404);
         echo json_encode([
