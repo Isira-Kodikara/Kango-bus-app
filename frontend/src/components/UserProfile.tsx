@@ -12,9 +12,15 @@ import {
   Briefcase,
   Star,
   ChevronRight,
-  Plus
+  Plus,
+  Edit2,
+  Check,
+  X,
+  Loader2
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { authApi } from '../lib/api';
 
 const mockTripHistory = [
   {
@@ -59,7 +65,50 @@ const savedLocations = [
 
 export function UserProfile() {
   const navigate = useNavigate();
+  const { user, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'locations' | 'settings'>('history');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startEditing = () => {
+    setEditUsername(user?.username || '');
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditUsername('');
+  };
+
+  const saveUsername = async () => {
+    if (!editUsername.trim()) {
+      toast.error('Username cannot be empty');
+      return;
+    }
+
+    if (editUsername === user?.username) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authApi.updateProfile({ username: editUsername });
+      if (response.success && response.data) {
+        // Use login to update both user and token (since token is regenerated)
+        login(response.data.token, response.data.user);
+        toast.success('Username updated successfully');
+        setIsEditing(false);
+      } else {
+        toast.error(response.message || 'Failed to update username');
+      }
+    } catch (error) {
+      toast.error('An error occurred while updating username');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -81,9 +130,45 @@ export function UserProfile() {
           <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mr-4">
             <User className="w-10 h-10" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">John Doe</h2>
-            <p className="text-blue-100">john.doe@example.com</p>
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="bg-white/10 border border-white/30 text-white rounded px-2 py-1 text-xl font-bold focus:outline-none focus:border-white w-full max-w-[200px]"
+                  placeholder="Username"
+                  autoFocus
+                />
+                <button
+                  onClick={saveUsername}
+                  disabled={isLoading}
+                  className="p-1 hover:bg-white/20 rounded-full text-green-300 disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={cancelEditing}
+                  disabled={isLoading}
+                  className="p-1 hover:bg-white/20 rounded-full text-red-300 disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold">{user?.username || 'Guest User'}</h2>
+                <button
+                  onClick={startEditing}
+                  className="p-1 hover:bg-white/20 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                  title="Edit Username"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            <p className="text-blue-100">{user?.email || 'No email registered'}</p>
             <div className="flex items-center mt-2">
               <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
               <span className="text-sm">4.8 Average Rating</span>

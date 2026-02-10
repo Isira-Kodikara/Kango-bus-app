@@ -254,6 +254,22 @@ export const authApi = {
   logout: (): void => {
     clearAuthData();
   },
+
+  /**
+   * Update user profile
+   */
+  updateProfile: async (data: { username: string }): Promise<ApiResponse<AuthTokens>> => {
+    const response = await apiFetch<AuthTokens>('/auth/user/update-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    if (response.success && response.data) {
+      storeAuthData(response.data.token, response.data.user);
+    }
+
+    return response;
+  },
 };
 
 /**
