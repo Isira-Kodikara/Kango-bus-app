@@ -272,6 +272,34 @@ export const authApi = {
   },
 };
 
+export interface SavedPlace {
+  id: number;
+  user_id: number;
+  name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  icon?: string;
+  created_at?: string;
+}
+
+export const userApi = {
+  getSavedPlaces: async (): Promise<ApiResponse<SavedPlace[]>> => {
+    return apiFetch<SavedPlace[]>('/saved-places', { method: 'GET' });
+  },
+
+  addSavedPlace: async (data: Omit<SavedPlace, 'id' | 'user_id' | 'created_at'>): Promise<ApiResponse<SavedPlace>> => {
+    return apiFetch<SavedPlace>('/saved-places', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSavedPlace: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/saved-places?id=${id}`, { method: 'DELETE' });
+  }
+};
+
 /**
  * Crew Auth API endpoints - Uses email-based login
  */

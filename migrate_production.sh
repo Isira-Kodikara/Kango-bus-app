@@ -16,4 +16,7 @@ mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" "$DB" < database/seeds/sample-d
 echo "3/3 Applying Journey Planning Features (001_journey_planning_tables.sql)..."
 mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" "$DB" < database/migrations/001_journey_planning_tables.sql
 
+echo "4/4 Applying Saved Places Feature (005_create_saved_places.sql)..."
+mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASS" "$DB" < database/schema/005_create_saved_places.sql
+
 echo "✅ Migration Complete!"
