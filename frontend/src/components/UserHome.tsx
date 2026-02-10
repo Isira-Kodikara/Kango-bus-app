@@ -375,14 +375,14 @@ export function UserHome() {
       <div className="absolute inset-x-0 top-0 z-[1000]">
         {/* Floating Top Bar */}
         <div className="m-4 mb-0">
-          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-3 flex items-center justify-between">
+          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-3 flex items-center justify-between relative">
             <button
               onClick={() => navigate('/user-profile')}
               className="p-2 hover:bg-gray-100 rounded-full"
             >
               <User className="w-6 h-6 text-gray-700" />
             </button>
-            <h1 className="text-xl font-bold text-blue-600">KANGO</h1>
+            <h1 className="text-xl font-bold text-blue-600 absolute left-1/2 -translate-x-1/2">KANGO</h1>
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/journey-planner')}
@@ -400,49 +400,44 @@ export function UserHome() {
 
         {/* Floating Search Card */}
         {!showRoutes && (
-          <div className="m-4 mt-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-5">
+          <>
+            <div className="route-input-card">
               {/* Current Location */}
-              <div className="flex items-center mb-4 pb-4 border-b border-gray-200 relative">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <Navigation className="w-5 h-5 text-blue-600" />
-                </div>
-                <div className="flex-1 relative">
-                  <div className="text-xs text-gray-500 mb-1">From</div>
+              <div className="relative mb-2">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">From</div>
+                <div className="relative">
                   <input
                     type="text"
                     value={currentLocation}
                     onChange={(e) => handleFromChange(e.target.value)}
                     onFocus={() => currentLocation.length > 0 && handleFromChange(currentLocation)}
                     onBlur={handleBlur}
-                    className="w-full font-medium text-gray-800 outline-none bg-white"
+                    className="location-input"
                     placeholder="Current location"
                   />
-                  {/* From Suggestions */}
-                  {showFromSuggestions && (
-                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                      {fromSuggestions.map((stop) => (
-                        <div
-                          key={stop.id}
-                          onClick={() => selectFromSuggestion(stop)}
-                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                        >
-                          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                          {stop.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <Navigation className="absolute right-4 top-[22px] -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none" />
                 </div>
+                {/* From Suggestions */}
+                {showFromSuggestions && (
+                  <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
+                    {fromSuggestions.map((stop) => (
+                      <div
+                        key={stop.id}
+                        onClick={() => selectFromSuggestion(stop)}
+                        className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                        {stop.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Destination */}
-              <div className="flex items-center mb-4 relative">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-red-600" />
-                </div>
-                <div className="flex-1 relative">
-                  <div className="text-xs text-gray-500 mb-1">To</div>
+              <div className="relative mb-2">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">To</div>
+                <div className="relative">
                   <input
                     type="text"
                     value={destination}
@@ -457,58 +452,57 @@ export function UserHome() {
                       }
                     }}
                     onBlur={handleBlur}
-                    className="w-full font-medium text-gray-800 outline-none bg-white"
+                    className="location-input"
                     placeholder="Where to?"
                   />
-                  {/* To Suggestions */}
-                  {showToSuggestions && (
-                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                      {toSuggestions.map((stop) => (
-                        <div
-                          key={stop.id}
-                          onClick={() => selectToSuggestion(stop)}
-                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                        >
-                          <MapPin className="w-4 h-4 text-red-400 mr-2" />
-                          {stop.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <MapPin className="absolute right-4 top-[22px] -translate-y-1/2 w-4 h-4 text-red-500 pointer-events-none" />
                 </div>
+                {/* To Suggestions */}
+                {showToSuggestions && (
+                  <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
+                    {toSuggestions.map((stop) => (
+                      <div
+                        key={stop.id}
+                        onClick={() => selectToSuggestion(stop)}
+                        className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
+                      >
+                        <MapPin className="w-4 h-4 text-red-400 mr-2" />
+                        {stop.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Search Button */}
               <button
                 onClick={handleSearch}
                 disabled={!destination}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center shadow-lg"
+                className="find-route-button disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               >
-                <Search className="w-5 h-5 mr-2" />
+                <Search className="w-5 h-5 mr-2 inline" />
                 Find Best Route
               </button>
             </div>
 
             {/* Nearest Stop Info */}
-            <div className="mt-4">
-              <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Nearest Bus Stop</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-gray-800">{nearestStop.name}</div>
-                    <div className="text-sm text-gray-500 flex items-center mt-1">
-                      <Footprints className="w-4 h-4 mr-1" />
-                      {nearestStop.walkTime} min walk • {nearestStop.distance} km
-                    </div>
+            <div className="nearest-stop-section">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Nearest Bus Stop</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-800">{nearestStop.name}</div>
+                  <div className="text-sm text-gray-500 flex items-center mt-1">
+                    <Footprints className="w-4 h-4 mr-1" />
+                    {nearestStop.walkTime} min walk • {nearestStop.distance} km
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Distance</div>
-                    <div className="text-lg font-bold text-blue-600">{nearestStop.distance} km</div>
-                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-500">Distance</div>
+                  <div className="text-lg font-bold text-blue-600">{nearestStop.distance} km</div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -635,6 +629,36 @@ export function UserHome() {
           onArrived={handleArrivedAtStop}
         />
       )}
+
+      {/* Floating Info Boxes - Desktop Only */}
+      <div className="trip-setup-box">
+        <h3>🚌 Trip Setup</h3>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions:</p>
+        <div className="space-y-2">
+          <button onClick={() => setShowRoutes(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors group w-full text-left">
+            <span className="group-hover:translate-x-1 transition-transform">- View Routes</span>
+          </button>
+          <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors group w-full text-left">
+            <span className="group-hover:translate-x-1 transition-transform">- Find Buses</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="demo-mode-box">
+        <h3>🎬 Demo Mode</h3>
+        <label className="flex items-center gap-2 cursor-pointer mb-3">
+          <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <span className="text-sm font-medium text-gray-700">Enable Demo</span>
+        </label>
+        <div className="relative">
+          <select className="w-full pl-3 pr-10 py-2 text-xs border border-gray-200 rounded-lg appearance-none bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <option>Scenarios ▼</option>
+            <option>Colombo Fort → Bambalapitiya</option>
+            <option>Mount Lavinia → Fort</option>
+            <option>Borella → Kottawa</option>
+          </select>
+        </div>
+      </div>
     </div>
   );
 }

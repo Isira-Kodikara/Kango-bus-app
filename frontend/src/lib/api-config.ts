@@ -10,13 +10,15 @@ const isProduction = import.meta.env.PROD || window.location.hostname !== 'local
 
 // Base URL for backend API
 // Priority:
-// 1. VITE_API_BASE_URL environment variable
+// 1. VITE_API_BASE_URL environment variable (stripped of trailing slash)
 // 2. Production guess based on window.location
 // 3. Localhost fallback
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ||
     (isProduction
         ? `https://${window.location.hostname}/api` // Guessing standard subdirectory
         : 'http://localhost:8000/api');
+
+export const API_BASE_URL = rawBaseUrl.replace(/\/$/, '');
 
 // Specific endpoints
 export const ENDPOINTS = {

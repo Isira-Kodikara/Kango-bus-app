@@ -456,8 +456,9 @@
   }
 
   .leaflet-container {
-    height: 100%;
-    width: 100%;
+    height: 100% !important;
+    width: 100% !important;
+    min-height: 400px !important;
     z-index: 1;
   }
 
@@ -2209,15 +2210,27 @@ body {
 }
 
 @layer components {
+
   /* Walking Marker Animation */
   @keyframes walking-pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.9; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.1);
+      opacity: 0.9;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .walking-marker {
-    background: transparent; 
+    background: transparent;
     border-radius: 50%;
     animation: walking-pulse 1.5s infinite ease-in-out;
   }
@@ -2226,13 +2239,14 @@ body {
 /* Leaflet Fixes */
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .leaflet-popup-content {
   margin: 12px;
   font-family: inherit;
 }
+
 /* Custom Scrollbar for Sidebar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
@@ -2249,4 +2263,139 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
+}
+
+/* --- KANGO UI Layout Fixes --- */
+
+/* Main Input Card (From/To/Button) */
+.route-input-card {
+  max-width: 500px;
+  width: 95%;
+  margin: 20px auto;
+  /* Center horizontally */
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive for Main Input Card */
+@media (max-width: 768px) {
+  .route-input-card {
+    max-width: 100%;
+    width: 95%;
+    margin: 16px auto;
+  }
+}
+
+/* Input Fields Inside Card */
+/* Route Input Card (UserHome) */
+.route-input-card {
+  max-width: 500px;
+  width: 95%;
+  margin: 16px auto;
+  background: white;
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+}
+
+.location-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.location-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Find Best Route Button */
+.find-route-button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.find-route-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Trip Setup Box (New - Top Right) */
+.trip-setup-box {
+  position: fixed;
+  top: 80px;
+  /* Below header */
+  right: 20px;
+  width: 250px;
+  max-width: 250px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  text-align: left;
+}
+
+.trip-setup-box h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+/* Demo Mode Box (New - Below Trip Setup) */
+.demo-mode-box {
+  position: fixed;
+  top: 240px;
+  /* Below trip setup box */
+  right: 20px;
+  width: 250px;
+  max-width: 250px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  text-align: left;
+}
+
+.demo-mode-box label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Hide floating boxes on mobile */
+@media (max-width: 480px) {
+
+  .trip-setup-box,
+  .demo-mode-box {
+    display: none;
+  }
+}
+
+/* Nearest Bus Stop Section */
+.nearest-stop-section {
+  max-width: 500px;
+  width: 95%;
+  margin: 0 auto 16px auto;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
