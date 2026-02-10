@@ -59,7 +59,7 @@ export function CrewAuth() {
       } else {
         // Show specific error message
         const errorMsg = data.message || data.error || 'Authentication failed';
-        if (errorMsg.includes('Invalid') || errorMsg.includes('password') || errorMsg.includes('incorrect')) {
+        if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('incorrect')) {
           setError('Invalid email or password. Please check your credentials.');
         } else if (errorMsg.includes('not found')) {
           setError('Crew account not found. Please register or contact admin.');
@@ -96,7 +96,7 @@ export function CrewAuth() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-white text-xl font-semibold ml-4">Bus Crew {isLogin ? 'Login' : 'Sign Up'}</h1>
+        <h1 className="text-white text-xl font-semibold ml-4">Bus Crew {isLogin ? 'Login' : 'Registration'}</h1>
       </div>
 
       <div className="flex-1 p-6 overflow-y-auto">
@@ -255,8 +255,13 @@ export function CrewAuth() {
                 disabled={isLoading}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50"
               >
-                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Request Signup')}
+                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Sign Up')}
               </button>
+              {!isLogin && (
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  * New registrations require approval from a system administrator.
+                </p>
+              )}
             </form>
 
             <div className="mt-6 text-center">
