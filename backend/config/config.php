@@ -44,8 +44,8 @@ define('OTP_LENGTH', 6);
 
 // API Configuration
 define('API_VERSION', '1.0');
-define('BASE_URL', getenv('RAILWAY_PUBLIC_DOMAIN') 
-    ? 'https://' . getenv('RAILWAY_PUBLIC_DOMAIN') 
+define('BASE_URL', getenv('RAILWAY_PUBLIC_DOMAIN')
+    ? 'https://' . getenv('RAILWAY_PUBLIC_DOMAIN')
     : 'http://localhost/kango-backend');
 
 // Fare Configuration
@@ -72,7 +72,8 @@ if ($origin) {
     // If an origin is provided, mirror it and allow credentials
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
-} else {
+}
+else {
     // If no origin (e.g. direct API call), allow anything but NO credentials
     header('Access-Control-Allow-Origin: *');
 }

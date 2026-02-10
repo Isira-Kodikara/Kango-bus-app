@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ArrowLeft,
@@ -12,9 +12,17 @@ import {
   Briefcase,
   Star,
   ChevronRight,
-  Plus
+  Plus,
+  Edit2,
+  Check,
+  X,
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { authApi, userApi, SavedPlace } from '../lib/api';
+import { AddSavedPlaceModal } from './AddSavedPlaceModal';
 
 const mockTripHistory = [
   {
@@ -52,14 +60,97 @@ const mockTripHistory = [
   },
 ];
 
-const savedLocations = [
-  { id: 1, name: 'Home', address: '123 Main Street, Downtown', icon: Home },
-  { id: 2, name: 'Work', address: '456 Business Ave, Financial District', icon: Briefcase },
-];
+
 
 export function UserProfile() {
   const navigate = useNavigate();
+  const { user, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'locations' | 'settings'>('history');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Saved Places State
+  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'locations') {
+      fetchSavedPlaces();
+    }
+  }, [activeTab]);
+
+  const fetchSavedPlaces = async () => {
+    setIsLoadingPlaces(true);
+    try {
+      const response = await userApi.getSavedPlaces();
+      if (response.success && response.data) {
+        setSavedPlaces(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch saved places', error);
+      toast.error('Failed to load saved places');
+    } finally {
+      setIsLoadingPlaces(false);
+    }
+  };
+
+  const handleDeletePlace = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this place?')) return;
+
+    try {
+      const response = await userApi.deleteSavedPlace(id);
+      if (response.success) {
+        toast.success('Place deleted');
+        fetchSavedPlaces();
+      } else {
+        toast.error('Failed to delete place');
+      }
+    } catch (error) {
+      toast.error('An error occurred');
+    }
+  };
+
+  const startEditing = () => {
+    setEditUsername(user?.username || '');
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditUsername('');
+  };
+
+  const saveUsername = async () => {
+    if (!editUsername.trim()) {
+      toast.error('Username cannot be empty');
+      return;
+    }
+
+    if (editUsername === user?.username) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authApi.updateProfile({ username: editUsername });
+      if (response.success && response.data) {
+        // Use login to update both user and token (since token is regenerated)
+        login(response.data.token, response.data.user);
+        toast.success('Username updated successfully');
+        setIsEditing(false);
+      } else {
+        toast.error(response.message || 'Failed to update username');
+      }
+    } catch (error) {
+      toast.error('An error occurred while updating username');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -81,9 +172,45 @@ export function UserProfile() {
           <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mr-4">
             <User className="w-10 h-10" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">John Doe</h2>
-            <p className="text-blue-100">john.doe@example.com</p>
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="bg-white/10 border border-white/30 text-white rounded px-2 py-1 text-xl font-bold focus:outline-none focus:border-white w-full max-w-[200px]"
+                  placeholder="Username"
+                  autoFocus
+                />
+                <button
+                  onClick={saveUsername}
+                  disabled={isLoading}
+                  className="p-1 hover:bg-white/20 rounded-full text-green-300 disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={cancelEditing}
+                  disabled={isLoading}
+                  className="p-1 hover:bg-white/20 rounded-full text-red-300 disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold">{user?.username || 'Guest User'}</h2>
+                <button
+                  onClick={startEditing}
+                  className="p-1 hover:bg-white/20 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                  title="Edit Username"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            <p className="text-blue-100">{user?.email || 'No email registered'}</p>
             <div className="flex items-center mt-2">
               <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
               <span className="text-sm">4.8 Average Rating</span>
@@ -174,31 +301,59 @@ export function UserProfile() {
               <h3 className="text-lg font-semibold text-gray-800">Saved Places</h3>
               <button
                 className="text-blue-600 font-semibold text-sm flex items-center hover:bg-blue-50 px-2 py-1 rounded"
-                onClick={() => toast.info("Add New Location feature coming soon!")}
+                onClick={() => setIsAddModalOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1" /> Add New
               </button>
             </div>
 
-            {savedLocations.map((location) => {
-              const Icon = location.icon;
-              return (
+            {isLoadingPlaces ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
+            ) : savedPlaces.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-300">
+                <MapPin className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No saved places yet.</p>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="text-blue-600 font-medium mt-2 hover:underline"
+                >
+                  Add your first place
+                </button>
+              </div>
+            ) : (
+              savedPlaces.map((location) => (
                 <div
                   key={location.id}
-                  className="bg-white rounded-2xl shadow-md p-5 flex items-center active:scale-95 transition-transform cursor-pointer"
-                  onClick={() => toast.success(`Navigating to ${location.name}...`)}
+                  className="bg-white rounded-2xl shadow-md p-5 flex items-center active:scale-95 transition-transform cursor-pointer group"
+                  onClick={() => navigate('/user-home', {
+                    state: {
+                      destination: {
+                        lat: location.latitude,
+                        lng: location.longitude,
+                        name: location.name
+                      }
+                    }
+                  })}
                 >
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                    <Icon className="w-6 h-6 text-blue-600" />
+                    <MapPin className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-gray-800">{location.name}</div>
                     <div className="text-sm text-gray-600">{location.address}</div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                  <button
+                    onClick={(e) => handleDeletePlace(e, location.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                    title="Delete place"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
-              );
-            })}
+              ))
+            )}
 
             {/* Offline mode info */}
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mt-6">
@@ -207,6 +362,12 @@ export function UserProfile() {
                 Last known routes and cached bus schedules are available when offline
               </div>
             </div>
+
+            <AddSavedPlaceModal
+              isOpen={isAddModalOpen}
+              onClose={() => setIsAddModalOpen(false)}
+              onPlaceAdded={fetchSavedPlaces}
+            />
           </div>
         )}
 

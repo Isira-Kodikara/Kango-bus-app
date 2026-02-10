@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -226,6 +226,17 @@ interface MapProps {
   walkingPath?: [number, number][];
   routePolylines?: Record<number, [number, number][]>;
   buses?: any[];
+  onMapClick?: (latlng: [number, number]) => void;
+}
+
+// Component to handle map clicks
+function MapEvents({ onMapClick }: { onMapClick?: (latlng: [number, number]) => void }) {
+  useMapEvents({
+    click(e: L.LeafletMouseEvent) {
+      onMapClick?.([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return null;
 }
 
 export function Map({
@@ -239,6 +250,7 @@ export function Map({
   destination = null,
   onBusClick,
   onStopClick,
+  onMapClick,
   center = COLOMBO_CENTER,
   zoom = 13,
   walkingPath = [],
@@ -276,6 +288,7 @@ export function Map({
 
       {/* Map controller for programmatic updates */}
       <MapController center={center} zoom={zoom} />
+      <MapEvents onMapClick={onMapClick} />
 
       {/* Auto-fit bounds when from and to locations are set */}
       {fromLocation && destination && (

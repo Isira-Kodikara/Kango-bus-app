@@ -254,6 +254,50 @@ export const authApi = {
   logout: (): void => {
     clearAuthData();
   },
+
+  /**
+   * Update user profile
+   */
+  updateProfile: async (data: { username: string }): Promise<ApiResponse<AuthTokens>> => {
+    const response = await apiFetch<AuthTokens>('/auth/user/update-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    if (response.success && response.data) {
+      storeAuthData(response.data.token, response.data.user);
+    }
+
+    return response;
+  },
+};
+
+export interface SavedPlace {
+  id: number;
+  user_id: number;
+  name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  icon?: string;
+  created_at?: string;
+}
+
+export const userApi = {
+  getSavedPlaces: async (): Promise<ApiResponse<SavedPlace[]>> => {
+    return apiFetch<SavedPlace[]>('/saved-places', { method: 'GET' });
+  },
+
+  addSavedPlace: async (data: Omit<SavedPlace, 'id' | 'user_id' | 'created_at'>): Promise<ApiResponse<SavedPlace>> => {
+    return apiFetch<SavedPlace>('/saved-places', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSavedPlace: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/saved-places?id=${id}`, { method: 'DELETE' });
+  }
 };
 
 /**
