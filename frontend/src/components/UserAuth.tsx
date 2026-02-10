@@ -169,21 +169,13 @@ export function UserAuth() {
                 </div>
                 <div className="ml-3 flex-1">
                   <h3 className="text-sm font-semibold text-red-800">
-                    {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                      error.includes('connect') || error.includes('server') ? 'Connection Error' :
-                        error.includes('not found') ? 'Account Not Found' :
-                          error.includes('already') || error.includes('taken') ? 'Account Exists' :
-                            error.includes('required') || error.includes('fill') ? 'Validation Error' :
-                              isLogin ? 'Login Error' : 'Registration Error'}
+                    {error.includes('connect') || error.includes('server') ? 'Connection Error' :
+                      error.includes('not found') ? 'Account Not Found' :
+                        error.includes('already') || error.includes('taken') ? 'Account Exists' :
+                          error.includes('required') || error.includes('fill') ? 'Validation Error' :
+                            isLogin ? 'Login Error' : 'Registration Error'}
                   </h3>
                   <p className="mt-1 text-sm text-red-700">{error}</p>
-                  {(error.includes('Invalid') || error.includes('password')) && isLogin && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-800 font-medium">💡 Test credentials:</p>
-                      <p className="text-xs text-blue-600 mt-1">Email: test@example.com</p>
-                      <p className="text-xs text-blue-600">Password: password123</p>
-                    </div>
-                  )}
                   {(error.includes('required') || error.includes('fill')) && !isLogin && (
                     <div className="mt-2 p-2 bg-blue-50 rounded-lg">
                       <p className="text-xs text-blue-800">Please ensure:</p>
