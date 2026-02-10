@@ -59,12 +59,28 @@ export function CrewAuth() {
       } else {
         // Show specific error message
         const errorMsg = data.message || data.error || 'Authentication failed';
-        if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('incorrect')) {
-          setError('Invalid email or password. Please check your credentials.');
-        } else if (errorMsg.includes('not found')) {
-          setError('Crew account not found. Please register or contact admin.');
+
+        if (isLogin) {
+          if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('incorrect')) {
+            setError('Invalid email or password. Please check your credentials.');
+          } else if (errorMsg.includes('pending') || errorMsg.includes('deactivated')) {
+            setError(errorMsg);
+          } else if (errorMsg.includes('not found')) {
+            setError('Crew account not found. Please register or contact admin.');
+          } else {
+            setError(errorMsg);
+          }
         } else {
-          setError(errorMsg);
+          // Registration specific errors
+          if (errorMsg.includes('Email already registered')) {
+            setError('This email is already registered. Try logging in instead.');
+          } else if (errorMsg.includes('NIC already registered')) {
+            setError('This NIC number is already registered.');
+          } else if (errorMsg.includes('Invalid bus ID')) {
+            setError('The Bus ID provided was not found in our system. Please check and try again.');
+          } else {
+            setError(errorMsg);
+          }
         }
       }
     } catch (err) {
@@ -119,7 +135,7 @@ export function CrewAuth() {
                           error.includes('not found') ? 'Account Not Found' : 'Login Error'}
                     </h3>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
-                    {(error.includes('Invalid') || error.includes('password')) && (
+                    {isLogin && (error.includes('Invalid') || error.includes('password')) && (
                       <div className="mt-2 p-2 bg-orange-50 rounded-lg">
                         <p className="text-xs text-orange-800 font-medium">💡 Test credentials:</p>
                         <p className="text-xs text-orange-600 mt-1">Email: john.smith@kango.com</p>
@@ -255,7 +271,7 @@ export function CrewAuth() {
                 disabled={isLoading}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50"
               >
-                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Sign Up')}
+                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Request Signup')}
               </button>
               {!isLogin && (
                 <p className="text-xs text-center text-gray-500 mt-2">

@@ -282,19 +282,30 @@ export function Map({
         <MapBoundsController points={[fromLocation, destination]} />
       )}
 
-      {/* Walking Path */}
-      {walkingPath && (
+      {/* Journey Path (Walking or Direct Connection) */}
+      {(walkingPath && walkingPath.length > 0) ? (
         <Polyline
           positions={walkingPath}
           pathOptions={{
             color: '#3b82f6', // Blue
-            weight: 5,
+            weight: 6,
             dashArray: '10, 15', // Dashed line
-            opacity: 0.8,
+            opacity: 0.9,
             lineCap: 'round'
           }}
         />
-      )}
+      ) : (fromLocation && destination && (
+        <Polyline
+          positions={[fromLocation, destination]}
+          pathOptions={{
+            color: '#3b82f6',
+            weight: 5,
+            dashArray: '5, 10',
+            opacity: 0.4,
+            lineCap: 'round'
+          }}
+        />
+      ))}
 
       {/* Route polylines */}
       {showRoutes && (
@@ -411,20 +422,6 @@ export function Map({
             <strong>Destination</strong>
           </Popup>
         </Marker>
-      )}
-
-      {/* Walking Path */}
-      {walkingPath && walkingPath.length > 0 && (
-        <Polyline
-          positions={walkingPath}
-          pathOptions={{
-            color: '#3b82f6', // Blue
-            dashArray: '10, 10', // Dashed line
-            weight: 5,
-            opacity: 0.8,
-            lineCap: 'round'
-          }}
-        />
       )}
     </MapContainer>
   );

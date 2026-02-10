@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { 
-  ArrowLeft, 
-  Bus, 
-  MapPin, 
-  Clock, 
+import {
+  ArrowLeft,
+  Bus,
+  MapPin,
+  Clock,
   AlertCircle,
   QrCode,
   CreditCard,
@@ -17,7 +17,7 @@ export function TripActive() {
   const navigate = useNavigate();
   const location = useLocation();
   const { bus, destination } = location.state || {};
-  
+
   const [tripStage, setTripStage] = useState<'scan' | 'payment' | 'onboard' | 'completed'>('scan');
   const [waitRequestSent, setWaitRequestSent] = useState(false);
   const [waitTimer, setWaitTimer] = useState(0);
@@ -134,16 +134,16 @@ export function TripActive() {
             <div className="bg-gray-50 rounded-2xl p-4 mb-6">
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Base Fare</span>
-                <span className="font-semibold">$2.50</span>
+                <span className="font-semibold">Rs. 50.00</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Distance Fee</span>
-                <span className="font-semibold">$1.20</span>
+                <span className="font-semibold">Rs. 30.00</span>
               </div>
               <div className="border-t border-gray-300 my-2" />
               <div className="flex justify-between">
                 <span className="font-bold text-gray-800">Total</span>
-                <span className="font-bold text-blue-600 text-xl">$3.70</span>
+                <span className="font-bold text-blue-600 text-xl">Rs. 80.00</span>
               </div>
             </div>
 
@@ -165,7 +165,7 @@ export function TripActive() {
               onClick={handlePaymentComplete}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl transition-colors"
             >
-              Pay $3.70
+              Pay Rs. 80.00
             </button>
           </div>
         </div>

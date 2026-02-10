@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -54,7 +55,7 @@ export function UserHome() {
   const [destination, setDestination] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
-  const [nearestStop, setNearestStop] = useState(nearbyStops[0]);
+  const [nearestStop, setNearestStop] = useState<any>(nearbyStops[0]);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [fromLocationCoords, setFromLocationCoords] = useState<[number, number] | null>(null);
@@ -70,9 +71,34 @@ export function UserHome() {
   const [fromSuggestions, setFromSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
   const [toSuggestions, setToSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
 
+  interface WalkingGuidanceData {
+    boarding_stop: {
+      stop_id: number;
+      stop_name: string;
+      latitude: number;
+      longitude: number;
+    };
+    walking_path: {
+      coordinates: [number, number][];
+      distance_meters: number;
+      duration_seconds: number;
+      steps: Array<{ instruction: string; distance: number }>;
+    };
+    next_bus: {
+      route_number: string;
+      eta_minutes: number;
+    } | null;
+    can_catch_next_bus: boolean;
+    bus_path_coordinates?: [number, number][];
+    walking_path_to_destination?: {
+      coordinates: [number, number][];
+    };
+    distance_to_stop: number;
+  }
+
   // New Walking Guidance State
   const [walkingGuidanceActive, setWalkingGuidanceActive] = useState(false);
-  const [walkingGuidanceData, setWalkingGuidanceData] = useState<any>(null);
+  const [walkingGuidanceData, setWalkingGuidanceData] = useState<WalkingGuidanceData | null>(null);
   const [distanceRemaining, setDistanceRemaining] = useState<number>(0);
 
   const watchIdRef = useRef<number | null>(null);
@@ -86,11 +112,24 @@ export function UserHome() {
           setUserLocation(coords);
           setMapCenter(coords);
           setCurrentLocation('My Location');
+
+          // Initialize nearby stops dynamically
+          const nearby = getNearbyStops(coords);
+          if (nearby.length > 0) {
+            setNearestStop(nearby[0]);
+          }
         },
         (error) => {
           console.log('Geolocation error:', error);
-          setUserLocation([6.9344, 79.8428]);
+          const fallback: [number, number] = [6.9344, 79.8428];
+          setUserLocation(fallback);
+          setMapCenter(fallback);
           setCurrentLocation('Fort Railway Station');
+
+          const nearby = getNearbyStops(fallback);
+          if (nearby.length > 0) {
+            setNearestStop(nearby[0]);
+          }
         }
       );
     }
@@ -185,6 +224,31 @@ export function UserHome() {
     setShowBottomSheet(true);
   };
 
+  // Calculate actual nearby stops based on user location
+  const getNearbyStops = (coords: [number, number] | null) => {
+    if (!coords) return [];
+
+    return COLOMBO_BUS_STOPS
+      .map(stop => {
+        const dist = calculateDistance(coords[0], coords[1], stop.lat, stop.lng);
+        return {
+          ...stop,
+          distanceMeters: dist,
+          distanceKm: (dist / 1000).toFixed(1),
+          walkTime: Math.round(dist / 80) // ~5km/h = 83m/min
+        };
+      })
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, 3)
+      .map(s => ({
+        name: s.name,
+        distance: s.distanceKm,
+        walkTime: s.walkTime,
+        lat: s.lat,
+        lng: s.lng
+      }));
+  };
+
   const handleSearch = async () => {
     if (!destination) {
       alert('Please select a destination first');
@@ -192,10 +256,21 @@ export function UserHome() {
     }
 
     // Use manually selected 'From' or current GPS location
-    const finalFromCoords = fromLocationCoords || userLocation;
+    let finalFromCoords = fromLocationCoords || userLocation;
+
+    // Handle string location for origin if coords still missing
+    if (!finalFromCoords && currentLocation !== 'My Location' && currentLocation !== 'Current Location') {
+      const fromStop = COLOMBO_BUS_STOPS.find(s =>
+        s.name.toLowerCase().trim() === currentLocation.toLowerCase().trim()
+      );
+      if (fromStop) {
+        finalFromCoords = [fromStop.lat, fromStop.lng];
+        setFromLocationCoords(finalFromCoords);
+      }
+    }
 
     if (!finalFromCoords) {
-      // Try to get GPS location as fallback
+      // Try to get GPS location as last resort
       navigator.geolocation.getCurrentPosition(async (position) => {
         const uLoc: [number, number] = [position.coords.latitude, position.coords.longitude];
         setUserLocation(uLoc);
@@ -213,24 +288,19 @@ export function UserHome() {
   const performTripGuidance = async (fromCoords: [number, number]) => {
     let actualFromCoords = fromCoords;
 
-    // If no explicit coords set (just typed), try to find matching stop
-    if (!fromLocationCoords && currentLocation !== 'My Location' && currentLocation !== 'Current Location') {
-      const fromStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().includes(currentLocation.toLowerCase())
-      );
-      if (fromStop) {
-        actualFromCoords = [fromStop.lat, fromStop.lng];
-        setFromLocationCoords(actualFromCoords);
-      }
-    }
-
     let dCoords = destinationCoords;
     if (!dCoords) {
+      // Improved resolution: check for exact match or name start
       const destStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().includes(destination.toLowerCase())
+        s.name.toLowerCase().trim() === destination.toLowerCase().trim() ||
+        destination.toLowerCase().trim().startsWith(s.name.toLowerCase())
       );
+
       if (destStop) {
         dCoords = [destStop.lat, destStop.lng];
+        setDestinationCoords(dCoords);
+      } else if (destination.toLowerCase().includes("my location") && userLocation) {
+        dCoords = userLocation;
         setDestinationCoords(dCoords);
       }
     }
@@ -257,26 +327,55 @@ export function UserHome() {
 
       const data = await response.json();
 
-      if (!data.success) {
-        alert(`Error: ${data.error || data.message || 'Unknown error'}`);
-        return;
-      }
+      if (data.needs_walking_guidance || data.boarding_stop) {
+        // Update nearest stop display
+        setNearestStop({
+          name: data.boarding_stop.stop_name || data.boarding_stop.name,
+          distance: (data.distance_to_stop / 1000).toFixed(1),
+          walkTime: Math.round(data.distance_to_stop / 80),
+          lat: data.boarding_stop.latitude,
+          lng: data.boarding_stop.longitude
+        });
 
-      if (data.needs_walking_guidance) {
-        setWalkingGuidanceActive(true);
-        setWalkingGuidanceData(data);
-        setDistanceRemaining(data.distance_to_stop);
+        if (data.needs_walking_guidance) {
+          setWalkingGuidanceActive(true);
+          setWalkingGuidanceData(data);
+          setDistanceRemaining(data.distance_to_stop);
 
-        if (data.walking_path && data.walking_path.coordinates) {
-          const path = data.walking_path.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number]);
-          setWalkingPath(path);
+          // Combine all path segments for the map
+          const combinedPath: [number, number][] = [];
+
+          // 1. First walking leg (Origin to Boarding Stop)
+          if (data.walking_path && data.walking_path.coordinates) {
+            data.walking_path.coordinates.forEach((coord: [number, number]) => {
+              combinedPath.push([coord[0], coord[1]]);
+            });
+          }
+
+          // 2. Bus leg
+          if (data.bus_path_coordinates) {
+            data.bus_path_coordinates.forEach((coord: [number, number]) => {
+              combinedPath.push([coord[0], coord[1]]);
+            });
+          }
+
+          // 3. Second walking leg (Alighting Stop to Destination)
+          if (data.walking_path_to_destination && data.walking_path_to_destination.coordinates) {
+            data.walking_path_to_destination.coordinates.forEach((coord: [number, number]) => {
+              combinedPath.push([coord[0], coord[1]]);
+            });
+          }
+
+          if (combinedPath.length > 0) {
+            setWalkingPath(combinedPath);
+          }
+
+          startLocationTracking(data);
+        } else {
+          alert(data.message || 'You are already at the stop!');
+          setShowRoutes(true);
+          setShowBottomSheet(true);
         }
-
-        startLocationTracking(data);
-      } else {
-        alert(data.message || 'You are already at the stop!');
-        setShowRoutes(true);
-        setShowBottomSheet(true);
       }
     } catch (error) {
       console.error('Trip start error:', error);
@@ -348,6 +447,11 @@ export function UserHome() {
 
     setDestination(tempLoc);
     setDestinationCoords(tempCoords);
+
+    // If we swapped and destination became 'My Location', ensure coords are handled
+    if (tempLoc === 'My Location' || tempLoc === 'Current Location') {
+      setDestinationCoords(null); // Will be resolved to userLocation in search
+    }
   };
 
   return (

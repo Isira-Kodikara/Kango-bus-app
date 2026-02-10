@@ -73,6 +73,9 @@ CREATE TABLE routes (
     frequency_minutes INT,
     color VARCHAR(7) DEFAULT '#3b82f6',
     status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+    osm_id BIGINT UNIQUE,
+    operator VARCHAR(100),
+    geometry LONGTEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -86,6 +89,7 @@ CREATE TABLE stops (
     longitude DECIMAL(11, 8),
     address VARCHAR(255),
     is_active BOOLEAN DEFAULT TRUE,
+    osm_id BIGINT UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

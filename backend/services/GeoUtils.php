@@ -1,5 +1,4 @@
 <?php
-// backend/services/GeoUtils.php
 
 class GeoUtils {
     /**
@@ -30,7 +29,8 @@ class GeoUtils {
      * Returns multiplier: 0.7 for peak hours, 1.2 for late night, 1.0 otherwise
      */
     public static function getTrafficMultiplier($timestamp = null) {
-        $hour = date('H', $timestamp ?? time());
+        $currTime = $timestamp ?? time();
+        $hour = (int)date('H', $currTime);
         
         // Peak hours: 7-9 AM, 5-7 PM
         if (($hour >= 7 && $hour < 9) || ($hour >= 17 && $hour < 19)) {
@@ -42,20 +42,5 @@ class GeoUtils {
         }
         // Off-peak
         return 1.0; // Normal speed
-    }
-    
-    /**
-     * Calculate bearing between two points
-     * Returns bearing in radians
-     */
-    public static function calculateBearing($lat1, $lon1, $lat2, $lon2) {
-        $lat1 = deg2rad($lat1);
-        $lat2 = deg2rad($lat2);
-        $lonDelta = deg2rad($lon2 - $lon1);
-        
-        $y = sin($lonDelta) * cos($lat2);
-        $x = cos($lat1) * sin($lat2) - sin($lat1) * cos($lat2) * cos($lonDelta);
-        
-        return atan2($y, $x);
     }
 }

@@ -321,6 +321,24 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ crew_id: crewId })
     });
+  },
+
+  /**
+   * Get all live buses
+   */
+  getBuses: async (): Promise<ApiResponse<any[]>> => {
+    return apiFetch<any[]>('/get-live-buses', {
+      method: 'GET'
+    });
+  },
+
+  /**
+   * Get all routes
+   */
+  getRoutes: async (): Promise<ApiResponse<any[]>> => {
+    return apiFetch<any[]>('/get-routes', {
+      method: 'GET'
+    });
   }
 };
 

@@ -1,5 +1,6 @@
 <?php
-// backend/services/WalkingDirectionsService.php
+
+require_once __DIR__ . '/GeoUtils.php';
 
 class WalkingDirectionsService {
     private $apiKey;
@@ -9,86 +10,86 @@ class WalkingDirectionsService {
     }
     
     /**
-     * Get walking directions from Mapbox API
+     * Get walking directions from OpenRouteService API
      * Returns path coordinates, distance, duration, and turn-by-turn steps
      */
     public function getWalkingPath($fromLat, $fromLng, $toLat, $toLng) {
-        $url = "https://api.mapbox.com/directions/v5/mapbox/walking/" .
-               "$fromLng,$fromLat;$toLng,$toLat";
+        $url = "https://api.openrouteservice.org/v2/directions/foot-walking";
         
-        // Query parameters
-        $params = [
-            'geometries' => 'geojson',
-            'access_token' => $this->apiKey,
-            'overview' => 'full',
-            'steps' => 'true',
-            'banner_instructions' => 'true'
+        $data = [
+            'coordinates' => [
+                [$fromLng, $fromLat], // OpenRouteService uses [lng, lat]
+                [$toLng, $toLat]
+            ],
+            'instructions' => true,
+            'geometry' => true
         ];
-
-        $requestUrl = $url . '?' . http_build_query($params);
-
-        try {
-            // Suppress warnings for file_get_contents
-            $context = stream_context_create([
-                'http' => ['ignore_errors' => true]
-            ]);
-            $response = @file_get_contents($requestUrl, false, $context);
-            
-            if ($response === false) {
-                 // Check if it's a network issue or API error
-                 $error = error_get_last();
-                 error_log("Mapbox API request failed: " . ($error['message'] ?? 'Unknown error'));
-                 throw new Exception("Failed to fetch from Mapbox API");
-            }
-
-            $data = json_decode($response, true);
-
-            // Check for API errors in response body
-            if (isset($data['code']) && $data['code'] !== 'Ok') {
-                error_log("Mapbox API Error Code: " . $data['code'] . " - " . ($data['message'] ?? ''));
-                throw new Exception("Mapbox API Error: " . ($data['message'] ?? $data['code']));
-            }
-
-            if (isset($data['routes']) && count($data['routes']) > 0) {
-                $route = $data['routes'][0];
-                
-                // Extract steps if available
-                $steps = [];
-                if (isset($route['legs'][0]['steps'])) {
-                    foreach ($route['legs'][0]['steps'] as $step) {
-                        $steps[] = [
-                            'instruction' => $step['maneuver']['instruction'],
-                            'distance' => $step['distance'],
-                            'duration' => $step['duration'] ?? 0
-                        ];
-                    }
-                }
-
-                return [
-                    'distance_meters' => $route['distance'],
-                    'duration_seconds' => $route['duration'],
-                    // Mapbox returns [lng, lat]. We flip to [lat, lng] for frontend consistency
-                    'coordinates' => array_map(function($coord) {
-                        return [$coord[1], $coord[0]]; // [lat, lng]
-                    }, $route['geometry']['coordinates']),
-                    'steps' => $steps,
-                    'source' => 'mapbox'
-                ];
-            }
-        } catch (Exception $e) {
-            error_log("WalkingDirectionsService Exception: " . $e->getMessage());
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: ' . $this->apiKey,
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
+        // Disable SSL verification for development environments if needed
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200 || $response === false) {
+            // Log error if needed
+            return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
         }
         
-        // Fallback if no route found
+        $result = json_decode($response, true);
+        
+        if (isset($result['features']) && !empty($result['features'])) {
+            $feature = $result['features'][0];
+            $route = $feature['properties'];
+            
+            // Extract turn-by-turn steps
+            $steps = [];
+            if (isset($route['segments'][0]['steps'])) {
+                foreach ($route['segments'][0]['steps'] as $step) {
+                    $steps[] = [
+                        'instruction' => $step['instruction'] ?? 'Continue',
+                        'distance' => $step['distance'] ?? 0
+                    ];
+                }
+            }
+            
+            // Swap coordinates back to [lat, lng] for Leaflet if needed, or keep as [lng, lat] for GeoJSON
+            // React Leaflet Polyline expects [lat, lng]
+            $coords = [];
+            if (isset($feature['geometry']['coordinates'])) {
+                foreach ($feature['geometry']['coordinates'] as $coord) {
+                    $coords[] = [$coord[1], $coord[0]]; // [lat, lng]
+                }
+            }
+            
+            return [
+                'coordinates' => $coords,
+                'distance_meters' => $route['summary']['distance'],
+                'duration_seconds' => $route['summary']['duration'],
+                'steps' => $steps
+            ];
+        }
+        
         return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
     }
     
     /**
-     * Fallback: straight-line path if Mapbox API fails
-     * Returns simple path with estimated walking time
+     * Fallback: straight-line path if API fails
      */
     public function getStraightLinePath($fromLat, $fromLng, $toLat, $toLng) {
-        $distance = GeoUtils::haversineDistance($fromLat, $fromLng, $toLat, $toLng) * 1000; // meters
+        $distance = GeoUtils::haversineDistance($fromLat, $fromLng, $toLat, $toLng) * 1000;
         $walkingSpeed = 1.4; // m/s
         
         return [
@@ -96,15 +97,14 @@ class WalkingDirectionsService {
                 [$fromLat, $fromLng],
                 [$toLat, $toLng]
             ],
-            'distance_meters' => $distance,
-            'duration_seconds' => $distance / $walkingSpeed,
+            'distance_meters' => round($distance),
+            'duration_seconds' => round($distance / $walkingSpeed),
             'steps' => [
                 [
                     'instruction' => 'Walk straight to destination',
                     'distance' => $distance
                 ]
-            ],
-            'source' => 'fallback'
+            ]
         ];
     }
 }
