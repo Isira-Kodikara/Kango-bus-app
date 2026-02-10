@@ -193,10 +193,30 @@ export function UserHome() {
       );
 
       // TODO: Implement isOffRoute() check to recalculate path if user deviates significantly
-      // if (isOffRoute(latitude, longitude, guidanceData.walking_path)) {
-      //   recalculateRoute();
-      // }
+      if (guidanceData.walking_path && guidanceData.walking_path.coordinates) {
+        if (isOffRoute(latitude, longitude, guidanceData.walking_path.coordinates)) {
+          // For now, just log it. Real implementation would fetch new path.
+          // console.log("User is off route!");
+          // Optional: Trigger recalculation here
+        }
+      }
     }
+  };
+
+  const isOffRoute = (lat: number, lng: number, path: [number, number][]) => {
+    // Simple check: minimal distance to any point on path > 30m
+    // This is computationally expensive for long paths, but okay for walking paths
+    // Note: path coordinates from backend (check-guidance) are likely [lng, lat] from Mapbox/WalkingService
+    // We ensured in WalkingDirectionsService they are [lat, lng] via array_map
+
+    let minDistance = Infinity;
+    for (const point of path) {
+      // point is [lat, lng]
+      const dist = calculateDistance(lat, lng, point[0], point[1]);
+      if (dist < minDistance) minDistance = dist;
+    }
+
+    return minDistance > 30; // 30 meters threshold
   };
 
   const handleArrivedAtStop = () => {
@@ -266,7 +286,8 @@ export function UserHome() {
       // Check for walking guidance
       if (userLocation) {
         try {
-          const response = await fetch(ENDPOINTS.CHECK_GUIDANCE, {
+          // Use full URL to avoid proxy issues in dev if necessary, but relative path is better for production
+          const response = await fetch('http://localhost:8000/api/check-guidance.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

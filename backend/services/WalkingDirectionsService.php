@@ -49,13 +49,26 @@ class WalkingDirectionsService {
         $requestUrl = $url . '?' . http_build_query($params);
 
         try {
-            $response = @file_get_contents($requestUrl);
+            // Suppress warnings for file_get_contents
+            $context = stream_context_create([
+                'http' => ['ignore_errors' => true]
+            ]);
+            $response = @file_get_contents($requestUrl, false, $context);
             
             if ($response === false) {
-                throw new Exception("Failed to fetch from Mapbox API");
+                 // Check if it's a network issue or API error
+                 $error = error_get_last();
+                 error_log("Mapbox API request failed: " . ($error['message'] ?? 'Unknown error'));
+                 throw new Exception("Failed to fetch from Mapbox API");
             }
 
             $data = json_decode($response, true);
+
+            // Check for API errors in response body
+            if (isset($data['code']) && $data['code'] !== 'Ok') {
+                error_log("Mapbox API Error Code: " . $data['code'] . " - " . ($data['message'] ?? ''));
+                throw new Exception("Mapbox API Error: " . ($data['message'] ?? $data['code']));
+            }
 
             if (isset($data['routes']) && count($data['routes']) > 0) {
                 $route = $data['routes'][0];
@@ -76,37 +89,22 @@ class WalkingDirectionsService {
                 return [
                     'distance_meters' => $route['distance'],
                     'duration_seconds' => $route['duration'],
-                    'coordinates' => $route['geometry']['coordinates'], // [lng, lat] arrays
+                    // Ensure coordinates are [lat, lng] for frontend consistency if needed, 
+                    // but Mapbox returns [lng, lat]. Let's keep [lng, lat] for GeoJSON compatibility
+                    // The frontend UserHome.tsx expects [lat, lng] in some places, so we might need to flip.
+                    // Checking UserHome.tsx: mocked path uses [lat, lng]. 
+                    // Let's flip them here to match our app's convention of [lat, lng] for simple arrays
+                    'coordinates' => array_map(function($coord) {
+                        return [$coord[1], $coord[0]]; // Flip to [lat, lng]
+                    }, $route['geometry']['coordinates']),
                     'steps' => $steps,
                     'source' => 'mapbox'
                 ];
             }
         } catch (Exception $e) {
-            error_log("Mapbox API Error: " . $e->getMessage());
+            error_log("WalkingDirectionsService Exception: " . $e->getMessage());
         }
 
         // Fallback to straight line if API fails
         return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
     }
-
-    /**
-     * Fallback: Calculate straight line path
-     */
-    public function getStraightLinePath($fromLat, $fromLng, $toLat, $toLng) {
-        $distanceKm = GeoUtils::haversineDistance($fromLat, $fromLng, $toLat, $toLng);
-        $distanceMeters = $distanceKm * 1000;
-        
-        // Estimate time: distance / speed
-        $durationSeconds = $distanceMeters / $this->walkingSpeedMps;
-
-        return [
-            'distance_meters' => round($distanceMeters),
-            'duration_seconds' => round($durationSeconds),
-            'coordinates' => [
-                [$fromLng, $fromLat],
-                [$toLng, $toLat]
-            ],
-            'source' => 'straight_line_fallback'
-        ];
-    }
-}

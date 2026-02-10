@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $data = json_decode(file_get_contents("php://input"));
 
 if (
-    !isset($data->origin_lat) || 
-    !isset($data->origin_lng) || 
-    !isset($data->destination_lat) || 
-    !isset($data->destination_lng)
+!isset($data->origin_lat) ||
+!isset($data->origin_lng) ||
+!isset($data->destination_lat) ||
+!isset($data->destination_lng)
 ) {
     http_response_code(400);
     echo json_encode(["message" => "Incomplete data. Please provide origin and destination coordinates."]);
@@ -32,9 +32,9 @@ if (
 try {
     $routeFinder = new RouteFinderService();
     $bestRoute = $routeFinder->findBestRoute(
-        $data->origin_lat, 
-        $data->origin_lng, 
-        $data->destination_lat, 
+        $data->origin_lat,
+        $data->origin_lng,
+        $data->destination_lat,
         $data->destination_lng
     );
 
@@ -45,19 +45,19 @@ try {
     }
 
     $boardingStop = $bestRoute['boarding_stop'];
-    
+
     // Check distance to boarding stop
     $distanceToStopKm = GeoUtils::haversineDistance(
-        $data->origin_lat, 
-        $data->origin_lng, 
-        $boardingStop['latitude'], 
+        $data->origin_lat,
+        $data->origin_lng,
+        $boardingStop['latitude'],
         $boardingStop['longitude']
     );
     $distanceToStopMeters = $distanceToStopKm * 1000;
 
     // If user is more than 50m away, they need walking guidance
     $needsGuidance = $distanceToStopMeters > 50;
-    
+
     $response = [
         'needs_walking_guidance' => $needsGuidance,
         'boarding_stop' => $boardingStop,
@@ -69,22 +69,32 @@ try {
         // Get walking path with steps
         $walkingService = new WalkingDirectionsService();
         $walkingPath = $walkingService->getWalkingPath(
-            $data->origin_lat, 
-            $data->origin_lng, 
-            $boardingStop['latitude'], 
+            $data->origin_lat,
+            $data->origin_lng,
+            $boardingStop['latitude'],
             $boardingStop['longitude']
         );
-        
+
+        // If walking path failed completely, default to straight line or handle error
+        if (!$walkingPath) {
+            $walkingPath = $walkingService->getStraightLinePath(
+                $data->origin_lat,
+                $data->origin_lng,
+                $boardingStop['latitude'],
+                $boardingStop['longitude']
+            );
+        }
+
         $response['walking_path'] = $walkingPath;
 
         // Get next bus ETA
         // Assuming we use the primary route ID from the route finder result
         // Note: findBestRoute returns 'bus_data' which has 'primary_route_id'
         $routeId = $bestRoute['bus_data']['primary_route_id'] ?? 1; // Default to 1 if missing
-        
+
         $etaService = new BusETAService();
         $nextBusEta = $etaService->getNextBusETA($boardingStop['id'], $routeId);
-        
+
         $response['next_bus'] = [
             'route_id' => $routeId,
             'eta_seconds' => $nextBusEta,
@@ -104,7 +114,8 @@ try {
     http_response_code(200);
     echo json_encode($response);
 
-} catch (Exception $e) {
+}
+catch (Exception $e) {
     http_response_code(500);
     echo json_encode(["message" => "Server error: " . $e->getMessage()]);
 }
