@@ -11,6 +11,7 @@ export function CrewAuth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     nic: '',
@@ -23,6 +24,7 @@ export function CrewAuth() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const endpoint = isLogin ? '/auth/crew/login' : '/auth/crew/register';
@@ -44,10 +46,16 @@ export function CrewAuth() {
 
       const data = await response.json();
 
-      if (data.success && data.data?.token) {
-        localStorage.setItem('auth_token', data.data.token);
-        localStorage.setItem('user_type', 'crew');
-        navigate('/crew-dashboard');
+      if (data.success) {
+        if (data.data?.token) {
+          localStorage.setItem('auth_token', data.data.token);
+          localStorage.setItem('user_type', 'crew');
+          navigate('/crew-dashboard');
+        } else if (data.data?.requires_approval) {
+          setSuccessMessage(data.message || 'Registration request sent! Please wait for admin approval.');
+          setIsLogin(true); // Switch back to login view
+          setFormData({ ...formData, password: '' }); // Clear password
+        }
       } else {
         // Show specific error message
         const errorMsg = data.message || data.error || 'Authentication failed';
@@ -123,6 +131,20 @@ export function CrewAuth() {
                         <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-xl">
+                <div className="flex items-start">
+                  <svg className="h-5 w-5 text-green-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-semibold text-green-800">Request Sent</h3>
+                    <p className="text-sm text-green-700 mt-1">{successMessage}</p>
                   </div>
                 </div>
               </div>
@@ -233,7 +255,7 @@ export function CrewAuth() {
                 disabled={isLoading}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50"
               >
-                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Sign Up')}
+                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Request Signup')}
               </button>
             </form>
 

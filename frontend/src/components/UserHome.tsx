@@ -360,6 +360,7 @@ export function UserHome() {
           showRoutes={showRoutes}
           selectedRoute={selectedRouteId}
           userLocation={userLocation}
+          fromLocation={fromLocationCoords}
           destination={destinationCoords}
           onBusClick={handleBusClick}
           center={mapCenter}

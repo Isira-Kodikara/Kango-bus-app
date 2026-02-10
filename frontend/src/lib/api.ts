@@ -303,6 +303,25 @@ export const adminApi = {
 
     return response;
   },
+
+  /**
+   * Get pending crew members for approval
+   */
+  getPendingCrew: async (): Promise<ApiResponse<any[]>> => {
+    return apiFetch<any[]>('/auth/admin/pending-crew', {
+      method: 'GET'
+    });
+  },
+
+  /**
+   * Approve a pending crew member
+   */
+  approveCrew: async (crewId: number): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/approve-crew', {
+      method: 'POST',
+      body: JSON.stringify({ crew_id: crewId })
+    });
+  }
 };
 
 /**

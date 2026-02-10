@@ -90,7 +90,35 @@ export const createDestinationIcon = () => L.divIcon({
       border: 3px solid white;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       transform: rotate(-45deg);
-    "></div>
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="width: 8px; height: 8px; background: white; border-radius: 50%; transform: rotate(45deg);"></div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 24],
+  popupAnchor: [0, -24],
+});
+
+export const createFromIcon = () => L.divIcon({
+  className: 'custom-from-marker',
+  html: `
+    <div style="
+      background-color: #3b82f6;
+      width: 24px;
+      height: 24px;
+      border-radius: 50% 50% 50% 0;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="width: 8px; height: 8px; background: white; border-radius: 50%; transform: rotate(45deg);"></div>
+    </div>
   `,
   iconSize: [24, 24],
   iconAnchor: [12, 24],
@@ -159,6 +187,20 @@ function MapController({ center, zoom }: { center?: [number, number]; zoom?: num
   return null;
 }
 
+// Component to fit map to bounds
+function MapBoundsController({ points }: { points: [number, number][] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (points.length >= 2) {
+      const bounds = L.latLngBounds(points);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  }, [points, map]);
+
+  return null;
+}
+
 // Get route coordinates from stop IDs
 function getRouteCoordinates(stopIds: number[]): [number, number][] {
   return stopIds
@@ -175,6 +217,7 @@ interface MapProps {
   showRoutes?: boolean;
   selectedRoute?: number | null;
   userLocation?: [number, number] | null;
+  fromLocation?: [number, number] | null;
   destination?: [number, number] | null;
   onBusClick?: (bus: typeof SAMPLE_BUSES[0]) => void;
   onStopClick?: (stop: typeof COLOMBO_BUS_STOPS[0]) => void;
@@ -192,6 +235,7 @@ export function Map({
   showRoutes = true,
   selectedRoute = null,
   userLocation = null,
+  fromLocation = null,
   destination = null,
   onBusClick,
   onStopClick,
@@ -232,6 +276,11 @@ export function Map({
 
       {/* Map controller for programmatic updates */}
       <MapController center={center} zoom={zoom} />
+
+      {/* Auto-fit bounds when from and to locations are set */}
+      {fromLocation && destination && (
+        <MapBoundsController points={[fromLocation, destination]} />
+      )}
 
       {/* Walking Path */}
       {walkingPath && (
@@ -342,6 +391,15 @@ export function Map({
         <Marker position={userLocation} icon={createUserIcon()}>
           <Popup>
             <strong>You are here</strong>
+          </Popup>
+        </Marker>
+      )}
+
+      {/* From Location */}
+      {fromLocation && (
+        <Marker position={fromLocation} icon={createFromIcon()}>
+          <Popup>
+            <strong>Starting Location</strong>
           </Popup>
         </Marker>
       )}

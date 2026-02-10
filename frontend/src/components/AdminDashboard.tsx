@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { 
-  Bus, 
-  Users, 
-  MapPin, 
-  BarChart3, 
+import {
+  Bus,
+  Users,
+  MapPin,
+  BarChart3,
   Settings,
   LogOut,
   Plus,
@@ -12,8 +12,10 @@ import {
   Trash2,
   Clock,
   TrendingUp,
-  Activity
+  Activity,
+  UserCheck
 } from 'lucide-react';
+import { adminApi } from '../lib/api';
 
 const mockBuses = [
   { id: 'BUS-45', route: 'Downtown Express', driver: 'John Smith', passengers: 12, status: 'active', location: 'Central Plaza' },
@@ -38,8 +40,10 @@ const mockAnalytics = {
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'buses' | 'routes' | 'analytics'>('buses');
+  const [activeTab, setActiveTab] = useState<'buses' | 'routes' | 'analytics' | 'crew'>('buses');
   const [selectedBus, setSelectedBus] = useState<any>(null);
+  const [pendingCrew, setPendingCrew] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -53,7 +57,7 @@ export function AdminDashboard() {
               <p className="text-purple-100 text-sm">System Management</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/')}
             className="p-2 hover:bg-white/20 rounded-full"
           >
@@ -82,33 +86,52 @@ export function AdminDashboard() {
       <div className="bg-white shadow-sm flex">
         <button
           onClick={() => setActiveTab('buses')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'buses' 
-              ? 'text-purple-600 border-purple-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'buses'
+            ? 'text-purple-600 border-purple-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Buses
         </button>
         <button
           onClick={() => setActiveTab('routes')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'routes' 
-              ? 'text-purple-600 border-purple-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'routes'
+            ? 'text-purple-600 border-purple-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Routes
         </button>
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${
-            activeTab === 'analytics' 
-              ? 'text-purple-600 border-purple-600' 
-              : 'text-gray-500 border-transparent'
-          }`}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'analytics'
+            ? 'text-purple-600 border-purple-600'
+            : 'text-gray-500 border-transparent'
+            }`}
         >
           Analytics
+        </button>
+        <button
+          onClick={async () => {
+            setActiveTab('crew');
+            setIsLoading(true);
+            try {
+              const response = await adminApi.getPendingCrew();
+              if (response.success && response.data) {
+                setPendingCrew(response.data);
+              }
+            } catch (err) {
+              console.error('Failed to fetch pending crew', err);
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          className={`flex-1 py-4 text-center font-semibold transition-colors border-b-2 ${activeTab === 'crew'
+            ? 'text-purple-600 border-purple-600'
+            : 'text-gray-500 border-transparent'
+            }`}
+        >
+          Crew Requests
         </button>
       </div>
 
@@ -127,19 +150,17 @@ export function AdminDashboard() {
 
             <div className="space-y-3">
               {mockBuses.map((bus) => (
-                <div 
+                <div
                   key={bus.id}
                   className="bg-white rounded-2xl shadow-md p-5 cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setSelectedBus(bus)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-3 ${
-                        bus.status === 'active' ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <Bus className={`w-6 h-6 ${
-                          bus.status === 'active' ? 'text-green-600' : 'text-gray-400'
-                        }`} />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-3 ${bus.status === 'active' ? 'bg-green-100' : 'bg-gray-100'
+                        }`}>
+                        <Bus className={`w-6 h-6 ${bus.status === 'active' ? 'text-green-600' : 'text-gray-400'
+                          }`} />
                       </div>
                       <div>
                         <div className="font-bold text-gray-800">{bus.id}</div>
@@ -150,11 +171,10 @@ export function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      bus.status === 'active' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
+                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${bus.status === 'active'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
+                      }`}>
                       {bus.status}
                     </div>
                   </div>
@@ -317,7 +337,7 @@ export function AdminDashboard() {
                         <span className="text-sm font-bold text-purple-600">{usage}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-purple-600 h-2 rounded-full transition-all"
                           style={{ width: `${usage}%` }}
                         />
@@ -327,6 +347,55 @@ export function AdminDashboard() {
                 })}
               </div>
             </div>
+          </div>
+        )}
+        {/* Crew Tab */}
+        {activeTab === 'crew' && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800">Pending Crew Access</h2>
+            {pendingCrew.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-8 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No pending crew requests found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingCrew.map((crew) => (
+                  <div key={crew.id} className="bg-white rounded-2xl shadow-md p-5 border-l-4 border-orange-500">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-lg">{crew.full_name}</h3>
+                        <p className="text-sm text-gray-600">{crew.email}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+                          <div>NIC: {crew.nic}</div>
+                          <div>Requested: {crew.created_at}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Approve ${crew.full_name} as crew member?`)) {
+                            try {
+                              const response = await adminApi.approveCrew(crew.id);
+                              if (response.success) {
+                                setPendingCrew(prev => prev.filter(p => p.id !== crew.id));
+                              } else {
+                                alert(response.message || 'Failed to approve');
+                              }
+                            } catch (err) {
+                              alert('Connection error');
+                            }
+                          }
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center transition-colors"
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

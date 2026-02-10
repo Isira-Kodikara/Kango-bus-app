@@ -88,10 +88,10 @@ function handleRegister(PDO $db): void {
     // Hash password
     $hashedPassword = password_hash($validator->get('password'), PASSWORD_DEFAULT);
 
-    // Insert crew member - AUTO-VERIFIED FOR DEVELOPMENT
+    // Insert crew member - REQUIRE ADMIN APPROVAL (is_active = FALSE)
     $stmt = $db->prepare("
-        INSERT INTO crew (full_name, email, password, nic, assigned_bus_id, otp_code, otp_expires_at, is_verified)
-        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
+        INSERT INTO crew (full_name, email, password, nic, assigned_bus_id, otp_code, otp_expires_at, is_verified, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, FALSE)
     ");
     $stmt->execute([
         $validator->get('full_name'),
@@ -119,9 +119,9 @@ function handleRegister(PDO $db): void {
     Response::success([
         'crew_id' => (int)$crewId,
         'email' => $validator->get('email'),
-        'token' => $token,
-        'requires_verification' => false
-    ], 'Registration successful. You are now logged in.', 201);
+        'requires_verification' => false,
+        'requires_approval' => true
+    ], 'Registration request sent! Please wait for admin approval before you can log in.', 201);
 }
 
 /**
@@ -178,7 +178,7 @@ function handleLogin(PDO $db): void {
     */
 
     if (!$crew['is_active']) {
-        Response::error('Your account has been deactivated. Contact admin.', 403);
+        Response::error('Your account is pending admin approval or has been deactivated. Please contact admin.', 403);
     }
 
     // Generate JWT token

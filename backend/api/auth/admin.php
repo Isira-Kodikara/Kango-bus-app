@@ -34,8 +34,62 @@ switch ($action) {
     case 'register':
         handleRegister($db);
         break;
+    case 'pending-crew':
+        handleGetPendingCrew($db);
+        break;
+    case 'approve-crew':
+        handleApproveCrew($db);
+        break;
     default:
         Response::error('Invalid action', 400);
+}
+
+/**
+ * Get pending crew members (Admin only)
+ */
+function handleGetPendingCrew(PDO $db): void {
+    $authUser = JWT::requireAuth();
+    if ($authUser['user_type'] !== 'admin') {
+        Response::forbidden();
+    }
+
+    $stmt = $db->query("
+        SELECT id, full_name, email, nic, assigned_bus_id, created_at 
+        FROM crew 
+        WHERE is_active = FALSE 
+        ORDER BY created_at DESC
+    ");
+    $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    Response::success($pending, 'Pending crew members retrieved');
+}
+
+/**
+ * Approve a crew member (Admin only)
+ */
+function handleApproveCrew(PDO $db): void {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        Response::methodNotAllowed();
+    }
+
+    $authUser = JWT::requireAuth();
+    if ($authUser['user_type'] !== 'admin') {
+        Response::forbidden();
+    }
+
+    $data = json_decode(file_get_contents('php://input'), true) ?? [];
+    if (!isset($data['crew_id'])) {
+        Response::error('Crew ID is required', 400);
+    }
+
+    $stmt = $db->prepare("UPDATE crew SET is_active = TRUE WHERE id = ?");
+    $stmt->execute([$data['crew_id']]);
+
+    if ($stmt->rowCount() === 0) {
+        Response::error('Crew member not found or already active', 404);
+    }
+
+    Response::success(null, 'Crew member approved successfully');
 }
 
 /**
