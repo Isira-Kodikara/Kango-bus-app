@@ -7,6 +7,10 @@
 
 require_once __DIR__ . '/config/config.php';
 
+if (file_exists(__DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))) {
+    return false;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit(0);
@@ -43,12 +47,8 @@ switch (true) {
         require_once __DIR__ . '/api/auth/admin.php';
         break;
 
-    case preg_match('/^(\/api)?\/journey-planner/', $requestUri):
-        require_once __DIR__ . '/api/journey-planner.php';
-        break;
-
-    case preg_match('/^(\/api)?\/check-guidance/', $requestUri):
-        require_once __DIR__ . '/api/check-guidance.php';
+    case preg_match('/^(\/api)?\/trip-guidance/', $requestUri):
+        require_once __DIR__ . '/api/trip-guidance.php';
         break;
 
     default:

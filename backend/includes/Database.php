@@ -35,7 +35,9 @@ class Database {
     }
 
     private function sendError(string $message, int $code = 500): void {
-        http_response_code($code);
+        if (php_sapi_name() !== 'cli') {
+            http_response_code($code);
+        }
         echo json_encode([
             'success' => false,
             'error' => $message

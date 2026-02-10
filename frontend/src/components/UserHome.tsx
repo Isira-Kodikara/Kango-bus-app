@@ -18,7 +18,6 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
-import { WalkingGuidanceOverlay } from './WalkingGuidanceOverlay';
 import { ENDPOINTS } from '../lib/api-config';
 
 // Active bus tracking data
@@ -55,6 +54,7 @@ export function UserHome() {
   const [nearestStop, setNearestStop] = useState(nearbyStops[0]);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [fromLocationCoords, setFromLocationCoords] = useState<[number, number] | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(COLOMBO_CENTER);
@@ -67,13 +67,12 @@ export function UserHome() {
   const [fromSuggestions, setFromSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
   const [toSuggestions, setToSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
 
-  // Walking Guidance State
-  const [walkingGuidance, setWalkingGuidance] = useState<{
-    isActive: boolean;
-    data: any;
-  }>({ isActive: false, data: null });
-  const watchIdRef = useRef<number | null>(null);
+  // New Walking Guidance State
+  const [walkingGuidanceActive, setWalkingGuidanceActive] = useState(false);
+  const [walkingGuidanceData, setWalkingGuidanceData] = useState<any>(null);
+  const [distanceRemaining, setDistanceRemaining] = useState<number>(0);
 
+  const watchIdRef = useRef<number | null>(null);
 
   // Get user's current location
   useEffect(() => {
@@ -87,15 +86,12 @@ export function UserHome() {
         },
         (error) => {
           console.log('Geolocation error:', error);
-          // Default to Colombo Fort if location access denied
           setUserLocation([6.9344, 79.8428]);
           setCurrentLocation('Fort Railway Station');
         }
       );
     }
   }, []);
-
-
 
   const handleLocateMe = () => {
     if (userLocation) {
@@ -126,231 +122,229 @@ export function UserHome() {
     navigate('/trip-active', { state: { bus, destination } });
   };
 
-  // Calculate distance between two points (Haversine)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // metres
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371e3; // Earth radius in meters
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const Δλ = (lng2 - lng1) * Math.PI / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
       Math.cos(φ1) * Math.cos(φ2) *
       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return R * c;
+    return R * c; // Distance in meters
   };
 
-  const startWalkingGuidance = (guidanceData: any) => {
-    setWalkingGuidance({ isActive: true, data: guidanceData });
+  const startLocationTracking = (guidanceData: any) => {
+    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
 
-    // Set walking path for map
-    if (guidanceData.walking_path && guidanceData.walking_path.steps) {
-      // Convert steps to coordinates for polyline
-      // Note: steps usually contain end locations. We might need a full geometry if available.
-      // For now, let's construct a path from user location -> steps -> station
-      const path: [number, number][] = [];
-      if (userLocation) path.push(userLocation);
-      guidanceData.walking_path.steps.forEach((step: any) => {
-        path.push([step.location[0], step.location[1]]);
-      });
-      setWalkingPath(path);
-    }
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const currentLat = position.coords.latitude;
+        const currentLng = position.coords.longitude;
+        const newUserLoc: [number, number] = [currentLat, currentLng];
+        setUserLocation(newUserLoc);
 
-    setShowBottomSheet(false); // Hide routes sheet
-
-    // Start watching position
-    if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation([latitude, longitude]);
-
-          // Calculate distance to stop
-          const dist = calculateDistance(
-            latitude, longitude,
-            guidanceData.boarding_stop.lat,
-            guidanceData.boarding_stop.lng
+        if (guidanceData) {
+          const remaining = calculateDistance(
+            currentLat, currentLng,
+            guidanceData.boarding_stop.latitude,
+            guidanceData.boarding_stop.longitude
           );
+          setDistanceRemaining(remaining);
 
-          // Update guidance data with new distance
-          setWalkingGuidance(prev => ({
-            ...prev,
-            data: {
-              ...prev.data,
-              current_distance_to_stop: dist
-            }
-          }));
-
-          // Auto-arrival check (within 30m)
-          if (dist < 30) {
-            handleArrivedAtStop();
+          if (remaining < 30) {
+            handleArrivedAtStop(guidanceData);
           }
-        },
-        (error) => console.error(error),
-        { enableHighAccuracy: true, maximumAge: 5000 }
-      );
-
-      // TODO: Implement isOffRoute() check to recalculate path if user deviates significantly
-      // if (isOffRoute(latitude, longitude, guidanceData.walking_path)) {
-      //   recalculateRoute();
-      // }
-    }
+        }
+      },
+      (error) => console.error('Location tracking error:', error),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      }
+    );
   };
 
-  const handleArrivedAtStop = () => {
+  const handleArrivedAtStop = (data: any) => {
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
-    setWalkingGuidance({ isActive: false, data: null });
-    setWalkingPath([]); // Clear path
+    setWalkingGuidanceActive(false);
+    alert(`🎉 You've arrived at ${data.boarding_stop.stop_name}! Look for Bus ${data.next_bus?.route_number || ''}`);
 
-    // Proceed to bus boarding flow
-    // Automatically select the route we were guiding for
-    // Check if we have a next bus in the guidance data
-    // Note regarding access to latest state inside callback:
-    // We should ideally use a ref or check the current state if available.
-    // For now, we'll just show the routes sheet.
-
+    // Switch to bus route selection or auto-ready
     setShowRoutes(true);
     setShowBottomSheet(true);
-    // Removed alert for smoother transition
   };
 
-  // Cleanup watch on unmount
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
-
-  // Timer for Bus ETA updates during walking
-  useEffect(() => {
-    let interval: any;
-    if (walkingGuidance.isActive && walkingGuidance.data?.next_bus) {
-      interval = setInterval(() => {
-        setWalkingGuidance(prev => {
-          if (!prev.data || !prev.data.next_bus) return prev;
-
-          const newEta = Math.max(0, prev.data.next_bus.eta_minutes - 1);
-          return {
-            ...prev,
-            data: {
-              ...prev.data,
-              next_bus: {
-                ...prev.data.next_bus,
-                eta_minutes: newEta
-              }
-            }
-          };
-        });
-      }, 60000); // Update every minute
-    }
-    return () => clearInterval(interval);
-  }, [walkingGuidance.isActive]);
-
   const handleSearch = async () => {
-    if (destination) {
-      // Find a matching stop for destination
+    if (!destination) {
+      alert('Please select a destination first');
+      return;
+    }
+
+    // Use manually selected 'From' or current GPS location
+    const finalFromCoords = fromLocationCoords || userLocation;
+
+    if (!finalFromCoords) {
+      // Try to get GPS location as fallback
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const uLoc: [number, number] = [position.coords.latitude, position.coords.longitude];
+        setUserLocation(uLoc);
+        performTripGuidance(uLoc);
+      }, (error) => {
+        alert('Please select a starting location or enable GPS');
+        console.error(error);
+      });
+      return;
+    }
+
+    performTripGuidance(finalFromCoords);
+  };
+
+  const performTripGuidance = async (fromCoords: [number, number]) => {
+    let actualFromCoords = fromCoords;
+
+    // If no explicit coords set (just typed), try to find matching stop
+    if (!fromLocationCoords && currentLocation !== 'My Location' && currentLocation !== 'Current Location') {
+      const fromStop = COLOMBO_BUS_STOPS.find(s =>
+        s.name.toLowerCase().includes(currentLocation.toLowerCase())
+      );
+      if (fromStop) {
+        actualFromCoords = [fromStop.lat, fromStop.lng];
+        setFromLocationCoords(actualFromCoords);
+      }
+    }
+
+    let dCoords = destinationCoords;
+    if (!dCoords) {
       const destStop = COLOMBO_BUS_STOPS.find(s =>
         s.name.toLowerCase().includes(destination.toLowerCase())
-      ) || COLOMBO_BUS_STOPS[6]; // Default to Mount Lavinia
+      );
+      if (destStop) {
+        dCoords = [destStop.lat, destStop.lng];
+        setDestinationCoords(dCoords);
+      }
+    }
 
-      const destCoords: [number, number] = [destStop.lat, destStop.lng];
-      setDestinationCoords(destCoords);
-      setMapZoom(12);
+    if (!dCoords) {
+      alert('Destination not found. Please select from suggestions.');
+      return;
+    }
 
-      // Check for walking guidance
-      if (userLocation) {
-        try {
-          const response = await fetch(ENDPOINTS.CHECK_GUIDANCE, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              origin_lat: userLocation[0],
-              origin_lng: userLocation[1],
-              destination_lat: destCoords[0],
-              destination_lng: destCoords[1],
-              user_id: 1
-            })
-          });
+    try {
+      const response = await fetch(ENDPOINTS.TRIP_GUIDANCE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          origin_lat: actualFromCoords[0],
+          origin_lng: actualFromCoords[1],
+          destination_lat: dCoords[0],
+          destination_lng: dCoords[1],
+          user_id: 1
+        })
+      });
 
-          const data = await response.json();
+      const data = await response.json();
 
-          if (data.needs_walking_guidance) {
-            startWalkingGuidance(data);
-          } else {
-            // Already at stop
-            setShowRoutes(true);
-            setShowBottomSheet(true);
-          }
-        } catch (error) {
-          console.error("Error checking guidance:", error);
-          // Fallback to normal flow
-          setShowRoutes(true);
-          setShowBottomSheet(true);
+      if (!data.success) {
+        alert(`Error: ${data.error || data.message || 'Unknown error'}`);
+        return;
+      }
+
+      if (data.needs_walking_guidance) {
+        setWalkingGuidanceActive(true);
+        setWalkingGuidanceData(data);
+        setDistanceRemaining(data.distance_to_stop);
+
+        if (data.walking_path && data.walking_path.coordinates) {
+          const path = data.walking_path.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number]);
+          setWalkingPath(path);
         }
+
+        startLocationTracking(data);
       } else {
-        // No user location, standard flow
+        alert(data.message || 'You are already at the stop!');
         setShowRoutes(true);
         setShowBottomSheet(true);
       }
+    } catch (error) {
+      console.error('Trip start error:', error);
+      alert('Failed to start trip. Check backend connection.');
     }
   };
 
-  const filterSuggestions = (value: string) => {
+  const filterSuggestions = (value: string, isFrom: boolean = false) => {
+    let results: any[] = [];
     if (value.length > 0) {
-      const filtered = COLOMBO_BUS_STOPS.filter(stop =>
+      results = COLOMBO_BUS_STOPS.filter(stop =>
         stop.name.toLowerCase().includes(value.toLowerCase())
       );
-      return filtered;
     }
-    return [];
+
+    // Add "My Location" as first option for 'From' field
+    if (isFrom && value.length === 0) {
+      return [{ id: 'current', name: 'My Location', lat: 0, lng: 0 }];
+    }
+
+    return results;
   };
 
   const handleFromChange = (value: string) => {
     setCurrentLocation(value);
-    const filtered = filterSuggestions(value);
+    const filtered = filterSuggestions(value, true);
     setFromSuggestions(filtered);
-    setShowFromSuggestions(filtered.length > 0);
+    setShowFromSuggestions(true);
   };
 
   const handleToChange = (value: string) => {
     setDestination(value);
-    if (value.length > 0) {
-      const filtered = COLOMBO_BUS_STOPS.filter(stop =>
-        stop.name.toLowerCase().includes(value.toLowerCase())
-      );
-      setToSuggestions(filtered);
-      setShowToSuggestions(filtered.length > 0);
+    const filtered = filterSuggestions(value);
+    setToSuggestions(filtered);
+    setShowToSuggestions(true);
+  };
+
+  const selectFromSuggestion = (stop: any) => {
+    if (stop.id === 'current') {
+      setCurrentLocation('My Location');
+      setFromLocationCoords(null);
     } else {
-      setShowToSuggestions(false);
+      setCurrentLocation(stop.name);
+      setFromLocationCoords([stop.lat, stop.lng]);
+      setMapCenter([stop.lat, stop.lng]);
     }
-  };
-
-  const selectFromSuggestion = (stop: typeof COLOMBO_BUS_STOPS[0]) => {
-    setCurrentLocation(stop.name);
     setShowFromSuggestions(false);
-    setUserLocation([stop.lat, stop.lng]);
-    setMapCenter([stop.lat, stop.lng]);
   };
 
-  const selectToSuggestion = (stop: typeof COLOMBO_BUS_STOPS[0]) => {
+  const selectToSuggestion = (stop: any) => {
     setDestination(stop.name);
     setShowToSuggestions(false);
     setDestinationCoords([stop.lat, stop.lng]);
   };
 
-  // Close suggestions when clicking outside
   const handleBlur = () => {
-    // Delay to allow click on suggestion to register
     setTimeout(() => {
       setShowFromSuggestions(false);
       setShowToSuggestions(false);
     }, 200);
+  };
+
+  const swapLocations = () => {
+    const tempLoc = currentLocation;
+    const tempCoords = fromLocationCoords;
+
+    setCurrentLocation(destination);
+    setFromLocationCoords(destinationCoords);
+
+    setDestination(tempLoc);
+    setDestinationCoords(tempCoords);
   };
 
   return (
@@ -371,146 +365,153 @@ export function UserHome() {
         />
       </div>
 
-      {/* UI Overlay Container - z-index 1000 - NO pointer-events-none */}
-      <div className="absolute inset-x-0 top-0 z-[1000]">
-        {/* Floating Top Bar */}
-        <div className="m-4 mb-0">
-          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-3 flex items-center justify-between relative">
-            <button
-              onClick={() => navigate('/user-profile')}
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <User className="w-6 h-6 text-gray-700" />
-            </button>
-            <h1 className="text-xl font-bold text-blue-600 absolute left-1/2 -translate-x-1/2">KANGO</h1>
-            <div className="flex items-center">
+      {/* UI Overlay Container - z-index 1000 */}
+      <div className="absolute inset-x-0 top-0 z-[1000] pointer-events-none">
+        <div className="pointer-events-auto" style={{ pointerEvents: 'auto' }}>
+          {/* Floating Top Bar */}
+          <div className="m-4 mb-0">
+            <div className="bg-white rounded-[24px] shadow-xl p-4 flex items-center justify-between relative border border-gray-100">
               <button
-                onClick={() => navigate('/journey-planner')}
-                className="p-2 hover:bg-gray-100 rounded-full mr-1"
-                title="Journey Planner"
+                onClick={() => navigate('/user-profile')}
+                className="p-2 hover:bg-gray-100 rounded-full z-10"
               >
-                <MapIcon className="w-6 h-6 text-blue-600" />
+                <User className="w-6 h-6 text-gray-700" />
               </button>
-              <button className="p-2 hover:bg-gray-100 rounded-full">
-                <Menu className="w-6 h-6 text-gray-700" />
-              </button>
+              <h1 className="text-xl font-black text-blue-600 absolute left-1/2 -translate-x-1/2 uppercase tracking-tighter">KANGO</h1>
+              <div className="flex items-center z-10">
+                <button className="p-2 hover:bg-gray-100 rounded-full">
+                  <Menu className="w-6 h-6 text-gray-700" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Floating Search Card */}
-        {!showRoutes && (
-          <>
-            <div className="route-input-card shadow-2xl p-5">
-              {/* Current Location */}
-              <div className="flex items-center mb-4 pb-4 border-b border-gray-200 relative">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <Navigation className="w-5 h-5 text-blue-600" />
-                </div>
-                <div className="flex-1 relative">
-                  <div className="text-xs text-gray-500 mb-1">From</div>
-                  <input
-                    type="text"
-                    value={currentLocation}
-                    onChange={(e) => handleFromChange(e.target.value)}
-                    onFocus={() => currentLocation.length > 0 && handleFromChange(currentLocation)}
-                    onBlur={handleBlur}
-                    className="w-full font-medium text-gray-800 outline-none bg-white"
-                    placeholder="Current location"
-                  />
-                  {/* From Suggestions */}
-                  {showFromSuggestions && (
-                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                      {fromSuggestions.map((stop) => (
-                        <div
-                          key={stop.id}
-                          onClick={() => selectFromSuggestion(stop)}
-                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                        >
-                          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                          {stop.name}
+          {!showRoutes && (
+            <div className="mx-4 mt-2 max-w-xl md:mx-auto">
+              <div className="bg-white rounded-[24px] shadow-2xl p-5 border border-gray-100 relative">
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 space-y-3">
+                    {/* From Input Group */}
+                    <div className="relative z-[1010]">
+                      <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                        <MapPin className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
+                        <input
+                          type="text"
+                          value={currentLocation}
+                          onChange={(e) => handleFromChange(e.target.value)}
+                          onFocus={() => handleFromChange(currentLocation)}
+                          onBlur={handleBlur}
+                          className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
+                          placeholder="Current Location"
+                          style={{ pointerEvents: 'auto' }}
+                        />
+                        {currentLocation && (
+                          <button
+                            onClick={() => {
+                              setCurrentLocation('');
+                              setFromLocationCoords(null);
+                            }}
+                            className="p-1 hover:bg-gray-200 rounded-full ml-1"
+                          >
+                            <X className="w-4 h-4 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+
+                      {showFromSuggestions && fromSuggestions.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 mt-2 max-h-60 overflow-y-auto">
+                          {fromSuggestions.map((stop) => (
+                            <div
+                              key={stop.id}
+                              onClick={() => selectFromSuggestion(stop)}
+                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer flex items-center border-b border-gray-50 last:border-0"
+                            >
+                              {String(stop.id) === 'current' ? (
+                                <Navigation className="w-4 h-4 text-blue-600 mr-3" />
+                              ) : (
+                                <MapPin className="w-4 h-4 text-gray-400 mr-3" />
+                              )}
+                              <span className="text-sm font-medium text-gray-700">{stop.name}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Destination */}
-              <div className="flex items-center mb-4 relative">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-red-600" />
-                </div>
-                <div className="flex-1 relative">
-                  <div className="text-xs text-gray-500 mb-1">To</div>
-                  <input
-                    type="text"
-                    value={destination}
-                    onChange={(e) => handleToChange(e.target.value)}
-                    onFocus={() => {
-                      // Show all stops when focusing on empty field
-                      if (destination.length === 0) {
-                        setToSuggestions(COLOMBO_BUS_STOPS);
-                        setShowToSuggestions(true);
-                      } else {
-                        handleToChange(destination);
-                      }
-                    }}
-                    onBlur={handleBlur}
-                    className="w-full font-medium text-gray-800 outline-none bg-white"
-                    placeholder="Where to?"
-                  />
-                  {/* To Suggestions */}
-                  {showToSuggestions && (
-                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                      {toSuggestions.map((stop) => (
-                        <div
-                          key={stop.id}
-                          onClick={() => selectToSuggestion(stop)}
-                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                        >
-                          <MapPin className="w-4 h-4 text-red-400 mr-2" />
-                          {stop.name}
+                    {/* To Input Group */}
+                    <div className="relative z-[1000]">
+                      <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                        <MapPin className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+                        <input
+                          type="text"
+                          value={destination}
+                          onChange={(e) => handleToChange(e.target.value)}
+                          onFocus={() => handleToChange(destination)}
+                          onBlur={handleBlur}
+                          className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
+                          placeholder="Where to?"
+                          style={{ pointerEvents: 'auto' }}
+                        />
+                        {destination && (
+                          <button
+                            onClick={() => {
+                              setDestination('');
+                              setDestinationCoords(null);
+                            }}
+                            className="p-1 hover:bg-gray-200 rounded-full ml-1"
+                          >
+                            <X className="w-4 h-4 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+
+                      {showToSuggestions && toSuggestions.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white rounded-xl shadow-[0_10px_40_rgba(0,0,0,0.1)] border border-gray-100 mt-2 max-h-60 overflow-y-auto">
+                          {toSuggestions.map((stop) => (
+                            <div
+                              key={stop.id}
+                              onClick={() => selectToSuggestion(stop)}
+                              className="px-4 py-3 hover:bg-red-50 cursor-pointer flex items-center border-b border-gray-50 last:border-0"
+                            >
+                              <MapPin className="w-4 h-4 text-red-500 mr-3" />
+                              <span className="text-sm font-medium text-gray-700">{stop.name}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              {/* Search Button */}
-              <button
-                onClick={handleSearch}
-                disabled={!destination}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center shadow-lg"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Find Best Route
-              </button>
-            </div>
-
-            {/* Nearest Stop Info */}
-            <div className="nearest-stop-section">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Nearest Bus Stop</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-800">{nearestStop.name}</div>
-                  <div className="text-sm text-gray-500 flex items-center mt-1">
-                    <Footprints className="w-4 h-4 mr-1" />
-                    {nearestStop.walkTime} min walk • {nearestStop.distance} km
+                  {/* Swap Button Column - Positioned between inputs in desktop or absolute centered in mobile */}
+                  <div className="absolute right-[-10px] top-[50%] -translate-y-[50%] z-[1015]">
+                    <button
+                      onClick={swapLocations}
+                      className="bg-white border border-gray-200 p-2.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-90 hover:bg-blue-50 group"
+                      title="Swap locations"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <ArrowRight className="w-4 h-4 text-blue-600 rotate-90 group-hover:scale-110 transition-transform" />
+                    </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500">Distance</div>
-                  <div className="text-lg font-bold text-blue-600">{nearestStop.distance} km</div>
-                </div>
+
+                {/* Search Button */}
+                <button
+                  onClick={handleSearch}
+                  disabled={!destination}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 rounded-xl flex items-center justify-center text-white font-bold shadow-lg transition-all active:scale-[0.98] mt-4 group"
+                  style={{ pointerEvents: 'auto' }}
+                >
+                  <Search className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                  <span>Find Best Route</span>
+                </button>
               </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Locate Me Button - Separate element */}
+      {/* Locate Me Button */}
       <button
         onClick={handleLocateMe}
         className="absolute bottom-32 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -518,7 +519,7 @@ export function UserHome() {
         <Locate className="w-6 h-6 text-blue-600" />
       </button>
 
-      {/* Bottom Sheet with Routes - Outside overlay, has its own z-index */}
+      {/* Bottom Sheet with Routes */}
       {showRoutes && showBottomSheet && (
         <div className="fixed inset-x-0 bottom-0 z-[1001] flex flex-col pointer-events-auto" style={{ maxHeight: '65vh' }}>
           {/* Handle */}
@@ -526,9 +527,7 @@ export function UserHome() {
             <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
           </div>
 
-          {/* Content */}
           <div className="bg-white flex-1 overflow-y-auto px-5 pb-6">
-            {/* Header with close button */}
             <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3">
               <h2 className="text-xl font-bold text-gray-800">Available Routes</h2>
               <button
@@ -543,7 +542,6 @@ export function UserHome() {
               </button>
             </div>
 
-            {/* Route instruction */}
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
               <div className="flex items-start">
                 <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
@@ -554,7 +552,6 @@ export function UserHome() {
               </div>
             </div>
 
-            {/* Upcoming Buses */}
             <h3 className="font-semibold text-gray-700 mb-3">Upcoming Buses</h3>
             <div className="space-y-3">
               {activeBuses.map((bus) => {
@@ -566,7 +563,6 @@ export function UserHome() {
                     key={bus.id}
                     className="bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-blue-400 transition-all shadow-md"
                   >
-                    {/* Bus Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <div
@@ -586,7 +582,6 @@ export function UserHome() {
                       </div>
                     </div>
 
-                    {/* Crowd Indicator */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <Users className="w-4 h-4 text-gray-500 mr-2" />
@@ -597,7 +592,6 @@ export function UserHome() {
                       </div>
                     </div>
 
-                    {/* Catchable indicator */}
                     {canCatch ? (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                         <span className="text-sm text-green-700 font-medium">✓ You can catch this bus</span>
@@ -625,13 +619,62 @@ export function UserHome() {
           </div>
         </div>
       )}
+
       {/* Walking Guidance Overlay */}
-      {walkingGuidance.isActive && walkingGuidance.data && (
-        <WalkingGuidanceOverlay
-          guidanceData={walkingGuidance.data}
-          userLocation={userLocation}
-          onArrived={handleArrivedAtStop}
-        />
+      {walkingGuidanceActive && walkingGuidanceData && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-white p-6 rounded-2xl shadow-2xl z-[1002] min-w-[350px] max-w-[90vw] animate-in slide-in-from-bottom duration-300 pointer-events-auto">
+          <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
+            <span className="mr-2">🚶</span> Walking to Bus Stop
+          </h3>
+          <div className="mb-3 text-sm text-gray-600">
+            <strong className="text-gray-800">📍 Destination:</strong> {walkingGuidanceData.boarding_stop.stop_name}
+          </div>
+          <div className="mb-4 text-sm text-gray-600 flex items-center gap-3">
+            <span><strong className="text-gray-800">📏 Distance:</strong> {Math.round(distanceRemaining)}m</span>
+            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+            <span><strong className="text-gray-800">⏱️ Time:</strong> ~{Math.round(distanceRemaining / 1.4 / 60)} min</span>
+          </div>
+
+          {walkingGuidanceData.next_bus && (
+            <div className={`p-4 rounded-xl mb-4 ${walkingGuidanceData.can_catch_next_bus ? 'bg-green-50 border border-green-100 text-green-800' : 'bg-orange-50 border border-orange-100 text-orange-800'}`}>
+              <div className="flex items-center justify-between font-bold text-sm">
+                <span className="flex items-center">
+                  <span className="mr-2">🚌</span> Bus {walkingGuidanceData.next_bus.route_number}
+                </span>
+                <span>Arrives in {walkingGuidanceData.next_bus.eta_minutes} min</span>
+              </div>
+              <div className="text-xs mt-1 opacity-80 font-medium">
+                {walkingGuidanceData.can_catch_next_bus ? '✅ You can catch it!' : '⚠️ Might be tight - try to hurry!'}
+              </div>
+            </div>
+          )}
+
+          <details className="mt-2 text-sm">
+            <summary className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 outline-none">
+              Turn-by-Turn Directions
+            </summary>
+            <div className="mt-3 space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+              {walkingGuidanceData.walking_path.steps.map((step: any, idx: number) => (
+                <div key={idx} className="flex gap-3">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600 flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-gray-800 font-medium leading-snug">{step.instruction}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{Math.round(step.distance)}m</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+
+          <button
+            onClick={() => handleArrivedAtStop(walkingGuidanceData)}
+            className="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-xl transition-colors text-xs uppercase"
+          >
+            I'm at the stop
+          </button>
+        </div>
       )}
     </div>
   );

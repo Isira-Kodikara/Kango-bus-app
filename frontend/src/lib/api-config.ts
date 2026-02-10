@@ -22,7 +22,5 @@ export const API_BASE_URL = rawBaseUrl.replace(/\/$/, '');
 
 // Specific endpoints
 export const ENDPOINTS = {
-    JOURNEY_PLANNER: `${API_BASE_URL}/journey-planner.php`,
-    CHECK_GUIDANCE: `${API_BASE_URL}/check-guidance.php`,
-    // Add other endpoints as needed
+    TRIP_GUIDANCE: `${API_BASE_URL}/trip-guidance.php`,
 };

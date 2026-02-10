@@ -1,112 +1,79 @@
 <?php
-
-require_once __DIR__ . '/GeoUtils.php';
+// backend/services/WalkingDirectionsService.php
 
 class WalkingDirectionsService {
-    private $mapboxToken;
-    private $walkingSpeedMps = 1.4; // Average walking speed: 1.4 m/s (approx 5 km/h)
-
-    public function __construct() {
-        // Load API key from environment variable
-        $this->mapboxToken = getenv('MAPBOX_ACCESS_TOKEN');
-        
-        if (!$this->mapboxToken && file_exists(__DIR__ . '/../.env')) {
-            // Environment variable configuration
-            $envLines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($envLines as $line) {
-                if (strpos(trim($line), '#') === 0) continue;
-                $parts = explode('=', $line, 2);
-                if (count($parts) === 2 && trim($parts[0]) === 'MAPBOX_ACCESS_TOKEN') {
-                    $this->mapboxToken = trim($parts[1]);
-                    break;
-                }
-            }
-        }
+    private $apiKey;
+    
+    public function __construct($apiKey) {
+        $this->apiKey = $apiKey;
     }
-
+    
     /**
-     * Get walking directions between two points using Mapbox Navigation API
+     * Get walking directions from Mapbox API
+     * Returns path coordinates, distance, duration, and turn-by-turn steps
      */
     public function getWalkingPath($fromLat, $fromLng, $toLat, $toLng) {
-        if (empty($this->mapboxToken)) {
-            error_log("WalkingDirectionsService: MAPBOX_ACCESS_TOKEN not set. Using straight line fallback.");
+        $url = "https://api.mapbox.com/directions/v5/mapbox/walking/" .
+               "$fromLng,$fromLat;$toLng,$toLat" .
+               "?geometries=geojson&steps=true&banner_instructions=true&" .
+               "access_token=" . $this->apiKey;
+        
+        $response = @file_get_contents($url);
+        
+        if ($response === false) {
+            // API call failed, use fallback
             return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
         }
-
-        // Mapbox requires coordinates in "longitude,latitude" format
-        $coordinates = "$fromLng,$fromLat;$toLng,$toLat";
-        $url = "https://api.mapbox.com/directions/v5/mapbox/walking/{$coordinates}";
         
-        // Query parameters
-        $params = [
-            'geometries' => 'geojson',
-            'access_token' => $this->mapboxToken,
-            'overview' => 'full',
-            'steps' => 'true',
-            'banner_instructions' => 'true'
-        ];
-
-        $requestUrl = $url . '?' . http_build_query($params);
-
-        try {
-            $response = @file_get_contents($requestUrl);
+        $result = json_decode($response, true);
+        
+        if (isset($result['routes']) && !empty($result['routes'])) {
+            $route = $result['routes'][0];
             
-            if ($response === false) {
-                throw new Exception("Failed to fetch from Mapbox API");
-            }
-
-            $data = json_decode($response, true);
-
-            if (isset($data['routes']) && count($data['routes']) > 0) {
-                $route = $data['routes'][0];
-                
-                // Extract steps if available
-                $steps = [];
-                if (isset($route['legs'][0]['steps'])) {
-                    foreach ($route['legs'][0]['steps'] as $step) {
-                        $steps[] = [
-                            'instruction' => $step['maneuver']['instruction'],
-                            'distance' => $step['distance'],
-                            'duration' => $step['duration'],
-                            'location' => $step['maneuver']['location'] // [lng, lat]
-                        ];
-                    }
+            // Extract turn-by-turn steps
+            $steps = [];
+            if (isset($route['legs'][0]['steps'])) {
+                foreach ($route['legs'][0]['steps'] as $step) {
+                    $steps[] = [
+                        'instruction' => $step['maneuver']['instruction'] ?? 'Continue',
+                        'distance' => $step['distance'] ?? 0
+                    ];
                 }
-
-                return [
-                    'distance_meters' => $route['distance'],
-                    'duration_seconds' => $route['duration'],
-                    'coordinates' => $route['geometry']['coordinates'], // [lng, lat] arrays
-                    'steps' => $steps,
-                    'source' => 'mapbox'
-                ];
             }
-        } catch (Exception $e) {
-            error_log("Mapbox API Error: " . $e->getMessage());
+            
+            return [
+                'coordinates' => $route['geometry']['coordinates'], // [lng, lat] format
+                'distance_meters' => $route['distance'],
+                'duration_seconds' => $route['duration'],
+                'steps' => $steps
+            ];
         }
-
-        // Fallback to straight line if API fails
+        
+        // Fallback if no route found
         return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
     }
-
+    
     /**
-     * Fallback: Calculate straight line path
+     * Fallback: straight-line path if Mapbox API fails
+     * Returns simple path with estimated walking time
      */
     public function getStraightLinePath($fromLat, $fromLng, $toLat, $toLng) {
-        $distanceKm = GeoUtils::haversineDistance($fromLat, $fromLng, $toLat, $toLng);
-        $distanceMeters = $distanceKm * 1000;
+        $distance = GeoUtils::haversineDistance($fromLat, $fromLng, $toLat, $toLng) * 1000; // meters
+        $walkingSpeed = 1.4; // m/s
         
-        // Estimate time: distance / speed
-        $durationSeconds = $distanceMeters / $this->walkingSpeedMps;
-
         return [
-            'distance_meters' => round($distanceMeters),
-            'duration_seconds' => round($durationSeconds),
             'coordinates' => [
                 [$fromLng, $fromLat],
                 [$toLng, $toLat]
             ],
-            'source' => 'straight_line_fallback'
+            'distance_meters' => $distance,
+            'duration_seconds' => $distance / $walkingSpeed,
+            'steps' => [
+                [
+                    'instruction' => 'Walk straight to destination',
+                    'distance' => $distance
+                ]
+            ]
         ];
     }
 }

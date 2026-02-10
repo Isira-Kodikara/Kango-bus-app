@@ -9,9 +9,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { UserProfile } from "./components/UserProfile";
 import { TripActive } from "./components/TripActive";
 import { EmergencyAlert } from "./components/EmergencyAlert";
-
-// Add Journey Planner route
-import JourneySimulator from "./pages/JourneySimulator";
+import DemoModePage from "./pages/DemoModePage";
 
 export const router = createBrowserRouter([
   {
@@ -39,8 +37,8 @@ export const router = createBrowserRouter([
     Component: UserProfile,
   },
   {
-    path: "/journey-planner",
-    Component: JourneySimulator,
+    path: "/demo-mode",
+    Component: DemoModePage,
   },
   {
     path: "/trip-active",

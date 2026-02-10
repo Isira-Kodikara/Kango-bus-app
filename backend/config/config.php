@@ -3,6 +3,21 @@
  * KANGO Smart Bus Navigation - Configuration File
  */
 
+// Load .env if it exists
+if (file_exists(__DIR__ . '/../.env') && is_readable(__DIR__ . '/../.env')) {
+    $lines = @file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines) {
+        foreach ($lines as $line) {
+            if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+                list($name, $value) = explode('=', $line, 2);
+                $name = trim($name);
+                $value = trim($value);
+                putenv("{$name}={$value}");
+            }
+        }
+    }
+}
+
 // Error reporting (TEMPORARILY ENABLED FOR DEBUGGING)
 $isProduction = getenv('RAILWAY_ENVIRONMENT') || getenv('PRODUCTION');
 // Force errors on for debugging
@@ -12,7 +27,7 @@ ini_set('log_errors', 1);
 
 // Database Configuration - Use environment variables for Railway
 // Railway provides: MYSQLHOST, MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT
-define('DB_HOST', getenv('MYSQLHOST') ?: 'localhost');
+define('DB_HOST', getenv('MYSQLHOST') ?: '127.0.0.1');
 define('DB_NAME', getenv('MYSQLDATABASE') ?: 'kango_bus');
 define('DB_USER', getenv('MYSQLUSER') ?: 'root');
 define('DB_PASS', getenv('MYSQLPASSWORD') ?: '');
@@ -67,7 +82,7 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header('Content-Type: application/json; charset=UTF-8');
 
 // Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
