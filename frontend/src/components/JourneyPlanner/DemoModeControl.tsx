@@ -180,7 +180,7 @@ const DemoModeControl: React.FC<DemoModeControlProps> = ({
                 </div>
 
                 <div className="text-[10px] text-gray-400 text-center pt-2 border-t">
-                    Use this panel to showcase the "Can I catch the bus?" feature without physically moving.
+                    Use this panel to evaluate simulation features and response logic.
                 </div>
             </div>
         </div>

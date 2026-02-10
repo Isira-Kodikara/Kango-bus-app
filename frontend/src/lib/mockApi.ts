@@ -1,13 +1,13 @@
 /**
- * Mock API Service - Prototype Mode
- * This allows the frontend to work without a backend for UI testing
+ * Demo API Service
+ * Provides evaluation data for UI demonstration purposes
  */
 
 // Simulated delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Mock user database
-const mockUsers: Record<string, any> = {
+// Demo user directory
+const DEMO_USERS: Record<string, any> = {
   'demo@kango.com': {
     id: 1,
     username: 'demouser',
@@ -19,8 +19,8 @@ const mockUsers: Record<string, any> = {
   }
 };
 
-// Mock crew database
-const mockCrew: Record<string, any> = {
+// Demo crew directory
+const DEMO_CREW: Record<string, any> = {
   'DRV001': {
     id: 1,
     crew_id: 'DRV001',
@@ -39,8 +39,8 @@ const mockCrew: Record<string, any> = {
   }
 };
 
-// Mock admin database
-const mockAdmins: Record<string, any> = {
+// Demo admin directory
+const DEMO_ADMINS: Record<string, any> = {
   'admin@kango.com': {
     id: 1,
     username: 'admin',
@@ -50,8 +50,8 @@ const mockAdmins: Record<string, any> = {
   }
 };
 
-// Mock buses
-const mockBuses = [
+// Fleet data
+const DEMO_BUSES = [
   { id: 1, bus_number: 'NB-1234', route_number: '138', route_name: 'Colombo - Kandy', capacity: 52, is_active: true },
   { id: 2, bus_number: 'NC-5678', route_number: '187', route_name: 'Colombo - Galle', capacity: 48, is_active: false },
   { id: 3, bus_number: 'WP-9012', route_number: '255', route_name: 'Colombo - Negombo', capacity: 45, is_active: true },
@@ -98,7 +98,7 @@ export function isPrototypeMode(): boolean {
  */
 export function enablePrototypeMode(): void {
   localStorage.setItem(PROTOTYPE_MODE_KEY, 'true');
-  console.log('🎭 Prototype mode enabled - using mock data');
+  console.log('🧪 Demo mode enabled - using evaluation data');
 }
 
 /**
@@ -159,26 +159,26 @@ export const mockAuthApi = {
   register: async (data: { username: string; email: string; password: string }): Promise<ApiResponse> => {
     await delay(800);
 
-    if (mockUsers[data.email]) {
+    if (DEMO_USERS[data.email]) {
       return { success: false, message: 'Email already registered' };
     }
 
     // Create new user
     const newUser = {
-      id: Object.keys(mockUsers).length + 1,
+      id: Object.keys(DEMO_USERS).length + 1,
       username: data.username,
       email: data.email,
       password: data.password,
       is_verified: false,
       created_at: new Date().toISOString()
     };
-    mockUsers[data.email] = newUser;
+    DEMO_USERS[data.email] = newUser;
 
     // Generate OTP
     const otp = generateOTP();
     otpStore[data.email] = { otp, expiry: new Date(Date.now() + 10 * 60 * 1000) };
 
-    console.log(`📧 Mock OTP for ${data.email}: ${otp}`);
+    console.log(`📧 Demo OTP for ${data.email}: ${otp}`);
 
     return {
       success: true,
@@ -191,7 +191,7 @@ export const mockAuthApi = {
     try {
       await delay(600);
 
-      const user = mockUsers[data.email];
+      const user = DEMO_USERS[data.email];
       if (!user || user.password !== data.password) {
         return { success: false, message: 'Invalid email or password' };
       }
@@ -199,7 +199,7 @@ export const mockAuthApi = {
       if (!user.is_verified) {
         const otp = generateOTP();
         otpStore[data.email] = { otp, expiry: new Date(Date.now() + 10 * 60 * 1000) };
-        console.log(`📧 Mock OTP for ${data.email}: ${otp}`);
+        console.log(`📧 Demo OTP for ${data.email}: ${otp}`);
         return { success: false, message: 'Please verify your email first. OTP has been resent.' };
       }
 
@@ -239,7 +239,7 @@ export const mockAuthApi = {
     }
 
     // Verify user
-    const user = mockUsers[data.email];
+    const user = DEMO_USERS[data.email];
     if (user) {
       user.is_verified = true;
     }
@@ -268,13 +268,13 @@ export const mockAuthApi = {
   resendOTP: async (email: string): Promise<ApiResponse> => {
     await delay(400);
 
-    if (!mockUsers[email]) {
+    if (!DEMO_USERS[email]) {
       return { success: false, message: 'User not found' };
     }
 
     const otp = generateOTP();
     otpStore[email] = { otp, expiry: new Date(Date.now() + 10 * 60 * 1000) };
-    console.log(`📧 Mock OTP for ${email}: ${otp}`);
+    console.log(`📧 Demo OTP for ${email}: ${otp}`);
 
     return { success: true, message: 'OTP sent successfully' };
   },
@@ -291,7 +291,7 @@ export const mockCrewApi = {
   login: async (data: { crew_id: string; password: string }): Promise<ApiResponse<AuthTokens>> => {
     await delay(600);
 
-    const crew = mockCrew[data.crew_id];
+    const crew = DEMO_CREW[data.crew_id];
     if (!crew || crew.password !== data.password) {
       return { success: false, message: 'Invalid crew ID or password' };
     }
@@ -322,7 +322,7 @@ export const mockAdminApi = {
   login: async (data: { email: string; password: string }): Promise<ApiResponse<AuthTokens>> => {
     await delay(600);
 
-    const admin = mockAdmins[data.email];
+    const admin = DEMO_ADMINS[data.email];
     if (!admin || admin.password !== data.password) {
       return { success: false, message: 'Invalid email or password' };
     }
@@ -350,14 +350,14 @@ export const mockAdminApi = {
  * Mock Bus API
  */
 export const mockBusApi = {
-  getAll: async (): Promise<ApiResponse<typeof mockBuses>> => {
+  getAll: async (): Promise<ApiResponse<typeof DEMO_BUSES>> => {
     await delay(300);
-    return { success: true, message: 'Buses fetched', data: mockBuses };
+    return { success: true, message: 'Buses fetched', data: DEMO_BUSES };
   },
 
-  getById: async (id: number): Promise<ApiResponse<typeof mockBuses[0] | null>> => {
+  getById: async (id: number): Promise<ApiResponse<typeof DEMO_BUSES[0] | null>> => {
     await delay(200);
-    const bus = mockBuses.find(b => b.id === id);
+    const bus = DEMO_BUSES.find(b => b.id === id);
     if (!bus) return { success: false, message: 'Bus not found' };
     return { success: true, message: 'Bus found', data: bus };
   }

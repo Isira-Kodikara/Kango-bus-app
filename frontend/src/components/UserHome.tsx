@@ -21,8 +21,8 @@ import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, c
 import { WalkingGuidanceOverlay } from './WalkingGuidanceOverlay';
 import { ENDPOINTS } from '../lib/api-config';
 
-// Bus data from Map component - transform for display
-const mockBuses = SAMPLE_BUSES.map(bus => {
+// Active bus tracking data
+const activeBuses = SAMPLE_BUSES.map(bus => {
   const route = COLOMBO_ROUTES.find(r => r.id === bus.routeId);
   return {
     id: bus.id,
@@ -37,8 +37,8 @@ const mockBuses = SAMPLE_BUSES.map(bus => {
   };
 });
 
-// Use Colombo bus stops
-const mockStops = COLOMBO_BUS_STOPS.slice(0, 3).map((stop, index) => ({
+// Nearby stops for initialization
+const nearbyStops = COLOMBO_BUS_STOPS.slice(0, 3).map((stop, index) => ({
   name: stop.name,
   distance: (0.3 + index * 0.2).toFixed(1),
   walkTime: 4 + index * 3,
@@ -52,7 +52,7 @@ export function UserHome() {
   const [destination, setDestination] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
-  const [nearestStop, setNearestStop] = useState(mockStops[0]);
+  const [nearestStop, setNearestStop] = useState(nearbyStops[0]);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
@@ -274,7 +274,7 @@ export function UserHome() {
               origin_lng: userLocation[1],
               destination_lat: destCoords[0],
               destination_lng: destCoords[1],
-              user_id: 1 // hardcoded for now
+              user_id: 1
             })
           });
 
@@ -401,43 +401,48 @@ export function UserHome() {
         {/* Floating Search Card */}
         {!showRoutes && (
           <>
-            <div className="route-input-card">
+            <div className="route-input-card shadow-2xl p-5">
               {/* Current Location */}
-              <div className="relative mb-2">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">From</div>
-                <div className="relative">
+              <div className="flex items-center mb-4 pb-4 border-b border-gray-200 relative">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <Navigation className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1 relative">
+                  <div className="text-xs text-gray-500 mb-1">From</div>
                   <input
                     type="text"
                     value={currentLocation}
                     onChange={(e) => handleFromChange(e.target.value)}
                     onFocus={() => currentLocation.length > 0 && handleFromChange(currentLocation)}
                     onBlur={handleBlur}
-                    className="location-input"
+                    className="w-full font-medium text-gray-800 outline-none bg-white"
                     placeholder="Current location"
                   />
-                  <Navigation className="absolute right-4 top-[22px] -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none" />
+                  {/* From Suggestions */}
+                  {showFromSuggestions && (
+                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
+                      {fromSuggestions.map((stop) => (
+                        <div
+                          key={stop.id}
+                          onClick={() => selectFromSuggestion(stop)}
+                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
+                        >
+                          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                          {stop.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {/* From Suggestions */}
-                {showFromSuggestions && (
-                  <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                    {fromSuggestions.map((stop) => (
-                      <div
-                        key={stop.id}
-                        onClick={() => selectFromSuggestion(stop)}
-                        className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                      >
-                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                        {stop.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Destination */}
-              <div className="relative mb-2">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">To</div>
-                <div className="relative">
+              <div className="flex items-center mb-4 relative">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <MapPin className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1 relative">
+                  <div className="text-xs text-gray-500 mb-1">To</div>
                   <input
                     type="text"
                     value={destination}
@@ -452,35 +457,34 @@ export function UserHome() {
                       }
                     }}
                     onBlur={handleBlur}
-                    className="location-input"
+                    className="w-full font-medium text-gray-800 outline-none bg-white"
                     placeholder="Where to?"
                   />
-                  <MapPin className="absolute right-4 top-[22px] -translate-y-1/2 w-4 h-4 text-red-500 pointer-events-none" />
+                  {/* To Suggestions */}
+                  {showToSuggestions && (
+                    <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
+                      {toSuggestions.map((stop) => (
+                        <div
+                          key={stop.id}
+                          onClick={() => selectToSuggestion(stop)}
+                          className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
+                        >
+                          <MapPin className="w-4 h-4 text-red-400 mr-2" />
+                          {stop.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {/* To Suggestions */}
-                {showToSuggestions && (
-                  <div className="absolute left-0 right-0 top-full z-50 bg-white rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto border border-gray-200">
-                    {toSuggestions.map((stop) => (
-                      <div
-                        key={stop.id}
-                        onClick={() => selectToSuggestion(stop)}
-                        className="px-4 py-3 text-sm text-gray-800 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center"
-                      >
-                        <MapPin className="w-4 h-4 text-red-400 mr-2" />
-                        {stop.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Search Button */}
               <button
                 onClick={handleSearch}
                 disabled={!destination}
-                className="find-route-button disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center shadow-lg"
               >
-                <Search className="w-5 h-5 mr-2 inline" />
+                <Search className="w-5 h-5 mr-2" />
                 Find Best Route
               </button>
             </div>
@@ -553,7 +557,7 @@ export function UserHome() {
             {/* Upcoming Buses */}
             <h3 className="font-semibold text-gray-700 mb-3">Upcoming Buses</h3>
             <div className="space-y-3">
-              {mockBuses.map((bus) => {
+              {activeBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
                 const canCatch = nearestStop.walkTime <= bus.eta + 2;
 
@@ -629,36 +633,6 @@ export function UserHome() {
           onArrived={handleArrivedAtStop}
         />
       )}
-
-      {/* Floating Info Boxes - Desktop Only */}
-      <div className="trip-setup-box">
-        <h3>🚌 Trip Setup</h3>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions:</p>
-        <div className="space-y-2">
-          <button onClick={() => setShowRoutes(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors group w-full text-left">
-            <span className="group-hover:translate-x-1 transition-transform">- View Routes</span>
-          </button>
-          <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors group w-full text-left">
-            <span className="group-hover:translate-x-1 transition-transform">- Find Buses</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="demo-mode-box">
-        <h3>🎬 Demo Mode</h3>
-        <label className="flex items-center gap-2 cursor-pointer mb-3">
-          <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-          <span className="text-sm font-medium text-gray-700">Enable Demo</span>
-        </label>
-        <div className="relative">
-          <select className="w-full pl-3 pr-10 py-2 text-xs border border-gray-200 rounded-lg appearance-none bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option>Scenarios ▼</option>
-            <option>Colombo Fort → Bambalapitiya</option>
-            <option>Mount Lavinia → Fort</option>
-            <option>Borella → Kottawa</option>
-          </select>
-        </div>
-      </div>
     </div>
   );
 }

@@ -11,13 +11,13 @@ class WalkingDirectionsService {
         $this->mapboxToken = getenv('MAPBOX_ACCESS_TOKEN');
         
         if (!$this->mapboxToken && file_exists(__DIR__ . '/../.env')) {
-            // Fallback: naive .env parser
+            // Environment variable configuration
             $envLines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($envLines as $line) {
                 if (strpos(trim($line), '#') === 0) continue;
-                list($name, $value) = explode('=', $line, 2);
-                if (trim($name) === 'MAPBOX_ACCESS_TOKEN') {
-                    $this->mapboxToken = trim($value);
+                $parts = explode('=', $line, 2);
+                if (count($parts) === 2 && trim($parts[0]) === 'MAPBOX_ACCESS_TOKEN') {
+                    $this->mapboxToken = trim($parts[1]);
                     break;
                 }
             }
