@@ -18,7 +18,9 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
+
 import { ENDPOINTS } from '../lib/api-config';
+import { useAuth } from '../contexts/AuthContext';
 
 // Active bus tracking data
 const activeBuses = SAMPLE_BUSES.map(bus => {
@@ -47,6 +49,7 @@ const nearbyStops = COLOMBO_BUS_STOPS.slice(0, 3).map((stop, index) => ({
 
 export function UserHome() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentLocation, setCurrentLocation] = useState('Current Location');
   const [destination, setDestination] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
@@ -248,7 +251,7 @@ export function UserHome() {
           origin_lng: actualFromCoords[1],
           destination_lat: dCoords[0],
           destination_lng: dCoords[1],
-          user_id: 1
+          user_id: user?.id || 0
         })
       });
 

@@ -99,27 +99,33 @@ try {
         // Or we just handle it in frontend.
     }
     
-    // Save journey plan to database
-    $stmt = $db->prepare("
-        INSERT INTO journey_plans 
-        (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
-         boarding_stop_id, alighting_stop_id, walking_distance_meters,
-         walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
-         can_catch_next_bus)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    
-    $stmt->execute([
-        $userId,
-        $originLat, $originLng, $destLat, $destLng,
-        $bestRoute['boarding_stop']['stop_id'],
-        $bestRoute['alighting_stop']['stop_id'],
-        $response['walking_path']['distance_meters'] ?? 0,
-        $response['walking_path']['duration_seconds'] ?? 0,
-        round($bestRoute['bus_travel_time'] * 60),
-        round($bestRoute['total_time'] * 60),
-        (int)($response['can_catch_next_bus'] ?? false)
-    ]);
+    // Save journey plan to database (if user exists)
+    $stmt = $db->prepare("SELECT id FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $userExists = $stmt->fetch();
+
+    if ($userId > 0 && $userExists) {
+        $stmt = $db->prepare("
+            INSERT INTO journey_plans 
+            (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
+             boarding_stop_id, alighting_stop_id, walking_distance_meters,
+             walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
+             can_catch_next_bus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $userId,
+            $originLat, $originLng, $destLat, $destLng,
+            $bestRoute['boarding_stop']['stop_id'],
+            $bestRoute['alighting_stop']['stop_id'],
+            $response['walking_path']['distance_meters'] ?? 0,
+            $response['walking_path']['duration_seconds'] ?? 0,
+            round($bestRoute['bus_travel_time'] * 60),
+            round($bestRoute['total_time'] * 60),
+            (int)($response['can_catch_next_bus'] ?? false)
+        ]);
+    }
     
     echo json_encode($response);
     
