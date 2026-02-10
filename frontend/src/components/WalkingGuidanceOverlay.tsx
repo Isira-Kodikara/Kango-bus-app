@@ -38,9 +38,10 @@ interface WalkingGuidanceProps {
     };
     userLocation: [number, number] | null;
     onArrived: () => void;
+    onSimulateWalk?: () => void;
 }
 
-export function WalkingGuidanceOverlay({ guidanceData, userLocation, onArrived }: WalkingGuidanceProps) {
+export function WalkingGuidanceOverlay({ guidanceData, userLocation, onArrived, onSimulateWalk }: WalkingGuidanceProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [distanceRemaining, setDistanceRemaining] = useState(guidanceData.current_distance_to_stop);
@@ -94,7 +95,7 @@ export function WalkingGuidanceOverlay({ guidanceData, userLocation, onArrived }
                                     }`}
                             >
                                 <div className={`mt-0.5 mr-3 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${idx < currentStepIndex ? 'bg-green-100 text-green-700' :
-                                        idx === currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+                                    idx === currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
                                     }`}>
                                     {idx < currentStepIndex ? '✓' : idx + 1}
                                 </div>
@@ -172,10 +173,20 @@ export function WalkingGuidanceOverlay({ guidanceData, userLocation, onArrived }
                         </div>
                     </div>
 
+                    {/* Simulation Button */}
+                    {onSimulateWalk && (
+                        <button
+                            onClick={onSimulateWalk}
+                            className="w-full mt-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors font-medium border border-blue-100"
+                        >
+                            🚶 Simulate Walking
+                        </button>
+                    )}
+
                     {/* Arrived Button (Simulation/Verification) */}
                     <button
                         onClick={onArrived}
-                        className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="w-full mt-2 py-2 text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
                     >
                         I'm at the stop
                     </button>

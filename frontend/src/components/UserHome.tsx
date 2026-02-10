@@ -187,19 +187,17 @@ export function UserHome() {
           if (dist < 30) {
             handleArrivedAtStop();
           }
+
+          // Off-route check
+          if (guidanceData.walking_path && guidanceData.walking_path.coordinates) {
+            if (isOffRoute(latitude, longitude, guidanceData.walking_path.coordinates)) {
+              // console.log("User is off route!");
+            }
+          }
         },
         (error) => console.error(error),
         { enableHighAccuracy: true, maximumAge: 5000 }
       );
-
-      // TODO: Implement isOffRoute() check to recalculate path if user deviates significantly
-      if (guidanceData.walking_path && guidanceData.walking_path.coordinates) {
-        if (isOffRoute(latitude, longitude, guidanceData.walking_path.coordinates)) {
-          // For now, just log it. Real implementation would fetch new path.
-          // console.log("User is off route!");
-          // Optional: Trigger recalculation here
-        }
-      }
     }
   };
 
@@ -374,12 +372,122 @@ export function UserHome() {
     }, 200);
   };
 
+  const [routePolylines, setRoutePolylines] = useState<Record<number, [number, number][]>>({});
+  const [liveBuses, setLiveBuses] = useState<any[]>([]);
+
+  // Fetch route polylines on mount
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      const polylines: Record<number, [number, number][]> = {};
+
+      // Fetch for all 3 routes
+      for (const route of COLOMBO_ROUTES) {
+        try {
+          const res = await fetch(`http://localhost:8000/api/get-route-details.php?route_id=${route.id}`);
+          const data = await res.json();
+          if (data.path) {
+            polylines[route.id] = data.path;
+          }
+        } catch (e) {
+          console.error("Failed to fetch route geometry", e);
+        }
+      }
+      setRoutePolylines(polylines);
+    };
+
+    fetchRoutes();
+  }, []);
+
+  // Poll for live buses
+  useEffect(() => {
+    const fetchBuses = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/get-live-buses.php');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          // Transform to match Map component expectations if needed
+          // The API returns { id, routeId, lat, lng, heading, passengers, ... }
+          // The Map expects objects similar to SAMPLE_BUSES.
+          const mappedBuses = data.map(b => ({
+            ...b,
+            // Add color from local config if not in API, though API might not send it
+            color: COLOMBO_ROUTES.find(r => r.id === b.routeId)?.color || '#3b82f6'
+          }));
+          setLiveBuses(mappedBuses);
+        }
+      } catch (e) {
+        console.error("Failed to fetch live buses", e);
+      }
+    };
+
+    // Initial fetch
+    fetchBuses();
+
+    // Poll every 3 seconds
+    const interval = setInterval(fetchBuses, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // WALKING SIMULATOR
+  const simulateWalk = () => {
+    if (!walkingGuidance.isActive || !walkingGuidance.data?.walking_path?.steps) return;
+
+    // Get the path coordinates
+    const path = walkingGuidance.data.walking_path.coordinates; // [lat, lng]
+    if (!path || path.length < 2) return;
+
+    // Simulate movement along the path
+    let step = 0;
+    const totalSteps = path.length;
+
+    const move = () => {
+      if (step >= totalSteps) {
+        handleArrivedAtStop();
+        return;
+      }
+
+      const [lat, lng] = path[step];
+      setUserLocation([lat, lng]);
+
+      // Update distance in guidance overlay - normally done by geolocation watch
+      // But since we are simulating, we manually trigger updates if needed, 
+      // or rely on the effect that watches userLocation?
+      // The effect in UserHome watches 'position' from navigator, not 'userLocation' state.
+      // We need to manually update the distance logic here or refactor.
+
+      // Let's manually update the guidance distance for the simulation
+      const dist = calculateDistance(
+        lat, lng,
+        walkingGuidance.data.boarding_stop.latitude,
+        walkingGuidance.data.boarding_stop.longitude
+      );
+
+      setWalkingGuidance(prev => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          current_distance_to_stop: dist
+        }
+      }));
+
+      if (dist < 30) {
+        handleArrivedAtStop();
+        return;
+      }
+
+      step++;
+      setTimeout(move, 500); // Move every 500ms
+    };
+
+    move();
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-100 relative overflow-hidden">
       {/* Real Map Background - z-index 0 */}
       <div className="absolute inset-0 z-0">
         <Map
-          showBuses={true}
+          showBuses={true} // Always show buses
           showStops={true}
           showRoutes={showRoutes}
           selectedRoute={selectedRouteId}
@@ -389,6 +497,9 @@ export function UserHome() {
           center={mapCenter}
           zoom={mapZoom}
           walkingPath={walkingPath}
+          routePolylines={Object.keys(routePolylines).length > 0 ? routePolylines : undefined}
+          // Override SAMPLE_BUSES with liveBuses if we have them
+          buses={liveBuses.length > 0 ? liveBuses : undefined} // Need to update Map to accept 'buses' prop
         />
       </div>
 
@@ -652,6 +763,7 @@ export function UserHome() {
           guidanceData={walkingGuidance.data}
           userLocation={userLocation}
           onArrived={handleArrivedAtStop}
+          onSimulateWalk={simulateWalk}
         />
       )}
     </div>

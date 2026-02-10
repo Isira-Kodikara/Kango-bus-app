@@ -181,6 +181,8 @@ interface MapProps {
   center?: [number, number];
   zoom?: number;
   walkingPath?: [number, number][];
+  routePolylines?: Record<number, [number, number][]>;
+  buses?: any[];
 }
 
 export function Map({
@@ -196,6 +198,8 @@ export function Map({
   center = COLOMBO_CENTER,
   zoom = 13,
   walkingPath = [],
+  routePolylines,
+  buses,
 }: MapProps) {
   const mapRef = useRef<L.Map>(null);
 
@@ -205,9 +209,11 @@ export function Map({
     : COLOMBO_ROUTES;
 
   // Filter buses to show
+  // Use passed buses if available, otherwise use sample
+  const sourceBuses = buses || SAMPLE_BUSES;
   const busesToShow = selectedRoute
-    ? SAMPLE_BUSES.filter(b => b.routeId === selectedRoute)
-    : SAMPLE_BUSES;
+    ? sourceBuses.filter(b => b.routeId === selectedRoute)
+    : sourceBuses;
 
   return (
     <MapContainer
@@ -242,17 +248,45 @@ export function Map({
       )}
 
       {/* Route polylines */}
-      {showRoutes && routesToShow.map(route => (
-        <Polyline
-          key={route.id}
-          positions={getRouteCoordinates(route.stops)}
-          pathOptions={{
-            color: route.color,
-            weight: 4,
-            opacity: selectedRoute === route.id ? 1 : 0.6,
-          }}
-        />
-      ))}
+      {showRoutes && (
+        <>
+          {/* Render passed polylines if available (Smooth lines) */}
+          {routePolylines && Object.entries(routePolylines).map(([id, path]) => {
+            const routeId = parseInt(id);
+            const route = COLOMBO_ROUTES.find(r => r.id === routeId);
+            if (!route) return null;
+
+            // Only show if selected or no specific selection
+            if (selectedRoute && selectedRoute !== routeId) return null;
+
+            return (
+              <Polyline
+                key={`poly-${id}`}
+                positions={path}
+                pathOptions={{
+                  color: route.color,
+                  weight: 5,
+                  opacity: selectedRoute === routeId ? 1 : 0.6,
+                  lineJoin: 'round'
+                }}
+              />
+            );
+          })}
+
+          {/* Fallback to straight lines if no polylines provided */}
+          {!routePolylines && routesToShow.map(route => (
+            <Polyline
+              key={route.id}
+              positions={getRouteCoordinates(route.stops)}
+              pathOptions={{
+                color: route.color,
+                weight: 4,
+                opacity: selectedRoute === route.id ? 1 : 0.6,
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {/* Bus stops */}
       {showStops && COLOMBO_BUS_STOPS.map(stop => (
