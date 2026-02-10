@@ -110,7 +110,7 @@ export function WelcomeScreen() {
         </div>
 
         <p className="text-center text-blue-100 text-sm mt-6">
-          Version 1.0 • © 2026 KANGO
+          Version 1.2 • © 2026 KANGO
         </p>
       </div>
     </div>
