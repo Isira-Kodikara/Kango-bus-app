@@ -352,7 +352,7 @@ export function UserHome() {
       {/* Real Map Background - z-index 0 */}
       <div className="absolute inset-0 z-0">
         <Map
-          showBuses={true}
+          showBuses={true} // Always show buses
           showStops={true}
           showRoutes={showRoutes}
           selectedRoute={selectedRouteId}
