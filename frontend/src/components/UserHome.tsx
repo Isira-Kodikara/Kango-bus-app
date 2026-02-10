@@ -626,12 +626,15 @@ export function UserHome() {
 
       {/* Walking Guidance Overlay */}
       {walkingGuidanceActive && walkingGuidanceData && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-white p-6 rounded-2xl shadow-2xl z-[1002] min-w-[350px] max-w-[90vw] animate-in slide-in-from-bottom duration-300 pointer-events-auto">
+        <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 bg-white p-6 rounded-2xl shadow-2xl z-[1002] min-w-[350px] max-w-[95vw] md:max-w-md max-h-[75vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pointer-events-auto custom-scrollbar">
           <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
             <span className="mr-2">🚶</span> Walking to Bus Stop
           </h3>
           <div className="mb-3 text-sm text-gray-600">
             <strong className="text-gray-800">📍 Destination:</strong> {walkingGuidanceData.boarding_stop.stop_name}
+            {walkingGuidanceData.boarding_stop.stop_name.toLowerCase().includes('station') && (
+              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">Bus Stop</span>
+            )}
           </div>
           <div className="mb-4 text-sm text-gray-600 flex items-center gap-3">
             <span><strong className="text-gray-800">📏 Distance:</strong> {Math.round(distanceRemaining)}m</span>

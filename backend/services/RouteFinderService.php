@@ -29,7 +29,7 @@ class RouteFinderService {
                     ))
                 )) AS distance_km
             FROM stops
-            HAVING distance_km < 5
+            HAVING distance_km < 20
             ORDER BY distance_km ASC
             LIMIT ?
         ";
@@ -180,12 +180,12 @@ class RouteFinderService {
         $destStops = $this->findNearestStops($destLat, $destLng, 3);
         
         if (empty($originStops)) {
-            $this->lastError = "No bus stops found within 5km of your starting location.";
+            $this->lastError = "No bus stops found within 50km of your starting location. Please try a location near Colombo.";
             return null;
         }
         
         if (empty($destStops)) {
-            $this->lastError = "No bus stops found within 5km of your destination.";
+            $this->lastError = "No bus stops found within 50km of your destination. Please try a destination near Colombo.";
             return null;
         }
         
