@@ -15,7 +15,7 @@ import {
   Activity,
   UserCheck
 } from 'lucide-react';
-import { adminApi } from '../lib/api';
+import { adminApi } from '@/lib/api';
 
 const mockAnalytics = {
   totalTrips: 1247,
@@ -60,7 +60,7 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-blue-700 text-white p-6">
+      <div className="bg-blue-600 text-white p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <Settings className="w-8 h-8 mr-3" />

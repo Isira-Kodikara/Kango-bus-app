@@ -89,14 +89,9 @@ export function UserHome() {
       eta_minutes: number;
     } | null;
     can_catch_next_bus: boolean;
-    bus_path_coordinates?: [number, number][];
-    walking_path_to_destination?: {
-      coordinates: [number, number][];
-    };
-    distance_to_stop: number;
   }
 
-  // New Walking Guidance State
+  // New Walking Guidance State (Clean Slate)
   const [walkingGuidanceActive, setWalkingGuidanceActive] = useState(false);
   const [walkingGuidanceData, setWalkingGuidanceData] = useState<WalkingGuidanceData | null>(null);
   const [distanceRemaining, setDistanceRemaining] = useState<number>(0);
@@ -140,6 +135,12 @@ export function UserHome() {
       setMapCenter(userLocation);
       setMapZoom(15);
     }
+  };
+
+  const handleMapClick = (latlng: [number, number]) => {
+    setDestinationCoords(latlng);
+    setDestination(`Selected Position`);
+    setMapCenter(latlng);
   };
 
   const handleBusClick = (bus: any) => {
@@ -255,22 +256,9 @@ export function UserHome() {
       return;
     }
 
-    // Use manually selected 'From' or current GPS location
     let finalFromCoords = fromLocationCoords || userLocation;
 
-    // Handle string location for origin if coords still missing
-    if (!finalFromCoords && currentLocation !== 'My Location' && currentLocation !== 'Current Location') {
-      const fromStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().trim() === currentLocation.toLowerCase().trim()
-      );
-      if (fromStop) {
-        finalFromCoords = [fromStop.lat, fromStop.lng];
-        setFromLocationCoords(finalFromCoords);
-      }
-    }
-
     if (!finalFromCoords) {
-      // Try to get GPS location as last resort
       navigator.geolocation.getCurrentPosition(async (position) => {
         const uLoc: [number, number] = [position.coords.latitude, position.coords.longitude];
         setUserLocation(uLoc);
@@ -286,23 +274,12 @@ export function UserHome() {
   };
 
   const performTripGuidance = async (fromCoords: [number, number]) => {
-    let actualFromCoords = fromCoords;
-
     let dCoords = destinationCoords;
     if (!dCoords) {
-      // Improved resolution: check for exact match or name start
       const destStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().trim() === destination.toLowerCase().trim() ||
-        destination.toLowerCase().trim().startsWith(s.name.toLowerCase())
+        s.name.toLowerCase().trim() === destination.toLowerCase().trim()
       );
-
-      if (destStop) {
-        dCoords = [destStop.lat, destStop.lng];
-        setDestinationCoords(dCoords);
-      } else if (destination.toLowerCase().includes("my location") && userLocation) {
-        dCoords = userLocation;
-        setDestinationCoords(dCoords);
-      }
+      if (destStop) dCoords = [destStop.lat, destStop.lng];
     }
 
     if (!dCoords) {
@@ -315,10 +292,11 @@ export function UserHome() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          origin_lat: actualFromCoords[0],
-          origin_lng: actualFromCoords[1],
+          origin_lat: fromCoords[0],
+          origin_lng: fromCoords[1],
           destination_lat: dCoords[0],
           destination_lng: dCoords[1],
           user_id: user?.id || 0
@@ -327,59 +305,30 @@ export function UserHome() {
 
       const data = await response.json();
 
-      if (data.needs_walking_guidance || data.boarding_stop) {
-        // Update nearest stop display
-        setNearestStop({
-          name: data.boarding_stop.stop_name || data.boarding_stop.name,
-          distance: (data.distance_to_stop / 1000).toFixed(1),
-          walkTime: Math.round(data.distance_to_stop / 80),
-          lat: data.boarding_stop.latitude,
-          lng: data.boarding_stop.longitude
-        });
+      if (!data.success) {
+        alert(`Error: ${data.error}`);
+        return;
+      }
 
-        if (data.needs_walking_guidance) {
-          setWalkingGuidanceActive(true);
-          setWalkingGuidanceData(data);
-          setDistanceRemaining(data.distance_to_stop);
+      if (data.needs_walking_guidance) {
+        setWalkingGuidanceActive(true);
+        setWalkingGuidanceData(data);
+        setDistanceRemaining(data.distance_to_stop);
 
-          // Combine all path segments for the map
-          const combinedPath: [number, number][] = [];
-
-          // 1. First walking leg (Origin to Boarding Stop)
-          if (data.walking_path && data.walking_path.coordinates) {
-            data.walking_path.coordinates.forEach((coord: [number, number]) => {
-              combinedPath.push([coord[0], coord[1]]);
-            });
-          }
-
-          // 2. Bus leg
-          if (data.bus_path_coordinates) {
-            data.bus_path_coordinates.forEach((coord: [number, number]) => {
-              combinedPath.push([coord[0], coord[1]]);
-            });
-          }
-
-          // 3. Second walking leg (Alighting Stop to Destination)
-          if (data.walking_path_to_destination && data.walking_path_to_destination.coordinates) {
-            data.walking_path_to_destination.coordinates.forEach((coord: [number, number]) => {
-              combinedPath.push([coord[0], coord[1]]);
-            });
-          }
-
-          if (combinedPath.length > 0) {
-            setWalkingPath(combinedPath);
-          }
-
-          startLocationTracking(data);
-        } else {
-          alert(data.message || 'You are already at the stop!');
-          setShowRoutes(true);
-          setShowBottomSheet(true);
+        // Update map path
+        if (data.walking_path && data.walking_path.coordinates) {
+          setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
         }
+
+        startLocationTracking(data);
+      } else {
+        alert(data.message || 'You are already at the stop!');
+        setShowRoutes(true);
+        setShowBottomSheet(true);
       }
     } catch (error) {
-      console.error('Trip start error:', error);
-      alert('Failed to start trip. Check backend connection.');
+      console.error('Trip guidance error:', error);
+      alert('Failed to start guidance');
     }
   };
 
@@ -467,6 +416,7 @@ export function UserHome() {
           fromLocation={fromLocationCoords}
           destination={destinationCoords}
           onBusClick={handleBusClick}
+          onMapClick={handleMapClick}
           center={mapCenter}
           zoom={mapZoom}
           walkingPath={walkingPath}

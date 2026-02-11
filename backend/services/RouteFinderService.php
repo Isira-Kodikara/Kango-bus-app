@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/GeoUtils.php';
+require_once 'GeoUtils.php';
 
 class RouteFinderService {
     private $db;
@@ -14,19 +14,9 @@ class RouteFinderService {
      * Returns array of stops within 2km, ordered by distance
      */
     public function findNearestStops($lat, $lng, $limit = 5) {
-        // Note: Using 'bus_stops' table as per instructions, or 'stops' if that's what exists.
-        // Prompt said 'bus_stops'.
-        // I should stick to 'bus_stops' but handle if it's 'stops'.
-        // Based on seed_colombo.php, the table name is 'stops'.
-        // But the prompt specifically said 'CREATE NEW TABLES' or 'ADD COLUMN' to 'bus_stops'.
-        // The migration script used 'bus_stops'.
-        // If 'bus_stops' doesn't exist, this will fail.
-        // I will assume for now 'bus_stops' exists or is an alias, but given seed_colombo.php used 'stops',
-        // I might need to check. Use 'bus_stops' as per explicit instruction.
-        
         $query = "
             SELECT 
-                stop_id,
+                id as stop_id,
                 stop_name,
                 latitude,
                 longitude,
@@ -37,34 +27,15 @@ class RouteFinderService {
                         sin(radians(?)) * sin(radians(latitude))
                     ))
                 )) AS distance_km
-            FROM bus_stops
+            FROM stops
             HAVING distance_km < 2
             ORDER BY distance_km ASC
             LIMIT ?
         ";
         
-        try {
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$lat, $lng, $lat, $limit]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            // Fallback to 'stops' table if 'bus_stops' fails (common issue if table wasn't renamed)
-             $query = str_replace('bus_stops', 'stops', $query);
-             $query = str_replace('stop_id', 'id', $query); // 'stops' usually has 'id'
-             try {
-                $stmt = $this->db->prepare($query);
-                $stmt->execute([$lat, $lng, $lat, $limit]);
-                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                // Map id to stop_id for consistency
-                foreach ($results as &$row) {
-                    $row['stop_id'] = $row['id'];
-                }
-                return $results;
-                
-             } catch (PDOException $e2) {
-                 return [];
-             }
-        }
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$lat, $lng, $lat, $limit]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
     /**
@@ -82,11 +53,7 @@ class RouteFinderService {
                 route_id
             FROM route_segments
         ";
-        try {
-            $segments = $this->db->query($query)->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            return [];
-        }
+        $segments = $this->db->query($query)->fetchAll(PDO::FETCH_ASSOC);
         
         $graph = [];
         $trafficMultiplier = GeoUtils::getTrafficMultiplier();
@@ -122,32 +89,18 @@ class RouteFinderService {
         $previous = [];
         $unvisited = [];
         
-        // Optimization: Only initialize nodes in the graph
-        // If start/end not in graph, return null
-        // But graph keys are only source nodes.
-        // We'll collect all nodes first.
-        
-        $allNodes = [];
         foreach ($graph as $node => $edges) {
-            $allNodes[$node] = true;
-            foreach ($edges as $neighbor => $data) {
-                $allNodes[$neighbor] = true;
-            }
-        }
-        
-        foreach ($allNodes as $node => $val) {
             $distances[$node] = PHP_INT_MAX;
             $unvisited[$node] = true;
         }
         
-        if (!isset($allNodes[$startStopId]) || !isset($allNodes[$endStopId])) {
-              return [
-                'path' => [],
-                'total_time_minutes' => null
-            ];
-        }
+        // Ensure start and end nodes are in the graph
+        if (!isset($distances[$startStopId])) $distances[$startStopId] = PHP_INT_MAX;
+        if (!isset($distances[$endStopId])) $distances[$endStopId] = PHP_INT_MAX;
         
         $distances[$startStopId] = 0;
+        $unvisited[$startStopId] = true;
+        $unvisited[$endStopId] = true;
         
         // Main Dijkstra loop
         while (!empty($unvisited)) {
@@ -173,12 +126,11 @@ class RouteFinderService {
             
             // Update distances to neighbors
             foreach ($graph[$minNode] as $neighbor => $data) {
-                if (!isset($unvisited[$neighbor])) continue;
-                
                 $alt = $distances[$minNode] + $data['time'];
-                if ($alt < $distances[$neighbor]) {
+                if (!isset($distances[$neighbor]) || $alt < $distances[$neighbor]) {
                     $distances[$neighbor] = $alt;
                     $previous[$neighbor] = $minNode;
+                    $unvisited[$neighbor] = true;
                 }
             }
         }
@@ -186,23 +138,18 @@ class RouteFinderService {
         // Reconstruct path
         $path = [];
         $current = $endStopId;
-        
-        if ($distances[$endStopId] === PHP_INT_MAX) {
-             return [
-                'path' => [],
-                'total_time_minutes' => null
-            ];
-        }
-        
         while (isset($previous[$current])) {
             array_unshift($path, $current);
             $current = $previous[$current];
         }
-        array_unshift($path, $startStopId);
+        
+        if (!empty($path) || $startStopId == $endStopId) {
+            array_unshift($path, $startStopId);
+        }
         
         return [
             'path' => $path,
-            'total_time_minutes' => $distances[$endStopId]
+            'total_time_minutes' => (isset($distances[$endStopId]) && $distances[$endStopId] !== PHP_INT_MAX) ? $distances[$endStopId] : null
         ];
     }
     
@@ -225,8 +172,6 @@ class RouteFinderService {
         // Try all combinations
         foreach ($originStops as $originStop) {
             foreach ($destStops as $destStop) {
-                if ($originStop['stop_id'] == $destStop['stop_id']) continue; // Same stop
-                
                 // Walking time to boarding stop (1.4 m/s walking speed)
                 $walkToStop = GeoUtils::haversineDistance(
                     $originLat, $originLng,
@@ -241,7 +186,7 @@ class RouteFinderService {
                     $destStop['stop_id']
                 );
                 
-                if ($busRoute['total_time_minutes'] === null) {
+                if (!$busRoute['total_time_minutes']) {
                     continue;
                 }
                 

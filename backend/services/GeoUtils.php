@@ -29,8 +29,7 @@ class GeoUtils {
      * Returns multiplier: 0.7 for peak hours, 1.2 for late night, 1.0 otherwise
      */
     public static function getTrafficMultiplier($timestamp = null) {
-        $currTime = $timestamp ?? time();
-        $hour = (int)date('H', $currTime);
+        $hour = date('H', $timestamp ?? time());
         
         // Peak hours: 7-9 AM, 5-7 PM
         if (($hour >= 7 && $hour < 9) || ($hour >= 17 && $hour < 19)) {

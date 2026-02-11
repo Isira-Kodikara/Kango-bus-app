@@ -27,11 +27,11 @@ ini_set('log_errors', 1);
 
 // Database Configuration - Use environment variables for Railway
 // Railway provides: MYSQLHOST, MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT
-define('DB_HOST', getenv('MYSQLHOST') ?: '127.0.0.1');
-define('DB_NAME', getenv('MYSQLDATABASE') ?: 'kango_bus');
-define('DB_USER', getenv('MYSQLUSER') ?: 'root');
-define('DB_PASS', getenv('MYSQLPASSWORD') ?: '');
-define('DB_PORT', getenv('MYSQLPORT') ?: '3306');
+define('DB_HOST', getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost');
+define('DB_NAME', getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'kango_bus');
+define('DB_USER', getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root');
+define('DB_PASS', getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '');
+define('DB_PORT', getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: '3306');
 define('DB_CHARSET', 'utf8mb4');
 
 // JWT Configuration

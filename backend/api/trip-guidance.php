@@ -6,14 +6,10 @@ require_once __DIR__ . '/../services/BusETAService.php';
 require_once __DIR__ . '/../services/WalkingDirectionsService.php';
 require_once __DIR__ . '/../services/GeoUtils.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+// Already handled by config.php via Database.php
+// header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+$pdo = Database::getInstance()->getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -25,7 +21,7 @@ try {
     $data = json_decode(file_get_contents('php://input'), true);
     
     // Validate input
-    $requiredFields = ['origin_lat', 'origin_lng', 'destination_lat', 'destination_lng'];
+    $requiredFields = ['origin_lat', 'origin_lng', 'destination_lat', 'destination_lng', 'user_id'];
     foreach ($requiredFields as $field) {
         if (!isset($data[$field])) {
             throw new Exception("Missing required field: $field");
@@ -36,46 +32,19 @@ try {
     $originLng = floatval($data['origin_lng']);
     $destLat = floatval($data['destination_lat']);
     $destLng = floatval($data['destination_lng']);
-    $userId = isset($data['user_id']) ? intval($data['user_id']) : 0;
+    $userId = intval($data['user_id']);
     
     // Initialize services
-    $db = Database::getInstance()->getConnection();
-    
-    $routeFinder = new RouteFinderService($db);
-    $etaService = new BusETAService($db);
-    
-    $openrouteKey = getenv('OPENROUTE_API_KEY');
-    if (!$openrouteKey) {
-        // Try to load from env file or use a placeholder if dev
-        // For now, let's assume it's set or handle gracefully
-        // If not set, WalkingDirectionsService will fallback to straight line
-        $openrouteKey = ''; 
-    }
-    
+    $routeFinder = new RouteFinderService($pdo);
+    $etaService = new BusETAService($pdo);
+    $openrouteKey = getenv('OPENROUTE_API_KEY') ?: '5b3ce3597851110001cf6248abc123def456';
     $walkingService = new WalkingDirectionsService($openrouteKey);
     
     // Find best bus route
     $bestRoute = $routeFinder->findBestRoute($originLat, $originLng, $destLat, $destLng);
     
     if (!$bestRoute) {
-        // If no bus route found, maybe just walking?
-        // Check distance
-        $directDistance = GeoUtils::haversineDistance($originLat, $originLng, $destLat, $destLng);
-        if ($directDistance < 2.0) { // If less than 2km, suggest walking
-             $walkingPath = $walkingService->getWalkingPath($originLat, $originLng, $destLat, $destLng);
-             echo json_encode([
-                'success' => true,
-                'needs_walking_guidance' => true,
-                'distance_to_stop' => 0, // Direct walk
-                'direct_walk' => true,
-                'walking_path' => $walkingPath,
-                'total_time' => $walkingPath['duration_seconds'] / 60,
-                 'message' => 'Destination is close enough to walk directly.'
-             ]);
-             exit;
-        }
-        
-        throw new Exception('No bus route found between origin and destination');
+        throw new Exception('No route found between origin and destination');
     }
     
     // Check if user at boarding stop (within 50 meters)
@@ -96,29 +65,6 @@ try {
         'bus_travel_time' => round($bestRoute['bus_travel_time'] * 60),
         'total_time' => round($bestRoute['total_time'] * 60)
     ];
-
-    // Get bus path coordinates for map polyline
-    if (!empty($bestRoute['bus_path'])) {
-        $stopIds = implode(',', array_map('intval', $bestRoute['bus_path']));
-        try {
-            $stmt = $db->query("SELECT latitude, longitude FROM bus_stops WHERE stop_id IN ($stopIds) ORDER BY FIELD(stop_id, $stopIds)");
-            $busPathCoordinates = $stmt->fetchAll(PDO::FETCH_FUNC, function($lat, $lng) {
-                return [(float)$lat, (float)$lng];
-            });
-            $response['bus_path_coordinates'] = $busPathCoordinates;
-        } catch (PDOException $e) {
-            // Fallback to 'stops' table
-             try {
-                $stmt = $db->query("SELECT latitude, longitude FROM stops WHERE id IN ($stopIds) ORDER BY FIELD(id, $stopIds)");
-                $busPathCoordinates = $stmt->fetchAll(PDO::FETCH_FUNC, function($lat, $lng) {
-                    return [(float)$lat, (float)$lng];
-                });
-                $response['bus_path_coordinates'] = $busPathCoordinates;
-             } catch (PDOException $e2) {
-                 // Ignore if verify fails
-             }
-        }
-    }
     
     if ($needsGuidance) {
         // Get walking path from OpenRouteService
@@ -147,44 +93,36 @@ try {
         $response['message'] = 'You are already at the boarding stop!';
         $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id']);
         $response['next_bus'] = $nextBus;
-    }
-    
-    // Walking path from alighting stop to destination
-     $walkingPathDest = $walkingService->getWalkingPath(
-            $bestRoute['alighting_stop']['latitude'],
-            $bestRoute['alighting_stop']['longitude'],
-            $destLat,
-            $destLng
+        
+        // Provide a simple walking path if already at stop
+        $response['walking_path'] = $walkingService->getStraightLinePath(
+            $originLat, $originLng,
+            $bestRoute['boarding_stop']['latitude'],
+            $bestRoute['boarding_stop']['longitude']
         );
-    $response['walking_path_to_destination'] = $walkingPathDest;
-    
+    }
     
     // Save journey plan
-    // Using 'journey_plans' table. Be careful if table doesn't exist.
-    try {
-        $stmt = $db->prepare("
-            INSERT INTO journey_plans 
-            (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
-             boarding_stop_id, alighting_stop_id, walking_distance_meters,
-             walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
-             can_catch_next_bus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $stmt->execute([
-            $userId,
-            $originLat, $originLng, $destLat, $destLng,
-            $bestRoute['boarding_stop']['stop_id'],
-            $bestRoute['alighting_stop']['stop_id'],
-            $response['walking_path']['distance_meters'] ?? 0,
-            $response['walking_path']['duration_seconds'] ?? 0,
-            $response['bus_travel_time'],
-            $response['total_time'],
-            $response['can_catch_next_bus'] ?? 0
-        ]);
-    } catch (PDOException $e) {
-        // Ignore save error, don't break response
-    }
+    $stmt = $pdo->prepare("
+        INSERT INTO journey_plans 
+        (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
+         boarding_stop_id, alighting_stop_id, walking_distance_meters,
+         walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
+         can_catch_next_bus)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    $stmt->execute([
+        $userId,
+        $originLat, $originLng, $destLat, $destLng,
+        $bestRoute['boarding_stop']['stop_id'],
+        $bestRoute['alighting_stop']['stop_id'],
+        $response['walking_path']['distance_meters'] ?? 0,
+        $response['walking_path']['duration_seconds'] ?? 0,
+        $response['bus_travel_time'],
+        $response['total_time'],
+        $response['can_catch_next_bus'] ?? false
+    ]);
     
     echo json_encode($response);
     

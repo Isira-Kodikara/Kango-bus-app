@@ -1,7 +1,5 @@
 <?php
 
-require_once __DIR__ . '/GeoUtils.php';
-
 class WalkingDirectionsService {
     private $apiKey;
     
@@ -18,8 +16,8 @@ class WalkingDirectionsService {
         
         $data = [
             'coordinates' => [
-                [$fromLng, $fromLat], // OpenRouteService uses [lng, lat]
-                [$toLng, $toLat]
+                [(float)$fromLng, (float)$fromLat], // OpenRouteService uses [lng, lat]
+                [(float)$toLng, (float)$toLat]
             ],
             'instructions' => true,
             'geometry' => true
@@ -36,15 +34,11 @@ class WalkingDirectionsService {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         
-        // Disable SSL verification for development environments if needed
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // curl_close is deprecated in PHP 8.5+
         
         if ($httpCode !== 200 || $response === false) {
-            // Log error if needed
             return $this->getStraightLinePath($fromLat, $fromLng, $toLat, $toLng);
         }
         
@@ -65,17 +59,8 @@ class WalkingDirectionsService {
                 }
             }
             
-            // Swap coordinates back to [lat, lng] for Leaflet if needed, or keep as [lng, lat] for GeoJSON
-            // React Leaflet Polyline expects [lat, lng]
-            $coords = [];
-            if (isset($feature['geometry']['coordinates'])) {
-                foreach ($feature['geometry']['coordinates'] as $coord) {
-                    $coords[] = [$coord[1], $coord[0]]; // [lat, lng]
-                }
-            }
-            
             return [
-                'coordinates' => $coords,
+                'coordinates' => $feature['geometry']['coordinates'],
                 'distance_meters' => $route['summary']['distance'],
                 'duration_seconds' => $route['summary']['duration'],
                 'steps' => $steps
@@ -94,8 +79,8 @@ class WalkingDirectionsService {
         
         return [
             'coordinates' => [
-                [$fromLat, $fromLng],
-                [$toLat, $toLng]
+                [$fromLng, $fromLat],
+                [$toLng, $toLat]
             ],
             'distance_meters' => round($distance),
             'duration_seconds' => round($distance / $walkingSpeed),

@@ -1,95 +1,104 @@
 <?php
 
 class OSMTransitService {
-    private $overpassUrl = 'https://overpass-api.de/api/interpreter';
+    private $apiEndpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter"
+    ];
     
     /**
      * Get bus routes from OpenStreetMap in a specific area
      */
     public function getBusRoutesInArea($minLat, $minLng, $maxLat, $maxLng) {
-        $query = <<<QUERY
-[out:json];
-(
-  relation["route"="bus"]["network"~".",i]($minLat,$minLng,$maxLat,$maxLng);
-);
-out body;
->;
-out skel qt;
-QUERY;
+        $bbox = "$minLat,$minLng,$maxLat,$maxLng";
+        $query = "[out:json][timeout:90];
+            (
+              relation[\"type\"=\"route\"][\"route\"=\"bus\"]($bbox);
+              relation[\"route\"=\"bus\"]($bbox);
+            );
+            out body;
+            >;
+            out skel qt;";
         
-        $ch = curl_init($this->overpassUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, ['data' => $query]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        
-        // SSL fix for dev
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
-        $response = curl_exec($ch);
-        curl_close($ch);
-        
-        if ($response === false) {
+        $response = null;
+        $success = false;
+
+        foreach ($this->apiEndpoints as $apiUrl) {
+            $ch = curl_init($apiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, "data=" . urlencode($query));
+            curl_setopt($ch, CURLOPT_USERAGENT, "KANGO-Bus-App-Service/1.0");
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if ($httpCode === 200 && $response) {
+                $data = json_decode($response, true);
+                if ($data && isset($data['elements'])) {
+                    $success = true;
+                    break;
+                }
+            }
+            // curl_close is deprecated in PHP 8.5+
+        }
+
+        if (!$success) {
             return [];
         }
         
-        $data = json_decode($response, true);
-        return $this->parseOSMRoutes($data);
+        return $this->parseOSMData($data);
     }
     
     /**
      * Parse OSM data into route format
      */
-    private function parseOSMRoutes($osmData) {
-        $routes = [];
-        
-        if (!isset($osmData['elements'])) {
-            return [];
-        }
-        
-        // Build node lookup
+    private function parseOSMData($data) {
         $nodes = [];
-        foreach ($osmData['elements'] as $element) {
+        $relations = [];
+        
+        foreach ($data['elements'] as $element) {
             if ($element['type'] === 'node') {
-                $nodes[$element['id']] = [
-                    'lat' => $element['lat'],
-                    'lon' => $element['lon'],
-                    'name' => $element['tags']['name'] ?? null
-                ];
+                $nodes[$element['id']] = $element;
+            } elseif ($element['type'] === 'relation') {
+                $relations[] = $element;
             }
         }
         
-        // Process routes
-        foreach ($osmData['elements'] as $element) {
-            if ($element['type'] === 'relation' && isset($element['tags']['route'])) {
-                $route = [
-                    'osm_id' => $element['id'],
-                    'route_number' => $element['tags']['ref'] ?? 'Unknown',
-                    'route_name' => $element['tags']['name'] ?? 'Unknown Route',
-                    'operator' => $element['tags']['operator'] ?? null,
-                    'stops' => []
-                ];
-                
-                // Extract stops
-                if (isset($element['members'])) {
-                    foreach ($element['members'] as $member) {
-                        if (in_array($member['role'], ['stop', 'platform']) && 
-                            $member['type'] === 'node' &&
-                            isset($nodes[$member['ref']])) {
-                            
+        $routes = [];
+        foreach ($relations as $rel) {
+            $tags = $rel['tags'] ?? [];
+            if (!isset($tags['route']) || $tags['route'] !== 'bus') continue;
+
+            $route = [
+                'osm_id' => $rel['id'],
+                'route_number' => $tags['ref'] ?? 'N/A',
+                'route_name' => $tags['name'] ?? ($tags['ref'] ?? 'Unknown Route'),
+                'operator' => $tags['operator'] ?? 'N/A',
+                'stops' => []
+            ];
+            
+            if (isset($rel['members'])) {
+                foreach ($rel['members'] as $member) {
+                    if ($member['type'] === 'node' && in_array($member['role'], ['stop', 'platform'])) {
+                        $nodeId = $member['ref'];
+                        if (isset($nodes[$nodeId])) {
+                            $node = $nodes[$nodeId];
                             $route['stops'][] = [
-                                'osm_node_id' => $member['ref'],
-                                'name' => $nodes[$member['ref']]['name'] ?? 'Unnamed Stop',
-                                'lat' => $nodes[$member['ref']]['lat'],
-                                'lon' => $nodes[$member['ref']]['lon']
+                                'osm_id' => $nodeId,
+                                'name' => $node['tags']['name'] ?? "Stop #$nodeId",
+                                'lat' => $node['lat'],
+                                'lon' => $node['lon']
                             ];
                         }
                     }
                 }
-                
-                if (!empty($route['stops'])) {
-                    $routes[] = $route;
-                }
+            }
+            
+            if (!empty($route['stops'])) {
+                $routes[] = $route;
             }
         }
         
@@ -102,58 +111,36 @@ QUERY;
     public function syncRoutesToDatabase($pdo, $minLat, $minLng, $maxLat, $maxLng) {
         $osmRoutes = $this->getBusRoutesInArea($minLat, $minLng, $maxLat, $maxLng);
         
+        if (empty($osmRoutes)) {
+            error_log("OSMTransitService: No routes found in area ($minLat, $minLng, $maxLat, $maxLng)");
+            return 0;
+        }
+
         $syncedCount = 0;
         
         foreach ($osmRoutes as $osmRoute) {
-            // Check if route exists
-            // Using 'routes' table.
-            
-            // Check based on osm_id first
-            $stmt = $pdo->prepare("SELECT route_id FROM routes WHERE osm_id = ?"); 
-            // Make sure column exists, otherwise fallback to route_number?
-            // Assuming migration phase 1 succeeded or user will run it.
-            // If fail, we might catch exception.
-            
             try {
+                // Check if route exists
+                $stmt = $pdo->prepare("SELECT id FROM routes WHERE osm_id = ?");
                 $stmt->execute([$osmRoute['osm_id']]);
                 $existing = $stmt->fetch();
                 
                 if ($existing) {
-                    // Update
                     $stmt = $pdo->prepare("
                         UPDATE routes 
-                        SET route_name = ?, route_number = ?, operator = ?
-                        WHERE osm_id = ?
-                    ");
-                    // Check if 'operator' column exists? Typically not standard.
-                    // Seed colombo used: route_number, route_name, start_point, end_point, total_stops...
-                    // Prompt used: route_name, route_number, operator, osm_id.
-                    // 'operator' might be missing. I will omit it if likely missing, or use @ to suppress/try-catch.
-                    // Actually, let's omit 'operator' update unless I know it exists. 
-                    // Prompt SQL for Phase 1 did NOT add 'operator' column to routes.
-                    // AND seed_colombo.php CREATE statement for routes was: 
-                    // INSERT INTO routes (route_number, route_name, start_point, end_point, total_stops, avg_time_minutes, frequency_minutes, color, status, created_at, updated_at)
-                    // So 'operator' definitely does not exist.
-                    // 'osm_id' was added in Phase 1 (hopefully).
-                    
-                    $stmt = $pdo->prepare("
-                        UPDATE routes 
-                        SET route_name = ?, route_number = ?
-                        WHERE osm_id = ?
+                        SET route_name = ?, route_number = ?, updated_at = NOW()
+                        WHERE id = ?
                     ");
                     $stmt->execute([
                         $osmRoute['route_name'],
                         $osmRoute['route_number'],
-                        $osmRoute['osm_id']
+                        $existing['id']
                     ]);
-                    $routeId = $existing['route_id'];
+                    $routeId = $existing['id'];
                 } else {
-                    // Insert
-                    // Need to provide defaults for others?
-                    // routes(route_number, route_name, osm_id)
                     $stmt = $pdo->prepare("
-                        INSERT INTO routes (route_name, route_number, osm_id, created_at)
-                        VALUES (?, ?, ?, NOW())
+                        INSERT INTO routes (route_name, route_number, osm_id, status, created_at, updated_at)
+                        VALUES (?, ?, ?, 'active', NOW(), NOW())
                     ");
                     $stmt->execute([
                         $osmRoute['route_name'],
@@ -166,11 +153,8 @@ QUERY;
                 // Sync stops
                 $this->syncRouteStops($pdo, $routeId, $osmRoute['stops']);
                 $syncedCount++;
-                
-            } catch (PDOException $e) {
-                // Ignore route if error (e.g. missing column)
-                // Or maybe log it.
-                // error_log("Error syncing route: " . $e->getMessage());
+            } catch (Exception $e) {
+                error_log("OSMTransitService Error syncing route {$osmRoute['osm_id']}: " . $e->getMessage());
             }
         }
         
@@ -181,58 +165,42 @@ QUERY;
      * Sync stops for a route
      */
     private function syncRouteStops($pdo, $routeId, $stops) {
-        // Delete existing route stops
+        // Delete existing from route_stops for this route
         $stmt = $pdo->prepare("DELETE FROM route_stops WHERE route_id = ?");
         $stmt->execute([$routeId]);
         
-        $sequence = 1;
+        $order = 1;
         foreach ($stops as $stop) {
             try {
                 // Check if stop exists
-                // Using 'bus_stops' table as per Phase 1... or 'stops' as per seed_colombo.php.
-                // I need to be robust. 
-                // I'll try 'bus_stops' first, if exception, try 'stops'.
-                
-                $tableName = 'bus_stops';
-                $pk = 'stop_id';
-                
-                // Attempt to determine table name if we could... but strict 'try-catch' per query is safer.
-                // I'll assume 'bus_stops' as per prompt instructions, but if user didn't run migration...
-                // Actually, if they didn't run migration, 'osm_node_id' won't exist either.
-                // So failing is appropriate.
-                
-                $stmt = $pdo->prepare("SELECT stop_id FROM bus_stops WHERE osm_node_id = ?");
-                $stmt->execute([$stop['osm_node_id']]);
+                $stmt = $pdo->prepare("SELECT id FROM stops WHERE osm_id = ?");
+                $stmt->execute([$stop['osm_id']]);
                 $existingStop = $stmt->fetch();
                 
                 if ($existingStop) {
-                    $stopId = $existingStop['stop_id'];
+                    $stopId = $existingStop['id'];
                 } else {
-                    // Insert new stop
                     $stmt = $pdo->prepare("
-                        INSERT INTO bus_stops (stop_name, latitude, longitude, osm_node_id)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO stops (stop_name, latitude, longitude, osm_id, created_at)
+                        VALUES (?, ?, ?, ?, NOW())
                     ");
                     $stmt->execute([
                         $stop['name'],
                         $stop['lat'],
                         $stop['lon'],
-                        $stop['osm_node_id']
+                        $stop['osm_id']
                     ]);
                     $stopId = $pdo->lastInsertId();
                 }
                 
                 // Add to route_stops
                 $stmt = $pdo->prepare("
-                    INSERT INTO route_stops (route_id, stop_id, stop_sequence)
+                    INSERT INTO route_stops (route_id, stop_id, stop_order)
                     VALUES (?, ?, ?)
                 ");
-                $stmt->execute([$routeId, $stopId, $sequence]);
-                $sequence++;
-                
-            } catch (PDOException $e) {
-                // Maybe fallback to 'stops' and 'id'?
-                // If 'bus_stops' doesn't exist, we probably shouldn't be here.
+                $stmt->execute([$routeId, $stopId, $order++]);
+            } catch (Exception $e) {
+                error_log("OSMTransitService Error syncing stop {$stop['osm_id']}: " . $e->getMessage());
             }
         }
     }

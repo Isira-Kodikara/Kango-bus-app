@@ -3,7 +3,10 @@
 require_once __DIR__ . '/../includes/Database.php';
 require_once __DIR__ . '/../services/OSMTransitService.php';
 
-header('Content-Type: application/json');
+// Already handled by config.php via Database.php
+// header('Content-Type: application/json');
+
+$pdo = Database::getInstance()->getConnection();
 
 // Define your service area (adjust for your city)
 // Example: Colombo, Sri Lanka
@@ -15,8 +18,7 @@ $maxLng = floatval(getenv('SERVICE_AREA_MAX_LNG') ?: 80.0);
 $osmService = new OSMTransitService();
 
 try {
-    $db = Database::getInstance()->getConnection();
-    $syncedCount = $osmService->syncRoutesToDatabase($db, $minLat, $minLng, $maxLat, $maxLng);
+    $syncedCount = $osmService->syncRoutesToDatabase($pdo, $minLat, $minLng, $maxLat, $maxLng);
     
     echo json_encode([
         'success' => true,
