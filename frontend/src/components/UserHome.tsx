@@ -344,22 +344,24 @@ export function UserHome() {
         return;
       }
 
-      if (data.needs_walking_guidance) {
-        setWalkingGuidanceActive(true);
-        setWalkingGuidanceData(data);
-        setDistanceRemaining(data.distance_to_stop);
+      // Always activate guidance, even if at stop (distance ~0)
+      setWalkingGuidanceActive(true);
+      setWalkingGuidanceData(data);
+      setDistanceRemaining(data.distance_to_stop);
 
-        // Update map path
-        if (data.walking_path && data.walking_path.coordinates) {
-          setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
-        }
-
-        startLocationTracking(data);
-      } else {
-        alert(data.message || 'You are already at the stop!');
-        setShowRoutes(true);
-        setShowBottomSheet(true);
+      // Update map path if available
+      if (data.walking_path && data.walking_path.coordinates) {
+        setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
       }
+
+      startLocationTracking(data);
+
+      if (!data.needs_walking_guidance) {
+        // Just started and already there? Great!
+        // Maybe auto-trigger "arrived" logic or just show "You are here"
+        // For now, let the UI handle the "0m" display
+      }
+
     } catch (error) {
       console.error('Trip guidance error:', error);
       alert('Failed to start guidance');
@@ -468,8 +470,8 @@ export function UserHome() {
       <div className="absolute inset-x-0 top-0 z-[1000] pointer-events-none">
         <div className="pointer-events-auto" style={{ pointerEvents: 'auto' }}>
           {/* Floating Top Bar */}
-          <div className="m-4 mb-0">
-            <div className="bg-white rounded-[24px] shadow-xl p-4 flex items-center justify-between relative border border-gray-100">
+          <div className="mx-4 mt-4 mb-0 max-w-xl md:mx-auto">
+            <div className="bg-white rounded-[24px] shadow-2xl p-4 flex items-center justify-between relative border border-gray-100">
               <button
                 onClick={() => navigate('/user-profile')}
                 className="p-2 hover:bg-gray-100 rounded-full z-10"
@@ -723,8 +725,12 @@ export function UserHome() {
       {walkingGuidanceActive && walkingGuidanceData && (
         <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 bg-white p-6 rounded-2xl shadow-2xl z-[1002] min-w-[350px] max-w-[95vw] md:max-w-md max-h-[75vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pointer-events-auto custom-scrollbar">
           <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-            <span className="mr-2">🚶</span> Walking to Bus Stop
+            <span className="mr-2">
+              {(!walkingGuidanceData.can_catch_next_bus && distanceRemaining < 50) ? '🏁' : '🚶'}
+            </span>
+            {distanceRemaining < 50 ? 'You are at the bus stop!' : 'Walking to Bus Stop'}
           </h3>
+
           <div className="mb-3 text-sm text-gray-600">
             <strong className="text-gray-800">📍 Destination:</strong> {walkingGuidanceData.boarding_stop.stop_name}
             {walkingGuidanceData.boarding_stop.stop_name.toLowerCase().includes('station') && (

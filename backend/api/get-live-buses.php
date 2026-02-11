@@ -117,10 +117,10 @@ foreach ($COLOMBO_ROUTES as $route) {
 
         if ($pos) {
             $liveBuses[] = [
-                'id' => "NB-" . (1000 + $route['id'] * 100 + $i),
-                'routeId' => $route['id'],
-                'lat' => $pos['lat'],
-                'lng' => $pos['lng'],
+                'plate_number' => "NB-" . (1000 + $route['id'] * 100 + $i),
+                'route_id' => $route['id'],
+                'latitude' => $pos['lat'],
+                'longitude' => $pos['lng'],
                 'heading' => $pos['heading'],
                 'passengers' => rand(10, 50),
                 'capacity' => 60,
@@ -130,4 +130,7 @@ foreach ($COLOMBO_ROUTES as $route) {
     }
 }
 
-echo json_encode($liveBuses);
+echo json_encode([
+    'success' => true,
+    'buses' => $liveBuses
+]);
