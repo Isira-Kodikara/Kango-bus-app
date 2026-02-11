@@ -48,45 +48,46 @@ switch (true) {
         break;
 
 
-    case preg_match('/^(\/api)?\/trip-guidance/', $requestUri):
+    case strpos($requestUri, '/trip-guidance') !== false:
         require_once __DIR__ . '/api/trip-guidance.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-live-buses/', $requestUri):
+    case strpos($requestUri, '/get-live-buses') !== false:
         require_once __DIR__ . '/api/get-live-buses.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-routes/', $requestUri):
+    case strpos($requestUri, '/get-routes') !== false:
         require_once __DIR__ . '/api/get-routes.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-route-details/', $requestUri):
+    case strpos($requestUri, '/get-route-details') !== false:
         require_once __DIR__ . '/api/get-route-details.php';
         break;
 
-    case preg_match('/^(\/api)?\/saved-places(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/saved-places') !== false:
         require_once __DIR__ . '/api/saved-places.php';
         break;
 
-    case preg_match('/^(\/api)?\/migrate(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/migrate') !== false:
         require_once __DIR__ . '/api/migrate.php';
         break;
 
-    case preg_match('/^(\/api)?\/seed(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/seed') !== false:
         require_once __DIR__ . '/api/seed.php';
         break;
 
-    case preg_match('/^(\/api)?\/debug-db(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/debug-db') !== false:
         require_once __DIR__ . '/api/debug-db.php';
         break;
 
-    case preg_match('/^(\/api)?\/sync-osm-routes(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/sync-osm-routes') !== false:
         require_once __DIR__ . '/api/sync-osm-routes.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-stops(\.php)?$/', $requestUri):
+    case strpos($requestUri, '/get-stops') !== false:
         require_once __DIR__ . '/api/get-stops.php';
         break;
+
 
 
     default:
