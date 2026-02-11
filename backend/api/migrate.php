@@ -12,14 +12,28 @@ try {
     
     $output[] = "Starting migration...";
 
-    // 1. Add Tracking Columns
-    $output[] = "Checking for OSM tracking columns...";
+    // 1. Add Tracking and Metadata Columns
+    $output[] = "Checking routes and stops schema...";
     
-    // routes.osm_id
-    $check = $pdo->query("SHOW COLUMNS FROM routes LIKE 'osm_id'")->fetch();
-    if (!$check) {
-        $pdo->exec("ALTER TABLE routes ADD COLUMN osm_id BIGINT UNIQUE");
-        $output[] = " - Added osm_id to routes";
+    // routes columns
+    $routeColumns = [
+        'osm_id' => "BIGINT UNIQUE",
+        'start_point' => "VARCHAR(100)",
+        'end_point' => "VARCHAR(100)",
+        'total_stops' => "INT DEFAULT 0",
+        'avg_time_minutes' => "INT DEFAULT 0",
+        'frequency_minutes' => "INT DEFAULT 0",
+        'color' => "VARCHAR(20) DEFAULT '#3b82f6'",
+        'status' => "ENUM('active', 'inactive') DEFAULT 'active'",
+        'updated_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+    ];
+
+    foreach ($routeColumns as $col => $definition) {
+        $check = $pdo->query("SHOW COLUMNS FROM routes LIKE '$col'")->fetch();
+        if (!$check) {
+            $pdo->exec("ALTER TABLE routes ADD COLUMN $col $definition");
+            $output[] = " - Added $col to routes";
+        }
     }
 
     // stops.osm_id
@@ -28,6 +42,21 @@ try {
         $pdo->exec("ALTER TABLE stops ADD COLUMN osm_id BIGINT UNIQUE");
         $output[] = " - Added osm_id to stops";
     }
+
+    // users.status and phone
+    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'status'")->fetch();
+    if (!$check) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('pending', 'verified', 'suspended') DEFAULT 'verified'");
+        $output[] = " - Added status to users";
+    }
+    
+    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'phone'")->fetch();
+    if (!$check) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN phone VARCHAR(20)");
+        $output[] = " - Added phone to users";
+    }
+
+
 
     // 2. Create/Repair Route Segments Table
     $output[] = "Checking route_segments table...";
