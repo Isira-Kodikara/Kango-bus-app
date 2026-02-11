@@ -170,6 +170,29 @@ try {
         }
     }
 
+    // Check for status in buses
+    $checkBusStatus = $pdo->query("SHOW COLUMNS FROM buses LIKE 'status'")->fetch();
+    if (!$checkBusStatus) {
+        $pdo->exec("ALTER TABLE buses ADD COLUMN status ENUM('active', 'maintenance', 'inactive') DEFAULT 'active'");
+        $output[] = " - Added status to buses";
+    }
+
+    // Check for is_active, stop_code, and address in stops
+    $stopCols = [
+        'is_active' => "BOOLEAN DEFAULT TRUE",
+        'stop_code' => "VARCHAR(20)",
+        'address' => "TEXT"
+    ];
+    foreach ($stopCols as $col => $def) {
+        $check = $pdo->query("SHOW COLUMNS FROM stops LIKE '$col'")->fetch();
+        if (!$check) {
+            $pdo->exec("ALTER TABLE stops ADD COLUMN $col $def");
+            $output[] = " - Added $col to stops";
+        }
+    }
+
+
+
 
 
     $checkBusRoute = $pdo->query("SHOW COLUMNS FROM buses LIKE 'route_id'")->fetch();
