@@ -115,14 +115,33 @@ try {
     $checkBusPlate = $pdo->query("SHOW COLUMNS FROM buses LIKE 'plate_number'")->fetch();
     if (!$checkBusPlate) {
         $checkBusCode = $pdo->query("SHOW COLUMNS FROM buses LIKE 'code'")->fetch();
+        $checkBusNum = $pdo->query("SHOW COLUMNS FROM buses LIKE 'bus_number'")->fetch();
+        
         if ($checkBusCode) {
             $pdo->exec("ALTER TABLE buses CHANGE code plate_number VARCHAR(20) UNIQUE NOT NULL");
             $output[] = " - Renamed 'code' to 'plate_number' in buses";
+        } elseif ($checkBusNum) {
+            $pdo->exec("ALTER TABLE buses CHANGE bus_number plate_number VARCHAR(20) UNIQUE NOT NULL");
+            $output[] = " - Renamed 'bus_number' to 'plate_number' in buses";
         } else {
             $pdo->exec("ALTER TABLE buses ADD COLUMN plate_number VARCHAR(20) UNIQUE NOT NULL AFTER id");
             $output[] = " - Added 'plate_number' to buses";
         }
+    } else {
+        // plate_number exists, but check for legacy columns that might block inserts
+        $checkBusCode = $pdo->query("SHOW COLUMNS FROM buses LIKE 'code'")->fetch();
+        $checkBusNum = $pdo->query("SHOW COLUMNS FROM buses LIKE 'bus_number'")->fetch();
+        if ($checkBusCode) {
+            $pdo->exec("ALTER TABLE buses DROP COLUMN code");
+            $output[] = " - Dropped legacy column 'code' from buses";
+        }
+        if ($checkBusNum) {
+            $pdo->exec("ALTER TABLE buses DROP COLUMN bus_number");
+            $output[] = " - Dropped legacy column 'bus_number' from buses";
+        }
     }
+
+
 
     $checkBusRoute = $pdo->query("SHOW COLUMNS FROM buses LIKE 'route_id'")->fetch();
     if (!$checkBusRoute) {
