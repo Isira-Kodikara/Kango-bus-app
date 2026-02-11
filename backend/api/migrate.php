@@ -104,10 +104,19 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS buses (
         id INT PRIMARY KEY AUTO_INCREMENT,
         plate_number VARCHAR(20) UNIQUE NOT NULL,
+        route_id INT,
         capacity INT DEFAULT 60,
         status ENUM('active', 'maintenance', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (route_id) REFERENCES routes(id)
     )");
+
+    // Add route_id if it's missing from existing buses table
+    $checkBusRoute = $pdo->query("SHOW COLUMNS FROM buses LIKE 'route_id'")->fetch();
+    if (!$checkBusRoute) {
+        $pdo->exec("ALTER TABLE buses ADD COLUMN route_id INT, ADD FOREIGN KEY (route_id) REFERENCES routes(id)");
+        $output[] = " - Added route_id to buses";
+    }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS trips (
         trip_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -122,15 +131,69 @@ try {
         FOREIGN KEY (current_stop_id) REFERENCES stops(id)
     )");
 
-    // Repair trips.trip_id if it was created as 'id'
-    $check = $pdo->query("SHOW COLUMNS FROM trips LIKE 'trip_id'")->fetch();
-    if (!$check) {
-        $checkId = $pdo->query("SHOW COLUMNS FROM trips LIKE 'id'")->fetch();
-        if ($checkId) {
-            $pdo->exec("ALTER TABLE trips CHANGE id trip_id INT AUTO_INCREMENT");
-            $output[] = " - Renamed 'id' to 'trip_id' in trips";
-        }
-    }
+    // 6. Create Additional Support Tables
+    $output[] = "Creating support tables (analytics, emergency, etc.)...";
+    
+    $pdo->exec("CREATE TABLE IF NOT EXISTS analytics (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        event_type VARCHAR(50),
+        event_data TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS emergency_contacts (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        name VARCHAR(100),
+        phone_number VARCHAR(20),
+        relationship VARCHAR(50),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS emergency_alerts (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        trip_id INT,
+        type VARCHAR(50),
+        latitude DECIMAL(10,8),
+        longitude DECIMAL(11,8),
+        status ENUM('active', 'resolved') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (trip_id) REFERENCES trips(trip_id)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS payments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        amount DECIMAL(10,2),
+        status ENUM('pending', 'completed', 'failed') DEFAULT 'completed',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS saved_locations (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        label VARCHAR(50),
+        address TEXT,
+        latitude DECIMAL(10,8),
+        longitude DECIMAL(11,8),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS wait_requests (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        stop_id INT,
+        route_id INT,
+        status ENUM('pending', 'picked_up', 'cancelled') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (stop_id) REFERENCES stops(id),
+        FOREIGN KEY (route_id) REFERENCES routes(id)
+    )");
+
 
 
     echo json_encode([

@@ -11,15 +11,20 @@ require_once __DIR__ . '/../includes/Database.php';
 try {
     $db = Database::getInstance()->getConnection();
     
-    // 1. CLEAR EVERYTHING (Fresh Start)
+    // 1. CLEAR EVERYTHING (Fresh Start) - Except admins and crew
     $db->exec("SET FOREIGN_KEY_CHECKS = 0");
-    $db->exec("TRUNCATE TABLE route_segments");
-    $db->exec("TRUNCATE TABLE route_stops");
-    $db->exec("TRUNCATE TABLE trips");
-    $db->exec("TRUNCATE TABLE buses");
-    $db->exec("TRUNCATE TABLE stops");
-    $db->exec("TRUNCATE TABLE routes");
+    $tablesToClear = [
+        'analytics', 'emergency_alerts', 'emergency_contacts', 'journey_plans', 
+        'payments', 'route_segments', 'route_stops', 'routes', 
+        'saved_locations', 'schedule', 'stops', 'trips', 
+        'user_sessions', 'users', 'wait_requests', 'buses'
+    ];
+    
+    foreach ($tablesToClear as $table) {
+        $db->exec("TRUNCATE TABLE $table");
+    }
     $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+
 
     // 2. ACTUAL COLOMBO BUS STOPS 
     // These coordinates are confirmed on Google Maps/OSM
@@ -110,26 +115,50 @@ try {
         $orderIdx++;
     }
 
-    // 5. LIVE BUSES (Sample of what live data would look like)
+    // 5. LIVE BUSES
     $buses = [
-        ['NB-4450', 55, 'active'],
-        ['NA-9981', 40, 'active'],
-        ['NB-1120', 60, 'active']
+        ['NB-4450', 55, 'active', 1], // Route 100
+        ['NA-9981', 40, 'active', 2], // Route 138
+        ['NB-1120', 60, 'active', 1]  // Route 100
     ];
-    $stmtBus = $db->prepare("INSERT INTO buses (plate_number, capacity, status) VALUES (?, ?, ?)");
+    $stmtBus = $db->prepare("INSERT INTO buses (plate_number, capacity, status, route_id) VALUES (?, ?, ?, ?)");
     foreach ($buses as $bus) {
-        $stmtBus->execute($bus);
+        $rId = $routeIds[$bus[3] == 1 ? '100' : '138'];
+        $stmtBus->execute([$bus[0], $bus[1], $bus[2], $rId]);
+    }
+
+    // 6. USERS
+    $users = [
+        ['Test User', 'test@example.com', password_hash('password123', PASSWORD_DEFAULT), '0771234567'],
+        ['Isira', 'isira@example.com', password_hash('password123', PASSWORD_DEFAULT), '0712345678']
+    ];
+    $stmtUser = $db->prepare("INSERT INTO users (full_name, email, password, phone, status) VALUES (?, ?, ?, ?, 'verified')");
+    foreach ($users as $user) {
+        $stmtUser->execute($user);
+    }
+
+    // 7. EMERGENCY CONTACTS
+    $contacts = [
+        ['Police Hotlline', '119', 'Official'],
+        ['Ambulance', '1990', 'Official Suwa Seriya'],
+        ['Bus Emergency Line', '0112345678', 'KANGO Control']
+    ];
+    $stmtContact = $db->prepare("INSERT INTO emergency_contacts (name, phone_number, relationship) VALUES (?, ?, ?)");
+    foreach ($contacts as $contact) {
+        $stmtContact->execute($contact);
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Clean Slate: Database purged and populated with accurate Colombo 100 & 138 routes.',
+        'message' => 'Full Reset: All tables cleared (except admins/crew) and populated with real Colombo data.',
         'stats' => [
             'stops' => count($stops),
             'routes' => count($routes),
-            'segments' => count($network)
+            'users' => count($users),
+            'contacts' => count($contacts)
         ]
     ]);
+
 
 } catch (Exception $e) {
     http_response_code(500);
