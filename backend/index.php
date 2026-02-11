@@ -63,11 +63,11 @@ switch (true) {
         require_once __DIR__ . '/api/get-route-details.php';
         break;
 
-    case preg_match('/^(\/api)?\/saved-places/', $requestUri):
+    case preg_match('/^(\/api)?\/saved-places(\.php)?$/', $requestUri):
         require_once __DIR__ . '/api/saved-places.php';
         break;
 
-    case preg_match('/^(\/api)?\/migrate/', $requestUri):
+    case preg_match('/^(\/api)?\/migrate(\.php)?$/', $requestUri):
         require_once __DIR__ . '/api/migrate.php';
         break;
 
