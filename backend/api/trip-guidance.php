@@ -44,7 +44,48 @@ try {
     $bestRoute = $routeFinder->findBestRoute($originLat, $originLng, $destLat, $destLng);
     
     if (!$bestRoute) {
-        throw new Exception('No route found between origin and destination');
+        // FALLBACK: When no graph-based route found, use nearest stops directly
+        $originStops = $routeFinder->findNearestStops($originLat, $originLng, 1);
+        $destStops = $routeFinder->findNearestStops($destLat, $destLng, 1);
+        
+        if (empty($originStops) || empty($destStops)) {
+            throw new Exception('No bus stops found near your location. Please ensure the database is seeded.');
+        }
+
+        $boardingStop = $originStops[0];
+        $alightingStop = $destStops[0];
+        
+        // Calculate straight-line estimates
+        $busDistKm = GeoUtils::haversineDistance(
+            $boardingStop['latitude'], $boardingStop['longitude'],
+            $alightingStop['latitude'], $alightingStop['longitude']
+        );
+        $estimatedBusTimeMin = ($busDistKm / 15) * 60; // 15 km/h avg speed
+        
+        $walkToStop = GeoUtils::haversineDistance(
+            $originLat, $originLng,
+            $boardingStop['latitude'], $boardingStop['longitude']
+        ) * 1000;
+        $walkingTimeToStop = ($walkToStop / 1.4) / 60;
+        
+        $walkFromStop = GeoUtils::haversineDistance(
+            $alightingStop['latitude'], $alightingStop['longitude'],
+            $destLat, $destLng
+        ) * 1000;
+        $walkingTimeFromStop = ($walkFromStop / 1.4) / 60;
+        
+        $bestRoute = [
+            'boarding_stop' => $boardingStop,
+            'alighting_stop' => $alightingStop,
+            'bus_path' => [$boardingStop['stop_id'], $alightingStop['stop_id']],
+            'walking_distance_to_stop' => $walkToStop,
+            'walking_time_to_stop' => $walkingTimeToStop,
+            'walking_distance_from_stop' => $walkFromStop,
+            'walking_time_from_stop' => $walkingTimeFromStop,
+            'bus_travel_time' => $estimatedBusTimeMin,
+            'total_time' => $walkingTimeToStop + $estimatedBusTimeMin + $walkingTimeFromStop,
+            'is_estimate' => true
+        ];
     }
     
     // Check if user at boarding stop (within 50 meters)
@@ -63,7 +104,8 @@ try {
         'boarding_stop' => $bestRoute['boarding_stop'],
         'alighting_stop' => $bestRoute['alighting_stop'],
         'bus_travel_time' => round($bestRoute['bus_travel_time'] * 60),
-        'total_time' => round($bestRoute['total_time'] * 60)
+        'total_time' => round($bestRoute['total_time'] * 60),
+        'is_estimate' => $bestRoute['is_estimate'] ?? false
     ];
     
     if ($needsGuidance) {
@@ -102,27 +144,32 @@ try {
         );
     }
     
-    // Save journey plan
-    $stmt = $pdo->prepare("
-        INSERT INTO journey_plans 
-        (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
-         boarding_stop_id, alighting_stop_id, walking_distance_meters,
-         walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
-         can_catch_next_bus)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    
-    $stmt->execute([
-        $userId,
-        $originLat, $originLng, $destLat, $destLng,
-        $bestRoute['boarding_stop']['stop_id'],
-        $bestRoute['alighting_stop']['stop_id'],
-        $response['walking_path']['distance_meters'] ?? 0,
-        $response['walking_path']['duration_seconds'] ?? 0,
-        $response['bus_travel_time'],
-        $response['total_time'],
-        $response['can_catch_next_bus'] ?? false
-    ]);
+    // Save journey plan (wrapped in try-catch so it doesn't break the response)
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO journey_plans 
+            (user_id, origin_lat, origin_lng, destination_lat, destination_lng,
+             boarding_stop_id, alighting_stop_id, walking_distance_meters,
+             walking_time_seconds, bus_travel_time_seconds, total_journey_time_seconds,
+             can_catch_next_bus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $userId,
+            $originLat, $originLng, $destLat, $destLng,
+            $bestRoute['boarding_stop']['stop_id'],
+            $bestRoute['alighting_stop']['stop_id'],
+            $response['walking_path']['distance_meters'] ?? 0,
+            $response['walking_path']['duration_seconds'] ?? 0,
+            $response['bus_travel_time'],
+            $response['total_time'],
+            $response['can_catch_next_bus'] ?? false
+        ]);
+    } catch (Exception $saveErr) {
+        // Don't fail the response just because saving the plan failed
+        error_log("Failed to save journey plan: " . $saveErr->getMessage());
+    }
     
     echo json_encode($response);
     
