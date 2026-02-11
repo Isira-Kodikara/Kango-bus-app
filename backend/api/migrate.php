@@ -43,25 +43,33 @@ try {
         $output[] = " - Added osm_id to stops";
     }
 
-    // users.status and phone
-    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'status'")->fetch();
-    if (!$check) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('pending', 'verified', 'suspended') DEFAULT 'verified'");
-        $output[] = " - Added status to users";
-    }
-    
-    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'phone'")->fetch();
-    if (!$check) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN phone VARCHAR(20)");
-        $output[] = " - Added phone to users";
+    // user table maintenance
+    $output[] = "Cleaning up users table...";
+    $legacyUserCols = ['username', 'code', 'nic'];
+    foreach ($legacyUserCols as $lcol) {
+        $check = $pdo->query("SHOW COLUMNS FROM users LIKE '$lcol'")->fetch();
+        if ($check) {
+            try {
+                $pdo->exec("ALTER TABLE users DROP COLUMN $lcol");
+                $output[] = " - Successfully dropped legacy column '$lcol' from users";
+            } catch (Exception $e) {
+                $output[] = " - Failed to drop '$lcol': " . $e->getMessage();
+            }
+        }
     }
 
-    // Drop problematic username column if it exists (we use email/phone)
-    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'username'")->fetch();
-    if ($check) {
-        $pdo->exec("ALTER TABLE users DROP COLUMN username");
-        $output[] = " - Dropped legacy column 'username' from users";
+    $userCols = [
+        'status' => "ENUM('pending', 'verified', 'suspended') DEFAULT 'verified'",
+        'phone' => "VARCHAR(20)"
+    ];
+    foreach ($userCols as $col => $def) {
+        $check = $pdo->query("SHOW COLUMNS FROM users LIKE '$col'")->fetch();
+        if (!$check) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
+            $output[] = " - Added missing column '$col' to users";
+        }
     }
+
 
 
 
@@ -149,7 +157,9 @@ try {
     )");
 
     // Repair buses table if columns are missing or named differently
+    $output[] = "Repairing buses table...";
     $checkBusPlate = $pdo->query("SHOW COLUMNS FROM buses LIKE 'plate_number'")->fetch();
+
     if (!$checkBusPlate) {
         $checkBusCode = $pdo->query("SHOW COLUMNS FROM buses LIKE 'code'")->fetch();
         $checkBusNum = $pdo->query("SHOW COLUMNS FROM buses LIKE 'bus_number'")->fetch();
