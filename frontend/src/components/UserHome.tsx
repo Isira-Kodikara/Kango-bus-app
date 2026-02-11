@@ -16,12 +16,15 @@ import {
   X,
   ChevronUp,
   Locate,
-  Map as MapIcon
+  Map as MapIcon,
+  CreditCard
 } from 'lucide-react';
 import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
 
 import { ENDPOINTS } from '../lib/api-config';
 import { useAuth } from '../contexts/AuthContext';
+import { userApi } from '../lib/api';
+import { toast } from 'sonner';
 
 // Active bus tracking data
 const activeBuses = SAMPLE_BUSES.map(bus => {
@@ -575,6 +578,51 @@ export function UserHome() {
         className="absolute bottom-32 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
       >
         <Locate className="w-6 h-6 text-blue-600" />
+      </button>
+
+      {/* Buy Test Ticket Button (Stripe Integration Test) */}
+      <button
+        onClick={async () => {
+          const loadingToast = toast.loading('Checking payment method...');
+          try {
+            // 1. Check if payment method exists
+            const statusFn = await userApi.getPaymentStatus();
+            if (!statusFn.success || !statusFn.data?.has_payment_method) {
+              toast.dismiss(loadingToast);
+              toast.error('Payment method not in place', {
+                description: 'Please add a card in your profile settings.',
+                action: {
+                  label: 'Go to Settings',
+                  onClick: () => navigate('/user-profile')
+                }
+              });
+              return;
+            }
+
+            // 2. Proceed with charge
+            toast.dismiss(loadingToast);
+            const chargeToast = toast.loading('Processing payment...');
+
+            const chargeResponse = await userApi.testCharge();
+            toast.dismiss(chargeToast);
+
+            if (chargeResponse.success) {
+              toast.success('Ticket Purchased!', {
+                description: `charged ${chargeResponse.data?.amount} ${chargeResponse.data?.currency}`
+              });
+            } else {
+              toast.error(chargeResponse.message || 'Payment failed');
+            }
+          } catch (err) {
+            toast.dismiss(loadingToast);
+            console.error(err);
+            toast.error('Something went wrong');
+          }
+        }}
+        className="absolute bottom-48 right-4 z-[1000] w-12 h-12 bg-green-600 rounded-full shadow-lg flex items-center justify-center hover:bg-green-700 transition-colors text-white"
+        title="Buy Test Ticket"
+      >
+        <CreditCard className="w-6 h-6" />
       </button>
 
       {/* Bottom Sheet with Routes */}

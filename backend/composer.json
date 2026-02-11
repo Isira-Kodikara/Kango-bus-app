@@ -6,7 +6,8 @@
         "php": ">=8.0",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "stripe/stripe-php": "^16.0"
     },
     "scripts": {
         "start": "php -S 0.0.0.0:${PORT:-8000} index.php"

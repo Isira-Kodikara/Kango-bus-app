@@ -23,6 +23,7 @@ import { Toaster, toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi, userApi, SavedPlace } from '../lib/api';
 import { AddSavedPlaceModal } from './AddSavedPlaceModal';
+import { PaymentSettings } from './PaymentSettings';
 
 const mockTripHistory = [
   {
@@ -377,20 +378,8 @@ export function UserProfile() {
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Account Settings</h3>
 
             {/* Payment Methods */}
-            <div
-              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Payment Methods integration coming soon!")}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <CreditCard className="w-6 h-6 text-blue-600 mr-3" />
-                  <div>
-                    <div className="font-semibold text-gray-800">Payment Methods</div>
-                    <div className="text-sm text-gray-600">Manage cards & wallets</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </div>
+            <div className="mb-6">
+              <PaymentSettings />
             </div>
 
             {/* Emergency Contacts */}

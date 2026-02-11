@@ -297,6 +297,28 @@ export const userApi = {
 
   deleteSavedPlace: async (id: number): Promise<ApiResponse> => {
     return apiFetch(`/saved-places?id=${id}`, { method: 'DELETE' });
+  },
+
+  /**
+   * Payment API endpoints
+   */
+  getPaymentStatus: async (): Promise<ApiResponse<{ has_payment_method: boolean; card: { brand: string; last4: string; exp_month: number; exp_year: number } | null }>> => {
+    return apiFetch('/payments/status.php', { method: 'GET' });
+  },
+
+  createSetupIntent: async (): Promise<ApiResponse<{ client_secret: string }>> => {
+    return apiFetch('/payments/setup-intent.php', { method: 'POST' });
+  },
+
+  attachPaymentMethod: async (paymentMethodId: string): Promise<ApiResponse> => {
+    return apiFetch('/payments/attach-method.php', {
+      method: 'POST',
+      body: JSON.stringify({ payment_method_id: paymentMethodId }),
+    });
+  },
+
+  testCharge: async (): Promise<ApiResponse<{ receipt_url: string; amount: number; currency: string }>> => {
+    return apiFetch('/payments/test-charge.php', { method: 'POST' });
   }
 };
 
