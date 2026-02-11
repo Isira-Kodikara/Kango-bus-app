@@ -11,10 +11,14 @@ import {
   Edit,
   Trash2,
   Clock,
-  TrendingUp,
+  TrendingUp, // Changed from Activity to TrendingUp for stats
   Activity,
   UserCheck,
-  RefreshCw
+  RefreshCw,
+  Search,
+  Check,
+  X,
+  Star // Added Star
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
@@ -60,165 +64,179 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-900">
-      {/* Header - Premium Gradient */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-6 shadow-lg relative overflow-hidden">
-        {/* Subtle decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/10 rounded-full -ml-10 -mb-10 blur-2xl"></div>
-
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gray-100 flex flex-col font-sans text-slate-900 pb-20 md:pb-0">
+      {/* Header - Clean White */}
+      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mr-3 border border-white/20">
-                <Settings className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight uppercase">KANGO Admin</h1>
-                <p className="text-blue-100 text-xs font-medium tracking-widest opacity-80 uppercase">Network Control Center</p>
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-black text-blue-600 uppercase tracking-tighter leading-none">KANGO</h1>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Admin Portal</p>
+                </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={fetchData}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all border border-white/10"
+                disabled={isLoading}
+                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                 title="Refresh Data"
               >
                 <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
+              <div className="h-8 w-px bg-slate-200 mx-1"></div>
               <button
                 onClick={() => navigate('/')}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all border border-white/10"
-                title="Logout"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
-            </div>
-          </div>
-
-          {/* Quick stats - Glassmorphism */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-sm">
-              <div className="text-xs font-bold text-blue-100 uppercase tracking-tighter opacity-70 mb-1">Fleet</div>
-              <div className="text-2xl font-black">{buses.length}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-sm">
-              <div className="text-xs font-bold text-blue-100 uppercase tracking-tighter opacity-70 mb-1">Riders</div>
-              <div className="text-2xl font-black">{(mockAnalytics.totalPassengers / 1000).toFixed(1)}k</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-sm">
-              <div className="text-xs font-bold text-blue-100 uppercase tracking-tighter opacity-70 mb-1">Routes</div>
-              <div className="text-2xl font-black">{routes.length || 3}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs - Modern Minimalist */}
-      <div className="bg-white border-b border-slate-200 flex px-2 overflow-x-auto sticky top-0 z-20">
-        {[
-          { id: 'buses', label: 'Fleet', icon: Bus },
-          { id: 'routes', label: 'Network', icon: MapPin },
-          { id: 'analytics', label: 'Insights', icon: BarChart3 },
-          { id: 'crew', label: 'Crew', icon: Users }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center justify-center gap-2 px-6 py-5 text-sm font-bold transition-all border-b-4 relative ${activeTab === tab.id
-              ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-              : 'text-slate-500 border-transparent hover:text-slate-700'
-              }`}
-          >
-            <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}`} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto pt-6 px-4 pb-24 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto bg-[#f8fafc]">
-        <div className="max-w-4xl mx-auto p-4 md:p-6 pb-24">
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-24 space-y-4">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-              </div>
-              <p className="text-slate-400 font-bold animate-pulse">Syncing Network Data...</p>
-            </div>
-          )}
+        {/* Mobile Tabs (Bottom Navigation style but at top for admin) */}
+        <div className="md:hidden flex overflow-x-auto pb-4 gap-2 mb-4 scrollbar-hide">
+          {[
+            { id: 'buses', label: 'Fleet', icon: Bus },
+            { id: 'routes', label: 'Routes', icon: MapPin },
+            { id: 'analytics', label: 'Stats', icon: BarChart3 },
+            { id: 'crew', label: 'Crew', icon: Users }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-none px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${activeTab === tab.id
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                  : 'bg-white text-slate-500 border-slate-200'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Buses Tab */}
-          {!isLoading && activeTab === 'buses' && (
+        {/* Desktop Tabs */}
+        <div className="hidden md:flex space-x-1 bg-white p-1 rounded-2xl shadow-sm border border-gray-200 mb-8 w-fit mx-auto">
+          {[
+            { id: 'buses', label: 'Live Fleet', icon: Bus },
+            { id: 'routes', label: 'Route Network', icon: MapPin },
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+            { id: 'crew', label: 'Crew Management', icon: Users }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
+                  ? 'bg-blue-50 text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:bg-gray-50'
+                }`}
+            >
+              <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}`} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="animate-slide-in-right">
+
+          {/* BUSES TAB */}
+          {activeTab === 'buses' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Real-time Fleet</h2>
-                  <p className="text-slate-500 text-sm font-medium">Tracking live GPS positions across Colombo</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Fleet Overview</h2>
+                  <p className="text-slate-500 text-sm font-medium">Real-time bus tracking and status</p>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95">
-                  <Plus className="w-6 h-6" />
+                <button className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 group">
+                  <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {buses.length === 0 && (
-                  <div className="col-span-full bg-white rounded-3xl border border-slate-200 border-dashed p-12 text-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Bus className="w-8 h-8 text-slate-300" />
+              {/* Stats Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Buses', value: buses.length, color: 'blue' },
+                  { label: 'Active Now', value: buses.filter(b => b.status === 'active' || true).length, color: 'green' }, // Mock filter
+                  { label: 'Avg Occupancy', value: '64%', color: 'orange' },
+                  { label: 'Alerts', value: '2', color: 'red' }
+                ].map((stat, idx) => (
+                  <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className={`text-${stat.color}-500 text-[10px] font-black uppercase tracking-widest mb-1`}>{stat.label}</div>
+                    <div className="text-2xl font-black text-slate-800">{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {buses.length === 0 && !isLoading && (
+                  <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Bus className="w-10 h-10 text-gray-400" />
                     </div>
-                    <p className="text-slate-400 font-bold">No active buses on the grid.</p>
+                    <h3 className="text-lg font-bold text-gray-900">No Buses Online</h3>
+                    <p className="text-gray-500 max-w-sm mt-1">There are currently no buses transmitting location data to the network.</p>
                   </div>
                 )}
+
                 {buses.map((bus) => (
                   <div
                     key={bus.id}
-                    className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all border border-slate-200 p-6 group cursor-pointer"
+                    className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all border border-gray-100 p-5 group cursor-pointer relative overflow-hidden"
                     onClick={() => setSelectedBus(bus)}
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center">
-                        <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                          <Bus className="w-7 h-7 text-blue-600" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
+
+                    <div className="relative z-10 flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                          {bus.id.replace('BUS-', '')}
                         </div>
                         <div>
-                          <div className="font-black text-slate-900 text-xl tracking-tight leading-none">{bus.id}</div>
+                          <div className="font-black text-slate-900 text-lg leading-none">{bus.id}</div>
                           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Route {bus.routeId}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border border-green-100">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                      <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                         Live
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-5">
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Position</div>
-                        <div className="font-bold text-slate-700 text-sm">{bus.lat.toFixed(3)}, {bus.lng.toFixed(3)}</div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Occupancy</div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${bus.passengers / bus.capacity > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`}
-                              style={{ width: `${(bus.passengers / bus.capacity) * 100}%` }}
-                            ></div>
-                          </div>
-                          <span className="font-black text-slate-700 text-xs">{bus.passengers}/{bus.capacity}</span>
+                    <div className="space-y-3 relative z-10">
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Occupancy</span>
+                          <span className="text-xs font-bold text-slate-700">{bus.passengers}/{bus.capacity}</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${bus.passengers / bus.capacity > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`}
+                            style={{ width: `${(bus.passengers / bus.capacity) * 100}%` }}
+                          ></div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <button className="flex-1 py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest transition-colors border border-slate-200">
-                        Diagnostics
-                      </button>
-                      <button className="flex-1 py-3 px-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-colors shadow-lg shadow-slate-200">
-                        Live Map
-                      </button>
+                      <div className="flex gap-2 text-xs">
+                        <div className="flex-1 bg-gray-50 p-2 rounded-xl text-center">
+                          <MapPin className="w-3 h-3 mx-auto mb-1 text-slate-400" />
+                          <span className="font-bold text-slate-600">{bus.lat.toFixed(3)}, {bus.lng.toFixed(3)}</span>
+                        </div>
+                        <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-xl font-bold transition-colors">
+                          Track
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -226,58 +244,51 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* Routes Tab - Improved Visibility */}
-          {!isLoading && activeTab === 'routes' && (
+          {/* ROUTES TAB */}
+          {activeTab === 'routes' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Route Registry</h2>
-                  <p className="text-slate-500 text-sm font-medium">Configuring service lines and frequency</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Routes</h2>
+                  <p className="text-slate-500 text-sm font-medium">Manage network paths and schedules</p>
                 </div>
-                <button className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg shadow-indigo-100">
-                  <Plus className="w-6 h-6" />
+                <button className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 group">
+                  <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {routes.map((route) => (
-                  <div key={route.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 hover:border-blue-300 transition-all">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex gap-4">
-                        <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black text-xl shadow-inner border" style={{ backgroundColor: (route.color || '#3b82f6') + '15', color: route.color || '#3b82f6', borderColor: (route.color || '#3b82f6') + '30' }}>
-                          <span className="text-[10px] uppercase opacity-60 leading-none">Line</span>
+                  <div key={route.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:border-blue-300 transition-all">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black text-2xl shadow-sm border bg-gray-50 text-slate-800" style={{ borderColor: route.color || '#e2e8f0' }}>
+                          <span className="text-[9px] uppercase text-slate-400 font-bold leading-none mb-0.5">Line</span>
                           {route.route_number}
                         </div>
-                        <div>
-                          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{route.route_name}</h3>
-                          <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest">
-                            {route.start_point} <ArrowRight className="w-3 h-3" /> {route.end_point}
-                          </div>
-                        </div>
                       </div>
-                      <button className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl transition-all">
-                        <Edit className="w-5 h-5 text-slate-400" />
-                      </button>
-                    </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                          <Clock className="w-3 h-3 text-blue-500" /> Time
+                      <div className="flex-grow">
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{route.route_name}</h3>
+                        <div className="flex items-center gap-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                          <span>{route.start_point}</span>
+                          <ArrowRight className="w-3 h-3 text-slate-300" />
+                          <span>{route.end_point}</span>
                         </div>
-                        <div className="text-lg font-black text-slate-800">{route.avg_time_minutes}m</div>
                       </div>
-                      <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                          <Activity className="w-3 h-3 text-green-500" /> Freq
+
+                      <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-4 mt-2 md:mt-0">
+                        <div className="text-center">
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Stops</div>
+                          <div className="text-lg font-black text-slate-800">{route.total_stops || 0}</div>
                         </div>
-                        <div className="text-lg font-black text-slate-800">{route.frequency_minutes}m</div>
-                      </div>
-                      <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                          <MapPin className="w-3 h-3 text-rose-500" /> Stops
+                        <div className="text-center">
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Time</div>
+                          <div className="text-lg font-black text-slate-800">{route.avg_time_minutes}m</div>
                         </div>
-                        <div className="text-lg font-black text-slate-800">{route.total_stops || '--'}</div>
+                        <button className="p-3 bg-gray-50 hover:bg-white border border-gray-200 hover:border-blue-300 rounded-xl transition-all ml-2 text-slate-400 hover:text-blue-600">
+                          <Edit className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -286,113 +297,119 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* Analytics - Bold & Visual */}
+          {/* ANALYTICS TAB */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Performance Dashboard</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-600 rounded-[2rem] p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden">
-                  <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                  <div className="flex justify-between items-start mb-8 relative z-10">
-                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md border border-white/20 text-white">
-                      <Activity className="w-8 h-8" />
-                    </div>
-                    <div className="bg-white/20 text-[10px] font-black uppercase tracking-widest py-1 px-3 rounded-full backdrop-blur-md border border-white/20">
-                      +12.4% vs Last Week
-                    </div>
-                  </div>
-                  <div className="text-sm font-bold text-blue-100 uppercase tracking-widest opacity-80 mb-1 relative z-10">Total Network Trips</div>
-                  <div className="text-6xl font-black tracking-tighter relative z-10">{mockAnalytics.totalTrips.toLocaleString()}</div>
-                </div>
-
-                <div className="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
-                  <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                  <div className="flex justify-between items-start mb-8 relative z-10">
-                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md border border-white/20">
-                      <Users className="w-8 h-8" />
-                    </div>
-                    <div className="bg-white/20 text-[10px] font-black uppercase tracking-widest py-1 px-3 rounded-full backdrop-blur-md border border-white/20">
-                      Peak Performance
-                    </div>
-                  </div>
-                  <div className="text-sm font-bold text-indigo-100 uppercase tracking-widest opacity-80 mb-1 relative z-10">Total Passenger Traffic</div>
-                  <div className="text-6xl font-black tracking-tighter relative z-10">{mockAnalytics.totalPassengers.toLocaleString()}</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">System Insights</h2>
+                  <p className="text-slate-500 text-sm font-medium">Performance metrics and usage stats</p>
                 </div>
               </div>
 
-              {/* Service Quality Card */}
-              <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 mb-1">Customer Satisfaction</h3>
-                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Based on 12,000+ trip ratings</p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-6xl font-black text-blue-600 tracking-tighter">{mockAnalytics.avgRating}</div>
-                    <div className="space-y-1">
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className={`w-6 h-6 ${i < Math.floor(mockAnalytics.avgRating) ? 'text-yellow-400' : 'text-slate-200'}`}>
-                            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Platinum Service Level</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-blue-50 rounded-xl">
+                      <Activity className="w-6 h-6 text-blue-600" />
                     </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900">Total Trips</h3>
+                      <p className="text-xs text-slate-500 font-medium">Daily system activity</p>
+                    </div>
+                  </div>
+                  <div className="text-5xl font-black text-slate-900 tracking-tighter mb-2">
+                    {mockAnalytics.totalTrips.toLocaleString()}
+                  </div>
+                  <div className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-bold">
+                    <TrendingUp className="w-3 h-3" /> +12.4% vs last week
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-purple-50 rounded-xl">
+                      <Users className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900">Passengers</h3>
+                      <p className="text-xs text-slate-500 font-medium">Total served today</p>
+                    </div>
+                  </div>
+                  <div className="text-5xl font-black text-slate-900 tracking-tighter mb-2">
+                    {mockAnalytics.totalPassengers.toLocaleString()}
+                  </div>
+                  <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold">
+                    Peak: 07:45 AM
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-200">
+                <h3 className="font-black text-slate-900 mb-4">Customer Satisfaction</h3>
+                <div className="flex items-center gap-6">
+                  <div className="text-6xl font-black text-blue-600 tracking-tighter">{mockAnalytics.avgRating}</div>
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`w-6 h-6 ${i < Math.floor(mockAnalytics.avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
+                      ))}
+                    </div>
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Based on 8.4k reviews</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Crew Registration */}
-          {!isLoading && activeTab === 'crew' && (
+          {/* CREW TAB */}
+          {activeTab === 'crew' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Crew Onboarding</h2>
-                  <p className="text-slate-500 text-sm font-medium">Verify bus driver and conductor accounts</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">Crew Approvals</h2>
+                  <p className="text-slate-500 text-sm font-medium">Pending driver & conductor registrations</p>
                 </div>
               </div>
 
               {pendingCrew.length === 0 ? (
-                <div className="bg-white rounded-[2rem] border border-slate-200 p-12 text-center shadow-sm">
-                  <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <UserCheck className="w-10 h-10 text-blue-200" />
+                <div className="bg-white rounded-[24px] border-2 border-dashed border-gray-200 p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <UserCheck className="w-8 h-8 text-gray-300" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-800 mb-2">Queue is Empty</h3>
-                  <p className="text-slate-400 font-medium">All crew members have been verified.</p>
+                  <h3 className="text-lg font-bold text-slate-900">All Clear</h3>
+                  <p className="text-slate-500">No pending crew applications to review.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-3">
                   {pendingCrew.map((crew) => (
-                    <div key={crew.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-blue-500 transition-all border-l-8 border-l-orange-500">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-black text-slate-900 leading-none mb-2">{crew.full_name}</h3>
-                        <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
-                          <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-blue-500" /> {crew.email}</span>
-                          <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-green-500" /> NIC: {crew.nic}</span>
-                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /> {new Date(crew.created_at).toLocaleDateString()}</span>
+                    <div key={crew.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:border-blue-400 transition-all border-l-4 border-l-orange-400">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-black text-slate-900 leading-none mb-2">{crew.full_name}</h3>
+                          <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
+                            <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-blue-500" /> {crew.email}</span>
+                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> NIC: {crew.nic}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <button className="flex-1 md:flex-none px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                          Reject
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Authorize ${crew.full_name} for the KANGO network?`)) {
-                              try {
-                                const response = await adminApi.approveCrew(crew.id);
-                                if (response.success) fetchData();
-                              } catch (err) { alert('Approval failed'); }
-                            }
-                          }}
-                          className="flex-1 md:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-100"
-                        >
-                          Approve
-                        </button>
+                        <div className="flex gap-2">
+                          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                            Reject
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Approve ${crew.full_name}?`)) {
+                                try {
+                                  const response = await adminApi.approveCrew(crew.id);
+                                  if (response.success) fetchData();
+                                } catch (err) { alert('Failed'); }
+                              }
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-100"
+                          >
+                            Approve
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -400,8 +417,9 @@ export function AdminDashboard() {
               )}
             </div>
           )}
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -409,7 +427,7 @@ export function AdminDashboard() {
 // Helper icons
 function ArrowRight(props: any) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
     </svg>
   );

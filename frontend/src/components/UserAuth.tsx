@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { authApi, User as ApiUser } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 export function UserAuth() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const toast = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [showOTP, setShowOTP] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetStep, setResetStep] = useState(0); // 0: Email, 1: OTP & New Password
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -133,9 +137,53 @@ export function UserAuth() {
       const response = await authApi.resendOTP(formData.email);
       if (!response.success) {
         setError(response.message || 'Failed to resend OTP');
+      } else {
+        toast.success('OTP sent successfully');
       }
     } catch (err) {
       setError('Failed to resend OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.forgotPassword(formData.email);
+      if (response.success) {
+        setResetStep(1);
+        toast.success('Reset code sent to your email');
+      } else {
+        setError(response.message || 'Failed to send reset code');
+      }
+    } catch (err) {
+      setError('Failed to send reset code. Please check your email.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.resetPassword(formData.email, formData.otp, formData.password);
+      if (response.success) {
+        toast.success('Password reset successful! Please login.');
+        setShowForgotPassword(false);
+        setResetStep(0);
+        setIsLogin(true);
+      } else {
+        setError(response.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setError('Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +204,9 @@ export function UserAuth() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-white text-xl font-semibold ml-4">User {isLogin ? 'Login' : 'Sign Up'}</h1>
+        <h1 className="text-white text-xl font-semibold ml-4">
+          {showForgotPassword ? 'Reset Password' : (isLogin ? 'Login' : 'Sign Up')}
+        </h1>
       </div>
 
       {/* Content */}
@@ -177,7 +227,8 @@ export function UserAuth() {
                       error.includes('not found') ? 'Account Not Found' :
                         error.includes('already') || error.includes('taken') ? 'Account Exists' :
                           error.includes('required') || error.includes('fill') ? 'Validation Error' :
-                            isLogin ? 'Login Error' : 'Registration Error'}
+                            showForgotPassword ? 'Reset Error' :
+                              isLogin ? 'Login Error' : 'Registration Error'}
                   </h3>
                   <p className="mt-1 text-sm text-red-700">{error}</p>
                   {(error.includes('required') || error.includes('fill')) && !isLogin && (
@@ -256,6 +307,104 @@ export function UserAuth() {
                 </button>
               </form>
             </div>
+          ) : showForgotPassword ? (
+            // Forgot Password Screen
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <Lock className="w-8 h-8 text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Reset Password</h2>
+                <p className="text-gray-600">
+                  {resetStep === 0
+                    ? "Enter your email to receive a reset code"
+                    : "Enter the code sent to your email and your new password"}
+                </p>
+              </div>
+
+              <form onSubmit={resetStep === 0 ? handleForgotPassword : handleResetPasswordSubmit} className="space-y-6">
+                {resetStep === 0 ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="you@example.com"
+                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Reset Code (OTP)</label>
+                      <input
+                        type="text"
+                        name="otp"
+                        value={formData.otp}
+                        onChange={handleChange}
+                        placeholder="000000"
+                        maxLength={6}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none text-center text-xl tracking-widest"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          placeholder="New secure password"
+                          className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                          required
+                          disabled={isLoading}
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    resetStep === 0 ? 'Send Reset Code' : 'Reset Password'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setResetStep(0);
+                    setError(null);
+                  }}
+                  disabled={isLoading}
+                  className="w-full text-blue-600 font-medium disabled:opacity-50"
+                >
+                  Back to Login
+                </button>
+              </form>
+            </div>
           ) : (
             // Login/Signup Form
             <div className="bg-white rounded-3xl shadow-2xl p-8">
@@ -326,7 +475,14 @@ export function UserAuth() {
 
                 {isLogin && (
                   <div className="text-right">
-                    <button type="button" className="text-sm text-blue-600 hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(true);
+                        setError(null);
+                      }}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
                       Forgot Password?
                     </button>
                   </div>

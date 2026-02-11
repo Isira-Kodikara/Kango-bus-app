@@ -16,7 +16,8 @@ import {
   X,
   ChevronUp,
   Locate,
-  Map as MapIcon
+  Map as MapIcon,
+  ArrowUpDown
 } from 'lucide-react';
 import { Map } from './Map';
 import { ENDPOINTS } from '../lib/api-config';
@@ -24,13 +25,59 @@ import { useAuth } from '../contexts/AuthContext';
 
 
 
+import { useToast } from '../contexts/ToastContext';
+
+// --- CONSTANTS ---
 const COLOMBO_CENTER: [number, number] = [6.9271, 79.8612];
+const DEFAULT_MAP_ZOOM = 13;
+const LOCATE_ME_ZOOM = 15;
+const POLLING_INTERVAL_MS = 10_000;
+
+// Walk speed: 80m/min ~= 5km/h
+const WALK_SPEED_M_PER_MIN = 80;
+// Walk speed: 1.4m/s
+const WALK_SPEED_M_PER_SEC = 1.4;
+
+const ARRIVAL_THRESHOLD_M = 30;
+const NEARBY_STOP_THRESHOLD_M = 50;
+const CROWD_LOW_THRESHOLD = 0.5;
+const CROWD_HIGH_THRESHOLD = 0.8;
+
+// Geolocation settings
+const GEO_OPTIONS = {
+  enableHighAccuracy: true,
+  maximumAge: 5_000,
+  timeout: 10_000
+};
+
+// --- TYPES ---
+interface BusData {
+  plate_number: string;
+  route_id: number;
+  latitude: number;
+  longitude: number;
+  current_passengers?: number;
+  capacity: number;
+  status: string;
+}
+
+interface StopData {
+  id: number;
+  stop_name: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters?: number;
+  distanceKm?: string;
+  walkTime?: number;
+}
+
 
 
 
 export function UserHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [buses, setBuses] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   const [nearbyStops, setNearbyStops] = useState<any[]>([]);
@@ -123,11 +170,12 @@ export function UserHome() {
           setCurrentLocation('My Location');
         },
         (error) => {
-          console.log('Geolocation error:', error);
+          console.warn('Geolocation access denied or failed:', error.message);
           const fallback: [number, number] = [6.9344, 79.8428];
           setUserLocation(fallback);
           setMapCenter(fallback);
           setCurrentLocation('Fort Railway Station');
+          toast.info('Using default location (Fort). Enable GPS for better experience.');
         }
       );
     }
@@ -153,7 +201,7 @@ export function UserHome() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Update every 10s
+    const interval = setInterval(fetchData, POLLING_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -187,9 +235,12 @@ export function UserHome() {
         const route = routes.find(r => r.id === bus.route_id);
         return {
           id: bus.plate_number,
-          eta: Math.floor(Math.random() * 15) + 3,
-          passengers: bus.capacity - 10,
+          // Use real passengers if available, else 0
+          passengers: bus.current_passengers || 0,
           capacity: bus.capacity,
+          // Calculate ETA based on distance to user (simplified linear distance)
+          // In production, this should come from the backend or OSRM
+          eta: Math.ceil(calculateDistance(userLocation[0], userLocation[1], bus.latitude, bus.longitude) / 1000 * 3) + 2, // Approx 3 mins per km + buffer
           route: route?.route_name || 'Generic Route',
           routeNumber: route?.route_number || bus.route_id,
           color: route?.color || '#3b82f6',
@@ -204,7 +255,9 @@ export function UserHome() {
   const handleLocateMe = () => {
     if (userLocation) {
       setMapCenter(userLocation);
-      setMapZoom(15);
+      setMapZoom(LOCATE_ME_ZOOM);
+    } else {
+      toast.error('Location not available yet.');
     }
   };
 
@@ -227,9 +280,9 @@ export function UserHome() {
 
 
   const getCrowdLevel = (passengers: number, capacity: number) => {
-    const ratio = passengers / capacity;
-    if (ratio < 0.5) return { level: 'Low', color: 'bg-green-500', text: 'text-green-700' };
-    if (ratio < 0.8) return { level: 'Medium', color: 'bg-yellow-500', text: 'text-yellow-700' };
+    const ratio = capacity > 0 ? passengers / capacity : 0;
+    if (ratio < CROWD_LOW_THRESHOLD) return { level: 'Low', color: 'bg-green-500', text: 'text-green-700' };
+    if (ratio < CROWD_HIGH_THRESHOLD) return { level: 'Medium', color: 'bg-yellow-500', text: 'text-yellow-700' };
     return { level: 'High', color: 'bg-red-500', text: 'text-red-700' };
   };
 
@@ -276,11 +329,7 @@ export function UserHome() {
         }
       },
       (error) => console.error('Location tracking error:', error),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 10000
-      }
+      GEO_OPTIONS
     );
   };
 
@@ -290,7 +339,7 @@ export function UserHome() {
       watchIdRef.current = null;
     }
     setWalkingGuidanceActive(false);
-    alert(`🎉 You've arrived at ${data.boarding_stop.stop_name}! Look for Bus ${data.next_bus?.route_number || ''}`);
+    toast.success(`🎉 You've arrived at ${data.boarding_stop.stop_name}! Look for Bus ${data.next_bus?.route_number || ''}`);
 
     // Switch to bus route selection or auto-ready
     setShowRoutes(true);
@@ -308,7 +357,7 @@ export function UserHome() {
           ...stop,
           distanceMeters: dist,
           distanceKm: (dist / 1000).toFixed(1),
-          walkTime: Math.round(dist / 80) // ~5km/h = 83m/min
+          walkTime: Math.round(dist / WALK_SPEED_M_PER_MIN)
         };
       })
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
@@ -324,7 +373,7 @@ export function UserHome() {
 
   const handleSearch = async () => {
     if (!destination) {
-      alert('Please select a destination first');
+      toast.warning('Please select a destination first');
       return;
     }
 
@@ -336,7 +385,7 @@ export function UserHome() {
         setUserLocation(uLoc);
         performTripGuidance(uLoc);
       }, (error) => {
-        alert('Please select a starting location or enable GPS');
+        toast.error('Please select a starting location or enable GPS');
         console.error(error);
       });
       return;
@@ -356,7 +405,7 @@ export function UserHome() {
 
 
     if (!dCoords) {
-      alert('Destination not found. Please select from suggestions.');
+      toast.error('Destination not found. Please select from suggestions.');
       return;
     }
 
@@ -379,7 +428,7 @@ export function UserHome() {
       const data = await response.json();
 
       if (!data.success) {
-        alert(`Error: ${data.error}`);
+        toast.error(`Trip Error: ${data.error}`);
         return;
       }
 
@@ -435,7 +484,7 @@ export function UserHome() {
 
     } catch (error) {
       console.error('Trip guidance error:', error);
-      alert('Failed to start guidance');
+      toast.error('Failed to start guidance. Please try again.');
     }
   };
 
@@ -568,7 +617,7 @@ export function UserHome() {
                   <div className="flex-1 space-y-3">
                     {/* From Input Group */}
                     <div className="relative z-[1010]">
-                      <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
                         <MapPin className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
                         <input
                           type="text"
@@ -669,7 +718,7 @@ export function UserHome() {
                       title="Swap locations"
                       style={{ pointerEvents: 'auto' }}
                     >
-                      <ArrowRight className="w-4 h-4 text-blue-600 rotate-90 group-hover:scale-110 transition-transform" />
+                      <ArrowUpDown className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
                     </button>
                   </div>
                 </div>
@@ -693,7 +742,7 @@ export function UserHome() {
       {/* Locate Me Button */}
       <button
         onClick={handleLocateMe}
-        className="absolute bottom-32 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+        className="fixed bottom-24 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
       >
         <Locate className="w-6 h-6 text-blue-600" />
       </button>
@@ -822,7 +871,7 @@ export function UserHome() {
           <div className="mb-4 text-sm text-gray-600 flex items-center gap-3">
             <span><strong className="text-gray-800">📏 Distance:</strong> {Math.round(distanceRemaining)}m</span>
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-            <span><strong className="text-gray-800">⏱️ Time:</strong> ~{Math.round(distanceRemaining / 1.4 / 60)} min</span>
+            <span><strong className="text-gray-800">⏱️ Time:</strong> ~{Math.round(distanceRemaining / WALK_SPEED_M_PER_SEC / 60)} min</span>
           </div>
 
           {walkingGuidanceData.next_bus && (
