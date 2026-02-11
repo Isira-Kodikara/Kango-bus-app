@@ -45,11 +45,14 @@ try {
     
     if (!$bestRoute) {
         // FALLBACK: When no graph-based route found, use nearest stops directly
-        $originStops = $routeFinder->findNearestStops($originLat, $originLng, 1);
-        $destStops = $routeFinder->findNearestStops($destLat, $destLng, 1);
+        // Use wider search (50km) to find ANY stops in the database
+        $originStops = $routeFinder->findNearestStops($originLat, $originLng, 3, 50);
+        $destStops = $routeFinder->findNearestStops($destLat, $destLng, 3, 50);
         
         if (empty($originStops) || empty($destStops)) {
-            throw new Exception('No bus stops found near your location. Please ensure the database is seeded.');
+            // Count total stops in database for debugging
+            $totalStops = $pdo->query("SELECT COUNT(*) FROM stops")->fetchColumn();
+            throw new Exception("No bus stops found. DB has $totalStops stops. Origin: $originLat,$originLng Dest: $destLat,$destLng");
         }
 
         $boardingStop = $originStops[0];

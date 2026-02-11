@@ -13,7 +13,7 @@ class RouteFinderService {
      * Find nearest bus stops to a given coordinate
      * Returns array of stops within 2km, ordered by distance
      */
-    public function findNearestStops($lat, $lng, $limit = 5) {
+    public function findNearestStops($lat, $lng, $limit = 5, $maxDistanceKm = 50) {
         $query = "
             SELECT 
                 id as stop_id,
@@ -28,13 +28,13 @@ class RouteFinderService {
                     ))
                 )) AS distance_km
             FROM stops
-            HAVING distance_km < 2
+            HAVING distance_km < ?
             ORDER BY distance_km ASC
             LIMIT ?
         ";
         
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$lat, $lng, $lat, $limit]);
+        $stmt->execute([$lat, $lng, $lat, $maxDistanceKm, $limit]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
@@ -159,8 +159,8 @@ class RouteFinderService {
      */
     public function findBestRoute($originLat, $originLng, $destLat, $destLng) {
         // Find nearest stops
-        $originStops = $this->findNearestStops($originLat, $originLng, 3);
-        $destStops = $this->findNearestStops($destLat, $destLng, 3);
+        $originStops = $this->findNearestStops($originLat, $originLng, 3, 50);
+        $destStops = $this->findNearestStops($destLat, $destLng, 3, 50);
         
         if (empty($originStops) || empty($destStops)) {
             return null;
