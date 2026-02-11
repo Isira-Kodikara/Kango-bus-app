@@ -35,17 +35,18 @@ switch (true) {
         echo json_encode(['success' => true, 'message' => 'KANGO API is running']);
         break;
 
-    case preg_match('/^(\/api)?\/auth\/user/', $requestUri):
+    case strpos($requestUri, '/auth/user') !== false:
         require_once __DIR__ . '/api/auth/user.php';
         break;
 
-    case preg_match('/^(\/api)?\/auth\/crew/', $requestUri):
+    case strpos($requestUri, '/auth/crew') !== false:
         require_once __DIR__ . '/api/auth/crew.php';
         break;
 
-    case preg_match('/^(\/api)?\/auth\/admin/', $requestUri):
+    case strpos($requestUri, '/auth/admin') !== false:
         require_once __DIR__ . '/api/auth/admin.php';
         break;
+
 
     case preg_match('/^(\/api)?\/trip-guidance/', $requestUri):
         require_once __DIR__ . '/api/trip-guidance.php';
