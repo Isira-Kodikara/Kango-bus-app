@@ -71,17 +71,22 @@ switch (true) {
         require_once __DIR__ . '/api/migrate.php';
         break;
 
-    case preg_match('/^(\/api)?\/seed/', $requestUri):
+    case preg_match('/^(\/api)?\/seed(\.php)?$/', $requestUri):
         require_once __DIR__ . '/api/seed.php';
         break;
 
-    case preg_match('/^(\/api)?\/debug-db/', $requestUri):
+    case preg_match('/^(\/api)?\/debug-db(\.php)?$/', $requestUri):
         require_once __DIR__ . '/api/debug-db.php';
         break;
 
-    case preg_match('/^(\/api)?\/sync-osm-routes/', $requestUri):
+    case preg_match('/^(\/api)?\/sync-osm-routes(\.php)?$/', $requestUri):
         require_once __DIR__ . '/api/sync-osm-routes.php';
         break;
+
+    case preg_match('/^(\/api)?\/get-stops(\.php)?$/', $requestUri):
+        require_once __DIR__ . '/api/get-stops.php';
+        break;
+
 
     default:
         http_response_code(404);

@@ -18,44 +18,23 @@ import {
   Locate,
   Map as MapIcon
 } from 'lucide-react';
-import { Map, COLOMBO_BUS_STOPS, COLOMBO_ROUTES, SAMPLE_BUSES, COLOMBO_CENTER, createStopIcon, createBusIcon } from './Map';
-
+import { Map } from './Map';
 import { ENDPOINTS } from '../lib/api-config';
 import { useAuth } from '../contexts/AuthContext';
 
-// Active bus tracking data
-const activeBuses = SAMPLE_BUSES.map(bus => {
-  const route = COLOMBO_ROUTES.find(r => r.id === bus.routeId);
-  return {
-    id: bus.id,
-    eta: Math.floor(Math.random() * 10) + 2,
-    passengers: bus.passengers,
-    capacity: bus.capacity,
-    route: route?.name || 'Unknown',
-    routeNumber: route?.number || '',
-    color: route?.color || '#3b82f6',
-    lat: bus.lat,
-    lng: bus.lng,
-  };
-});
 
-// Nearby stops for initialization
-const nearbyStops = COLOMBO_BUS_STOPS.slice(0, 3).map((stop, index) => ({
-  name: stop.name,
-  distance: (0.3 + index * 0.2).toFixed(1),
-  walkTime: 4 + index * 3,
-  lat: stop.lat,
-  lng: stop.lng,
-}));
+
+const COLOMBO_CENTER: [number, number] = [6.9271, 79.8612];
+
+
 
 export function UserHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [currentLocation, setCurrentLocation] = useState('Current Location');
-  const [destination, setDestination] = useState('');
-  const [showRoutes, setShowRoutes] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<any>(null);
-  const [nearestStop, setNearestStop] = useState<any>(nearbyStops[0]);
+  const [buses, setBuses] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [nearbyStops, setNearbyStops] = useState<any[]>([]);
+  const [nearestStop, setNearestStop] = useState<any>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [fromLocationCoords, setFromLocationCoords] = useState<[number, number] | null>(null);
@@ -68,8 +47,9 @@ export function UserHome() {
   // Autocomplete state
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
-  const [fromSuggestions, setFromSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
-  const [toSuggestions, setToSuggestions] = useState<typeof COLOMBO_BUS_STOPS>([]);
+  const [fromSuggestions, setFromSuggestions] = useState<any[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<any[]>([]);
+
 
   interface WalkingGuidanceData {
     boarding_stop: {
@@ -91,15 +71,24 @@ export function UserHome() {
     can_catch_next_bus: boolean;
   }
 
+  const [currentLocation, setCurrentLocation] = useState('Current Location');
+  const [destination, setDestination] = useState('');
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<any>(null);
+
   // New Walking Guidance State (Clean Slate)
   const [walkingGuidanceActive, setWalkingGuidanceActive] = useState(false);
   const [walkingGuidanceData, setWalkingGuidanceData] = useState<WalkingGuidanceData | null>(null);
   const [distanceRemaining, setDistanceRemaining] = useState<number>(0);
+  const [activeBuses, setActiveBuses] = useState<any[]>([]);
+
+
 
   const watchIdRef = useRef<number | null>(null);
 
-  // Get user's current location
+  // Get user's current location and Fetch real data
   useEffect(() => {
+    // 1. Get Location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -107,12 +96,6 @@ export function UserHome() {
           setUserLocation(coords);
           setMapCenter(coords);
           setCurrentLocation('My Location');
-
-          // Initialize nearby stops dynamically
-          const nearby = getNearbyStops(coords);
-          if (nearby.length > 0) {
-            setNearestStop(nearby[0]);
-          }
         },
         (error) => {
           console.log('Geolocation error:', error);
@@ -120,15 +103,64 @@ export function UserHome() {
           setUserLocation(fallback);
           setMapCenter(fallback);
           setCurrentLocation('Fort Railway Station');
-
-          const nearby = getNearbyStops(fallback);
-          if (nearby.length > 0) {
-            setNearestStop(nearby[0]);
-          }
         }
       );
     }
+
+    // 2. Fetch Data from API
+    const fetchData = async () => {
+      try {
+        const [busRes, routeRes, stopRes] = await Promise.all([
+          fetch(ENDPOINTS.GET_LIVE_BUSES),
+          fetch(ENDPOINTS.GET_ROUTES),
+          fetch(ENDPOINTS.GET_STOPS)
+        ]);
+        const busData = await busRes.json();
+        const routeData = await routeRes.json();
+        const stopData = await stopRes.json();
+
+        if (busData.success) setBuses(busData.buses || []);
+        if (routeData.success) setRoutes(routeData.data || []);
+        if (stopData.success) setAllStops(stopData.stops || []);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Update every 10s
+    return () => clearInterval(interval);
   }, []);
+
+  const [allStops, setAllStops] = useState<any[]>([]);
+
+
+  // Update nearby stops whenever buses or user location changes
+  useEffect(() => {
+    if (userLocation && allStops.length > 0) {
+      const stops = getNearbyStops(userLocation);
+      setNearbyStops(stops);
+      if (stops.length > 0 && !nearestStop) setNearestStop(stops[0]);
+    }
+
+    if (buses.length > 0) {
+      const mappedBuses = buses.map(bus => {
+        const route = routes.find(r => r.id === bus.route_id);
+        return {
+          id: bus.plate_number,
+          eta: Math.floor(Math.random() * 15) + 3,
+          passengers: bus.capacity - 10,
+          capacity: bus.capacity,
+          route: route?.route_name || 'Generic Route',
+          routeNumber: route?.route_number || bus.route_id,
+          color: route?.color || '#3b82f6',
+          lat: bus.latitude,
+          lng: bus.longitude,
+        };
+      });
+      setActiveBuses(mappedBuses);
+    }
+  }, [userLocation, buses, routes, allStops]);
 
   const handleLocateMe = () => {
     if (userLocation) {
@@ -144,15 +176,16 @@ export function UserHome() {
   };
 
   const handleBusClick = (bus: any) => {
-    const route = COLOMBO_ROUTES.find(r => r.id === bus.routeId);
-    setSelectedRouteId(bus.routeId);
+    const route = routes.find((r: any) => r.id === bus.route_id);
+    setSelectedRouteId(bus.route_id);
     setSelectedRoute({
       ...bus,
-      route: route?.name,
-      routeNumber: route?.number,
+      route: route?.route_name,
+      routeNumber: route?.route_number,
       color: route?.color,
     });
   };
+
 
   const getCrowdLevel = (passengers: number, capacity: number) => {
     const ratio = passengers / capacity;
@@ -225,13 +258,13 @@ export function UserHome() {
     setShowBottomSheet(true);
   };
 
-  // Calculate actual nearby stops based on user location
+  // Calculate actual nearby stops based on actual database stops
   const getNearbyStops = (coords: [number, number] | null) => {
-    if (!coords) return [];
+    if (!coords || !allStops.length) return [];
 
-    return COLOMBO_BUS_STOPS
+    return allStops
       .map(stop => {
-        const dist = calculateDistance(coords[0], coords[1], stop.lat, stop.lng);
+        const dist = calculateDistance(coords[0], coords[1], stop.latitude, stop.longitude);
         return {
           ...stop,
           distanceMeters: dist,
@@ -242,11 +275,11 @@ export function UserHome() {
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
       .slice(0, 3)
       .map(s => ({
-        name: s.name,
+        name: s.stop_name,
         distance: s.distanceKm,
         walkTime: s.walkTime,
-        lat: s.lat,
-        lng: s.lng
+        lat: s.latitude,
+        lng: s.longitude
       }));
   };
 
@@ -276,11 +309,12 @@ export function UserHome() {
   const performTripGuidance = async (fromCoords: [number, number]) => {
     let dCoords = destinationCoords;
     if (!dCoords) {
-      const destStop = COLOMBO_BUS_STOPS.find(s =>
-        s.name.toLowerCase().trim() === destination.toLowerCase().trim()
+      const destStop = allStops.find(s =>
+        s.stop_name.toLowerCase().trim() === destination.toLowerCase().trim()
       );
-      if (destStop) dCoords = [destStop.lat, destStop.lng];
+      if (destStop) dCoords = [destStop.latitude, destStop.longitude];
     }
+
 
     if (!dCoords) {
       alert('Destination not found. Please select from suggestions.');
@@ -335,12 +369,16 @@ export function UserHome() {
   const filterSuggestions = (value: string, isFrom: boolean = false) => {
     let results: any[] = [];
     if (value.length > 0) {
-      results = COLOMBO_BUS_STOPS.filter(stop =>
-        stop.name.toLowerCase().includes(value.toLowerCase())
-      );
+      results = allStops
+        .filter(stop => stop.stop_name.toLowerCase().includes(value.toLowerCase()))
+        .map(stop => ({
+          id: stop.id,
+          name: stop.stop_name,
+          lat: stop.latitude,
+          lng: stop.longitude
+        }));
     }
 
-    // Add "My Location" as first option for 'From' field
     if (isFrom && value.length === 0) {
       return [{ id: 'current', name: 'My Location', lat: 0, lng: 0 }];
     }
@@ -408,7 +446,7 @@ export function UserHome() {
       {/* Real Map Background - z-index 0 */}
       <div className="absolute inset-0 z-0">
         <Map
-          showBuses={true} // Always show buses
+          showBuses={true}
           showStops={true}
           showRoutes={showRoutes}
           selectedRoute={selectedRouteId}
@@ -420,6 +458,9 @@ export function UserHome() {
           center={mapCenter}
           zoom={mapZoom}
           walkingPath={walkingPath}
+          buses={activeBuses}
+          stops={allStops}
+          routes={routes}
         />
       </div>
 
