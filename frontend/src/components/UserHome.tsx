@@ -664,7 +664,7 @@ export function UserHome() {
 
                     {/* To Input Group */}
                     <div className="relative z-[1000]">
-                      <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
                         <MapPin className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
                         <input
                           type="text"

@@ -23,12 +23,13 @@ import {
 import { adminApi } from '@/lib/api';
 
 // Analytics data should be fetched from API
-const mockAnalytics = {
-  totalTrips: 0,
-  totalPassengers: 0,
-  avgRating: 0,
-  peakHour: '--'
-};
+// Analytics state structure
+interface AnalyticsData {
+  totalTrips: number;
+  totalPassengers: number;
+  avgRating: number;
+  peakHour: string;
+}
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -37,6 +38,12 @@ export function AdminDashboard() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [selectedBus, setSelectedBus] = useState<any>(null);
   const [pendingCrew, setPendingCrew] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    totalTrips: 0,
+    totalPassengers: 0,
+    avgRating: 0,
+    peakHour: '--'
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -55,6 +62,9 @@ export function AdminDashboard() {
       } else if (activeTab === 'crew') {
         const res = await adminApi.getPendingCrew();
         if (res.success && res.data) setPendingCrew(res.data);
+      } else if (activeTab === 'analytics') {
+        const res = await adminApi.getAnalytics();
+        if (res.success && res.data) setAnalytics(res.data);
       }
     } catch (err) {
       console.error('Failed to fetch data', err);
@@ -117,8 +127,8 @@ export function AdminDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-none px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${activeTab === tab.id
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-                  : 'bg-white text-slate-500 border-slate-200'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                : 'bg-white text-slate-500 border-slate-200'
                 }`}
             >
               {tab.label}
@@ -138,8 +148,8 @@ export function AdminDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
-                  ? 'bg-blue-50 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:bg-gray-50'
+                ? 'bg-blue-50 text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:bg-gray-50'
                 }`}
             >
               <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}`} />
@@ -168,7 +178,7 @@ export function AdminDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Buses', value: buses.length, color: 'blue' },
-                  { label: 'Active Now', value: buses.filter(b => b.status === 'active' || true).length, color: 'green' }, // Mock filter
+                  { label: 'Active Now', value: buses.filter(b => b.status === 'active').length, color: 'green' },
                   { label: 'Avg Occupancy', value: '64%', color: 'orange' },
                   { label: 'Alerts', value: '2', color: 'red' }
                 ].map((stat, idx) => (
@@ -319,7 +329,7 @@ export function AdminDashboard() {
                     </div>
                   </div>
                   <div className="text-5xl font-black text-slate-900 tracking-tighter mb-2">
-                    {mockAnalytics.totalTrips.toLocaleString()}
+                    {analytics.totalTrips.toLocaleString()}
                   </div>
                   <div className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-bold">
                     <TrendingUp className="w-3 h-3" /> +12.4% vs last week
@@ -337,7 +347,7 @@ export function AdminDashboard() {
                     </div>
                   </div>
                   <div className="text-5xl font-black text-slate-900 tracking-tighter mb-2">
-                    {mockAnalytics.totalPassengers.toLocaleString()}
+                    {analytics.totalPassengers.toLocaleString()}
                   </div>
                   <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold">
                     Peak: 07:45 AM
@@ -348,11 +358,11 @@ export function AdminDashboard() {
               <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-200">
                 <h3 className="font-black text-slate-900 mb-4">Customer Satisfaction</h3>
                 <div className="flex items-center gap-6">
-                  <div className="text-6xl font-black text-blue-600 tracking-tighter">{mockAnalytics.avgRating}</div>
+                  <div className="text-6xl font-black text-blue-600 tracking-tighter">{analytics.avgRating}</div>
                   <div className="space-y-2">
                     <div className="flex gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-6 h-6 ${i < Math.floor(mockAnalytics.avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
+                        <Star key={i} className={`w-6 h-6 ${i < Math.floor(analytics.avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
                       ))}
                     </div>
                     <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Based on 8.4k reviews</p>

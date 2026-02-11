@@ -389,6 +389,15 @@ export const adminApi = {
     return apiFetch<any[]>('/get-routes', {
       method: 'GET'
     });
+  },
+
+  /**
+   * Get analytics data
+   */
+  getAnalytics: async (): Promise<ApiResponse<{ totalTrips: number; totalPassengers: number; avgRating: number; peakHour: string }>> => {
+    return apiFetch<{ totalTrips: number; totalPassengers: number; avgRating: number; peakHour: string }>('/auth/admin/analytics', {
+      method: 'GET'
+    });
   }
 };
 
