@@ -104,8 +104,9 @@ export function UserAuth() {
       if (err instanceof Error) {
         // Parse common error scenarios
         if (err.message.includes('Cannot connect') || err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
-          errorMessage = 'Cannot connect to server. Please make sure the backend is running on localhost:8000';
-        } else if (err.message.includes('Network')) {
+          errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
+        }
+        else if (err.message.includes('Network')) {
           errorMessage = 'Network error. Please check your internet connection.';
         } else if (err.message.includes('JSON')) {
           errorMessage = 'Server returned an invalid response. Please try again.';

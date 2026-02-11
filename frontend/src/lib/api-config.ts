@@ -3,9 +3,11 @@
  */
 
 // Priority: VITE_API_URL -> VITE_API_BASE_URL -> Domestic production check -> Localhost fallback
+// Priority: VITE_API_URL -> VITE_API_BASE_URL -> Production URL (default)
 const rawBaseUrl = import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.PROD ? `https://kango-bus-app-production.up.railway.app` : 'http://localhost:8000');
+    `https://kango-bus-app-production.up.railway.app`;
+
 
 // Ensure base URL has /api suffix if not present
 export const API_BASE_URL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl}/api`;

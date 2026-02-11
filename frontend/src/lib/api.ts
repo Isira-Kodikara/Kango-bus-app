@@ -3,9 +3,12 @@
  * Handles all communication between React frontend and Backend
  */
 
-// API Base URL - uses environment variable in production, proxy in development
-export const API_BASE_URL = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '/api';
+import { API_BASE_URL as CONFIG_API_BASE_URL } from './api-config';
+
+// Unified API Base URL
+export const API_BASE_URL = CONFIG_API_BASE_URL;
 console.log('🔌 Connected to API at:', API_BASE_URL);
+
 
 
 // Types
