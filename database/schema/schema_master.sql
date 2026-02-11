@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS route_stops (
 
 CREATE TABLE IF NOT EXISTS buses (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    bus_number VARCHAR(20) UNIQUE NOT NULL,
+    plate_number VARCHAR(20) UNIQUE NOT NULL,
     route_id INT,
     capacity INT DEFAULT 40,
     current_passengers INT DEFAULT 0,
