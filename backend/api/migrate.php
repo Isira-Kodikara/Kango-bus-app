@@ -56,6 +56,14 @@ try {
         $output[] = " - Added phone to users";
     }
 
+    // Drop problematic username column if it exists (we use email/phone)
+    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'username'")->fetch();
+    if ($check) {
+        $pdo->exec("ALTER TABLE users DROP COLUMN username");
+        $output[] = " - Dropped legacy column 'username' from users";
+    }
+
+
 
 
     // 2. Create/Repair Route Segments Table
