@@ -31,36 +31,37 @@ try {
 
     // 2. Create/Repair Route Segments Table
     $output[] = "Checking route_segments table...";
-    $pdo->exec("CREATE TABLE IF NOT EXISTS route_segments (
-        segment_id INT PRIMARY KEY AUTO_INCREMENT,
-        route_id INT NOT NULL,
-        from_stop_id INT NOT NULL,
-        to_stop_id INT NOT NULL,
-        distance_km DECIMAL(10,2) NOT NULL,
-        default_speed_kmh DECIMAL(5,1) NOT NULL DEFAULT 15.0,
-        road_type ENUM('urban_arterial', 'residential', 'highway', 'congested') DEFAULT 'urban_arterial',
-        sequence_order INT NOT NULL
-    )");
-
-    // Repair segment_id if table was created with 'id' or without primary key
-    $check = $pdo->query("SHOW COLUMNS FROM route_segments LIKE 'segment_id'")->fetch();
-    if (!$check) {
-        $checkId = $pdo->query("SHOW COLUMNS FROM route_segments LIKE 'id'")->fetch();
-        if ($checkId) {
-            $pdo->exec("ALTER TABLE route_segments CHANGE id segment_id INT AUTO_INCREMENT");
-            $output[] = " - Renamed 'id' to 'segment_id' in route_segments";
-        } else {
-            $pdo->exec("ALTER TABLE route_segments ADD COLUMN segment_id INT PRIMARY KEY AUTO_INCREMENT FIRST");
-            $output[] = " - Added missing 'segment_id' to route_segments";
-        }
+    
+    // Check if column exists
+    $tableExists = $pdo->query("SHOW TABLES LIKE 'route_segments'")->fetch();
+    $columnExists = false;
+    if ($tableExists) {
+        $columnExists = $pdo->query("SHOW COLUMNS FROM route_segments LIKE 'segment_id'")->fetch();
     }
 
-    // Ensure Foreign Keys exist
-    try {
-        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (route_id) REFERENCES routes(id)");
-        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (from_stop_id) REFERENCES stops(id)");
-        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (to_stop_id) REFERENCES stops(id)");
-    } catch (Exception $e) { /* Keys probably already exist */ }
+    if (!$columnExists) {
+        $output[] = " - segment_id missing or table not found. Force recreating route_segments...";
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+        $pdo->exec("DROP TABLE IF EXISTS route_segments");
+        $pdo->exec("CREATE TABLE route_segments (
+            segment_id INT PRIMARY KEY AUTO_INCREMENT,
+            route_id INT NOT NULL,
+            from_stop_id INT NOT NULL,
+            to_stop_id INT NOT NULL,
+            distance_km DECIMAL(10,2) NOT NULL,
+            default_speed_kmh DECIMAL(5,1) NOT NULL DEFAULT 15.0,
+            road_type ENUM('urban_arterial', 'residential', 'highway', 'congested') DEFAULT 'urban_arterial',
+            sequence_order INT NOT NULL,
+            FOREIGN KEY (route_id) REFERENCES routes(id),
+            FOREIGN KEY (from_stop_id) REFERENCES stops(id),
+            FOREIGN KEY (to_stop_id) REFERENCES stops(id),
+            INDEX idx_route (route_id, sequence_order)
+        )");
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+        $output[] = " - route_segments table recreated successfully.";
+    } else {
+        $output[] = " - route_segments schema is already correct.";
+    }
 
 
     // 3. Create Journey Plans Table
