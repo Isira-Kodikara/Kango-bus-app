@@ -74,7 +74,8 @@ function handleRegister(PDO $db): void {
     }
 
     // Verify bus exists
-    $stmt = $db->prepare("SELECT id FROM buses WHERE bus_number = ? OR id = ?");
+    $stmt = $db->prepare("SELECT id FROM buses WHERE plate_number = ? OR id = ?");
+
     $stmt->execute([$validator->get('bus_id'), $validator->get('bus_id')]);
     $bus = $stmt->fetch();
     if (!$bus) {
@@ -144,7 +145,8 @@ function handleLogin(PDO $db): void {
 
     // Find crew member with bus info
     $stmt = $db->prepare("
-        SELECT c.*, b.bus_number, b.route_id, r.route_name
+        SELECT c.*, b.plate_number, b.route_id, r.route_name
+
         FROM crew c
         LEFT JOIN buses b ON c.assigned_bus_id = b.id
         LEFT JOIN routes r ON b.route_id = r.id
@@ -209,7 +211,8 @@ function handleLogin(PDO $db): void {
             'nic' => $crew['nic'],
             'bus' => [
                 'id' => (int)$crew['assigned_bus_id'],
-                'bus_number' => $crew['bus_number'],
+                'plate_number' => $crew['plate_number'],
+
                 'route_name' => $crew['route_name']
             ]
         ]
@@ -237,7 +240,8 @@ function handleVerifyOTP(PDO $db): void {
 
     // Find crew member
     $stmt = $db->prepare("
-        SELECT c.*, b.bus_number, r.route_name
+        SELECT c.*, b.plate_number, r.route_name
+
         FROM crew c
         LEFT JOIN buses b ON c.assigned_bus_id = b.id
         LEFT JOIN routes r ON b.route_id = r.id
@@ -290,7 +294,8 @@ function handleVerifyOTP(PDO $db): void {
             'email' => $crew['email'],
             'bus' => [
                 'id' => (int)$crew['assigned_bus_id'],
-                'bus_number' => $crew['bus_number'],
+                'plate_number' => $crew['plate_number'],
+
                 'route_name' => $crew['route_name']
             ]
         ]

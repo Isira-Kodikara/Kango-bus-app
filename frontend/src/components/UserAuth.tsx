@@ -12,8 +12,9 @@ export function UserAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    username: '',
+    full_name: '',
     email: '',
+
     password: '',
     otp: ''
   });
@@ -40,8 +41,9 @@ export function UserAuth() {
       } else if (!isLogin) {
         // Register new user
         const response = await authApi.register({
-          username: formData.username,
+          full_name: formData.full_name,
           email: formData.email,
+
           password: formData.password
         });
 
@@ -62,8 +64,9 @@ export function UserAuth() {
           const errorMsg = response.message || 'Registration failed';
           if (errorMsg.includes('Email already') || errorMsg.includes('registered')) {
             setError('This email is already registered. Please login or use a different email.');
-          } else if (errorMsg.includes('Username already') || errorMsg.includes('taken')) {
-            setError('This username is already taken. Please choose a different username.');
+          } else if (errorMsg.includes('Name already') || errorMsg.includes('taken')) {
+            setError('This name is already in use. Please choose a different name.');
+
           } else if (errorMsg.includes('Validation') || errorMsg.includes('required')) {
             setError('Please fill in all required fields correctly.');
           } else {
@@ -181,7 +184,8 @@ export function UserAuth() {
                     <div className="mt-2 p-2 bg-blue-50 rounded-lg">
                       <p className="text-xs text-blue-800">Please ensure:</p>
                       <ul className="text-xs text-blue-600 mt-1 list-disc ml-4">
-                        <li>Username is at least 3 characters</li>
+                        <li>Full Name is at least 3 characters</li>
+
                         <li>Email is valid</li>
                         <li>Password is at least 6 characters</li>
                       </ul>
@@ -263,16 +267,17 @@ export function UserAuth() {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Username
+                      Full Name
                     </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        name="username"
-                        value={formData.username}
+                        name="full_name"
+                        value={formData.full_name}
                         onChange={handleChange}
-                        placeholder="johndoe"
+                        placeholder="John Doe"
+
                         className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                         required
                         disabled={isLoading}

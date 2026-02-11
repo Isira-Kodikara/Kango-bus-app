@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
-import { authApi, userApi, SavedPlace } from '../lib/api';
+import { authApi, userApi, SavedPlace, User as ApiUser } from '../lib/api';
+
 import { AddSavedPlaceModal } from './AddSavedPlaceModal';
 
 const mockTripHistory = [
@@ -67,8 +68,9 @@ export function UserProfile() {
   const { user, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'locations' | 'settings'>('history');
   const [isEditing, setIsEditing] = useState(false);
-  const [editUsername, setEditUsername] = useState('');
+  const [editFullName, setEditFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
 
   // Saved Places State
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
@@ -114,43 +116,46 @@ export function UserProfile() {
   };
 
   const startEditing = () => {
-    setEditUsername(user?.username || '');
+    setEditFullName(user?.full_name || '');
     setIsEditing(true);
   };
 
   const cancelEditing = () => {
     setIsEditing(false);
-    setEditUsername('');
+    setEditFullName('');
   };
 
-  const saveUsername = async () => {
-    if (!editUsername.trim()) {
-      toast.error('Username cannot be empty');
+  const saveFullName = async () => {
+    if (!editFullName.trim()) {
+      toast.error('Name cannot be empty');
       return;
     }
 
-    if (editUsername === user?.username) {
+    if (editFullName === user?.full_name) {
       setIsEditing(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await authApi.updateProfile({ username: editUsername });
+      const response = await authApi.updateProfile({ full_name: editFullName });
       if (response.success && response.data) {
         // Use login to update both user and token (since token is regenerated)
-        login(response.data.token, response.data.user);
-        toast.success('Username updated successfully');
+        // Check if user is returned properly
+        const updatedUser = response.data.user as ApiUser; // Cast if needed or use type assertion
+        login(response.data.token, updatedUser);
+        toast.success('Name updated successfully');
         setIsEditing(false);
       } else {
-        toast.error(response.message || 'Failed to update username');
+        toast.error(response.message || 'Failed to update name');
       }
     } catch (error) {
-      toast.error('An error occurred while updating username');
+      toast.error('An error occurred while updating profile');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -177,14 +182,14 @@ export function UserProfile() {
               <div className="flex items-center gap-2 mb-1">
                 <input
                   type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
                   className="bg-white/10 border border-white/30 text-white rounded px-2 py-1 text-xl font-bold focus:outline-none focus:border-white w-full max-w-[200px]"
-                  placeholder="Username"
+                  placeholder="Full Name"
                   autoFocus
                 />
                 <button
-                  onClick={saveUsername}
+                  onClick={saveFullName}
                   disabled={isLoading}
                   className="p-1 hover:bg-white/20 rounded-full text-green-300 disabled:opacity-50"
                 >
@@ -200,14 +205,15 @@ export function UserProfile() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold">{user?.username || 'Guest User'}</h2>
+                <h2 className="text-2xl font-bold">{user?.full_name || 'Guest User'}</h2>
                 <button
                   onClick={startEditing}
                   className="p-1 hover:bg-white/20 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                  title="Edit Username"
+                  title="Edit Name"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
+
               </div>
             )}
             <p className="text-blue-100">{user?.email || 'No email registered'}</p>

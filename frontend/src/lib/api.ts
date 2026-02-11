@@ -21,8 +21,9 @@ export interface ApiResponse<T = unknown> {
 
 export interface User {
   id: number;
-  username: string;
+  full_name: string;
   email: string;
+
   phone?: string;
   is_verified: boolean;
   created_at: string;
@@ -40,8 +41,9 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  username: string;
+  full_name: string;
   email: string;
+
   password: string;
   phone?: string;
 }
@@ -261,11 +263,12 @@ export const authApi = {
   /**
    * Update user profile
    */
-  updateProfile: async (data: { username: string }): Promise<ApiResponse<AuthTokens>> => {
-    const response = await apiFetch<AuthTokens>('/auth/user/update-profile', {
+  updateProfile: async (data: { full_name: string }): Promise<ApiResponse<{ token: string; user: User }>> => {
+    const response = await apiFetch<{ token: string; user: User }>('/auth/user?action=update-profile', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
 
     if (response.success && response.data) {
       storeAuthData(response.data.token, response.data.user);
