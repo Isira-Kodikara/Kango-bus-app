@@ -99,6 +99,40 @@ try {
         INDEX idx_stop_order (route_id, stop_order)
     )");
 
+    // 5. Create Buses and Trips Tables
+    $output[] = "Creating buses and trips tables...";
+    $pdo->exec("CREATE TABLE IF NOT EXISTS buses (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        plate_number VARCHAR(20) UNIQUE NOT NULL,
+        capacity INT DEFAULT 60,
+        status ENUM('active', 'maintenance', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS trips (
+        trip_id INT PRIMARY KEY AUTO_INCREMENT,
+        bus_id INT NOT NULL,
+        route_id INT NOT NULL,
+        current_stop_id INT,
+        status ENUM('active', 'completed', 'cancelled') DEFAULT 'active',
+        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        end_time TIMESTAMP NULL,
+        FOREIGN KEY (bus_id) REFERENCES buses(id),
+        FOREIGN KEY (route_id) REFERENCES routes(id),
+        FOREIGN KEY (current_stop_id) REFERENCES stops(id)
+    )");
+
+    // Repair trips.trip_id if it was created as 'id'
+    $check = $pdo->query("SHOW COLUMNS FROM trips LIKE 'trip_id'")->fetch();
+    if (!$check) {
+        $checkId = $pdo->query("SHOW COLUMNS FROM trips LIKE 'id'")->fetch();
+        if ($checkId) {
+            $pdo->exec("ALTER TABLE trips CHANGE id trip_id INT AUTO_INCREMENT");
+            $output[] = " - Renamed 'id' to 'trip_id' in trips";
+        }
+    }
+
+
     echo json_encode([
         'success' => true,
         'message' => 'Migration completed successfully',

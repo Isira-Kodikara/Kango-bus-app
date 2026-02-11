@@ -41,9 +41,15 @@ class BusETAService {
         
         $query .= " ORDER BY (rs_target.stop_order - rs_current.stop_order) ASC LIMIT 3";
         
-        $stmt = $this->db->prepare($query);
-        $stmt->execute($params);
-        $activeBuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $activeBuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            // Log error and return null to prevent journey planner crash
+            error_log("BusETAService Query Error: " . $e->getMessage());
+            return null;
+        }
         
         if (empty($activeBuses)) {
             return null;
