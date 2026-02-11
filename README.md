@@ -76,6 +76,7 @@ Use the following credentials to access the protected areas of the application:
 - **Email**: `john.smith@kango.com`
 - **Password**: `password`
 
+
 ## 🌍 Live API
 
 The production backend API is hosted at:  
@@ -89,6 +90,17 @@ VITE_API_URL=https://kango-bus-app-production.up.railway.app
 ## 📦 Deployment
 
 This project comes with a deployment guide for Railway. Please refer to [DEPLOY.md](DEPLOY.md) for detailed instructions on how to deploy both the frontend and backend to production.
+
+### Production Readiness
+
+The backend includes production-ready features:
+- **Health Check Endpoint**: `/health` - Comprehensive system health monitoring
+- **Status Endpoint**: `/status` - Quick uptime check
+- **Graceful Shutdown**: Proper cleanup during server restarts
+- **Request Logging**: Automatic request/response logging with rotation
+- **Environment Validation**: Startup validation of required configuration
+
+See [docs/production-readiness.md](docs/production-readiness.md) for complete documentation.
 
 ## 🤝 Contributing
 

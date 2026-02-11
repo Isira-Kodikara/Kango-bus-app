@@ -88,7 +88,13 @@ switch (true) {
         require_once __DIR__ . '/api/get-stops.php';
         break;
 
+    case strpos($requestUri, '/health') !== false:
+        require_once __DIR__ . '/api/health.php';
+        break;
 
+    case strpos($requestUri, '/status') !== false:
+        require_once __DIR__ . '/api/status.php';
+        break;
 
     default:
         http_response_code(404);

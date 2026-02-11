@@ -24,6 +24,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+backend/logs/*.log
+backend/logs/requests-*.log
+backend/logs/php-errors.log
+
 
 # Cache
 .cache/

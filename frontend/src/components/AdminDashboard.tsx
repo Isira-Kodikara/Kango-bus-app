@@ -18,11 +18,12 @@ import {
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
+// Analytics data should be fetched from API
 const mockAnalytics = {
-  totalTrips: 1247,
-  totalPassengers: 8942,
-  avgRating: 4.8,
-  peakHour: '7:30 AM - 9:00 AM'
+  totalTrips: 0,
+  totalPassengers: 0,
+  avgRating: 0,
+  peakHour: '--'
 };
 
 export function AdminDashboard() {

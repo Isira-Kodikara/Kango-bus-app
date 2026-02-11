@@ -174,6 +174,9 @@ interface MapProps {
   center?: [number, number];
   zoom?: number;
   walkingPath?: [number, number][];
+  routePath?: [number, number][];
+  busPath?: [number, number][];
+  destWalkPath?: [number, number][];
   buses?: any[];
   stops?: any[];
   routes?: any[];
@@ -194,6 +197,9 @@ export function Map({
   center = COLOMBO_CENTER,
   zoom = 13,
   walkingPath = [],
+  routePath = [],
+  busPath = [],
+  destWalkPath = [],
   buses = [],
   stops = [],
   routes = [],
@@ -221,13 +227,27 @@ export function Map({
         <MapBoundsController points={[fromLocation, destination]} />
       )}
 
-      {/* Walking Path */}
+      {/* Route Preview Path (road-following, shown before/after search) */}
+      {routePath && routePath.length > 1 && !walkingPath.length && !busPath.length && (
+        <Polyline
+          positions={routePath}
+          pathOptions={{
+            color: '#3b82f6',
+            weight: 5,
+            dashArray: '12, 8',
+            opacity: 0.7,
+            lineCap: 'round'
+          }}
+        />
+      )}
+
+      {/* Walking Path to Boarding Stop */}
       {walkingPath && walkingPath.length > 0 && (
         <Polyline
           positions={walkingPath}
           pathOptions={{
             color: '#3b82f6',
-            weight: 6,
+            weight: 5,
             dashArray: '10, 15',
             opacity: 0.9,
             lineCap: 'round'
@@ -235,8 +255,36 @@ export function Map({
         />
       )}
 
-      {/* Direct Line if no path */}
-      {!walkingPath.length && fromLocation && destination && (
+      {/* Bus Route Path */}
+      {busPath && busPath.length > 1 && (
+        <Polyline
+          positions={busPath}
+          pathOptions={{
+            color: '#10b981',
+            weight: 6,
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }}
+        />
+      )}
+
+      {/* Walking Path from Alighting Stop to Destination */}
+      {destWalkPath && destWalkPath.length > 1 && (
+        <Polyline
+          positions={destWalkPath}
+          pathOptions={{
+            color: '#ef4444',
+            weight: 5,
+            dashArray: '10, 15',
+            opacity: 0.9,
+            lineCap: 'round'
+          }}
+        />
+      )}
+
+      {/* Straight line fallback only if nothing else is available */}
+      {!walkingPath.length && !routePath.length && !busPath.length && fromLocation && destination && (
         <Polyline
           positions={[fromLocation, destination]}
           pathOptions={{

@@ -43,6 +43,9 @@ export function UserHome() {
   const [mapCenter, setMapCenter] = useState<[number, number]>(COLOMBO_CENTER);
   const [mapZoom, setMapZoom] = useState(13);
   const [walkingPath, setWalkingPath] = useState<[number, number][]>([]);
+  const [routePath, setRoutePath] = useState<[number, number][]>([]);
+  const [busPath, setBusPath] = useState<[number, number][]>([]);
+  const [destWalkPath, setDestWalkPath] = useState<[number, number][]>([]);
 
   // Autocomplete state
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
@@ -85,6 +88,28 @@ export function UserHome() {
 
 
   const watchIdRef = useRef<number | null>(null);
+
+  // Fetch road-following route from OSRM (free, no API key needed)
+  const fetchRouteFromOSRM = async (
+    from: [number, number],
+    to: [number, number],
+    profile: 'driving' | 'foot' = 'driving'
+  ): Promise<[number, number][]> => {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        // OSRM returns [lng, lat], convert to [lat, lng] for Leaflet
+        return data.routes[0].geometry.coordinates.map(
+          (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+        );
+      }
+    } catch (err) {
+      console.error('OSRM route fetch failed:', err);
+    }
+    return [];
+  };
 
   // Get user's current location and Fetch real data
   useEffect(() => {
@@ -131,6 +156,20 @@ export function UserHome() {
     const interval = setInterval(fetchData, 10000); // Update every 10s
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-fetch road-following route preview when both locations are set
+  useEffect(() => {
+    const fromCoords = fromLocationCoords || userLocation;
+    if (fromCoords && destinationCoords) {
+      fetchRouteFromOSRM(fromCoords, destinationCoords, 'driving').then(path => {
+        if (path.length > 0) {
+          setRoutePath(path);
+        }
+      });
+    } else {
+      setRoutePath([]);
+    }
+  }, [fromLocationCoords, destinationCoords, userLocation]);
 
   const [allStops, setAllStops] = useState<any[]>([]);
 
@@ -349,9 +388,41 @@ export function UserHome() {
       setWalkingGuidanceData(data);
       setDistanceRemaining(data.distance_to_stop);
 
-      // Update map path if available
+      // Clear the route preview since we now have detailed segments
+      setRoutePath([]);
+
+      // Update walking path to boarding stop
       if (data.walking_path && data.walking_path.coordinates) {
         setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
+      }
+
+      // Fetch bus route path (boarding stop → alighting stop) using OSRM
+      if (data.boarding_stop && data.alighting_stop) {
+        const boardingCoords: [number, number] = [
+          data.boarding_stop.latitude,
+          data.boarding_stop.longitude
+        ];
+        const alightingCoords: [number, number] = [
+          data.alighting_stop.latitude,
+          data.alighting_stop.longitude
+        ];
+
+        // Fetch bus path geometry (driving route)
+        const busGeometry = await fetchRouteFromOSRM(boardingCoords, alightingCoords, 'driving');
+        if (busGeometry.length > 0) {
+          setBusPath(busGeometry);
+        } else {
+          // Fallback: straight line between stops
+          setBusPath([boardingCoords, alightingCoords]);
+        }
+
+        // Fetch walking path from alighting stop to final destination
+        const destWalkGeometry = await fetchRouteFromOSRM(alightingCoords, dCoords, 'foot');
+        if (destWalkGeometry.length > 0) {
+          setDestWalkPath(destWalkGeometry);
+        } else {
+          setDestWalkPath([alightingCoords, dCoords]);
+        }
       }
 
       startLocationTracking(data);
@@ -460,6 +531,9 @@ export function UserHome() {
           center={mapCenter}
           zoom={mapZoom}
           walkingPath={walkingPath}
+          routePath={routePath}
+          busPath={busPath}
+          destWalkPath={destWalkPath}
           buses={activeBuses}
           stops={allStops}
           routes={routes}
@@ -558,6 +632,10 @@ export function UserHome() {
                             onClick={() => {
                               setDestination('');
                               setDestinationCoords(null);
+                              setRoutePath([]);
+                              setWalkingPath([]);
+                              setBusPath([]);
+                              setDestWalkPath([]);
                             }}
                             className="p-1 hover:bg-gray-200 rounded-full ml-1"
                           >
@@ -636,6 +714,10 @@ export function UserHome() {
                   setShowRoutes(false);
                   setShowBottomSheet(false);
                   setDestination('');
+                  setRoutePath([]);
+                  setWalkingPath([]);
+                  setBusPath([]);
+                  setDestWalkPath([]);
                 }}
                 className="p-2 hover:bg-gray-100 rounded-full"
               >
