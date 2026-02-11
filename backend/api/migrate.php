@@ -60,15 +60,37 @@ try {
 
     $userCols = [
         'status' => "ENUM('pending', 'verified', 'suspended') DEFAULT 'verified'",
-        'phone' => "VARCHAR(20)"
+        'phone' => "VARCHAR(20)",
+        'full_name' => "VARCHAR(100)",
+        'email' => "VARCHAR(100) UNIQUE",
+        'password' => "VARCHAR(255)"
     ];
     foreach ($userCols as $col => $def) {
         $check = $pdo->query("SHOW COLUMNS FROM users LIKE '$col'")->fetch();
         if (!$check) {
+            // Check for legacy names
+            if ($col === 'full_name') {
+                $checkLegacy = $pdo->query("SHOW COLUMNS FROM users LIKE 'name'")->fetch();
+                if ($checkLegacy) {
+                    $pdo->exec("ALTER TABLE users CHANGE name full_name VARCHAR(100)");
+                    $output[] = " - Renamed 'name' to 'full_name' in users";
+                    continue;
+                }
+            }
+            if ($col === 'phone') {
+                $checkLegacy = $pdo->query("SHOW COLUMNS FROM users LIKE 'phone_number'")->fetch();
+                if ($checkLegacy) {
+                    $pdo->exec("ALTER TABLE users CHANGE phone_number phone VARCHAR(20)");
+                    $output[] = " - Renamed 'phone_number' to 'phone' in users";
+                    continue;
+                }
+            }
+            
             $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
             $output[] = " - Added missing column '$col' to users";
         }
     }
+
 
 
 
@@ -252,6 +274,20 @@ try {
         relationship VARCHAR(50),
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
+
+    // Repair emergency_contacts if needed
+    $checkEC = $pdo->query("SHOW COLUMNS FROM emergency_contacts LIKE 'phone_number'")->fetch();
+    if (!$checkEC) {
+        $checkECPhone = $pdo->query("SHOW COLUMNS FROM emergency_contacts LIKE 'phone'")->fetch();
+        if ($checkECPhone) {
+            $pdo->exec("ALTER TABLE emergency_contacts CHANGE phone phone_number VARCHAR(20)");
+            $output[] = " - Renamed 'phone' to 'phone_number' in emergency_contacts";
+        } else {
+            $pdo->exec("ALTER TABLE emergency_contacts ADD COLUMN phone_number VARCHAR(20)");
+            $output[] = " - Added 'phone_number' to emergency_contacts";
+        }
+    }
+
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS emergency_alerts (
         id INT PRIMARY KEY AUTO_INCREMENT,
