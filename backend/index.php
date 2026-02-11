@@ -67,6 +67,22 @@ switch (true) {
         require_once __DIR__ . '/api/saved-places.php';
         break;
 
+    case preg_match('/^(\/api)?\/migrate/', $requestUri):
+        require_once __DIR__ . '/api/migrate.php';
+        break;
+
+    case preg_match('/^(\/api)?\/seed/', $requestUri):
+        require_once __DIR__ . '/api/seed.php';
+        break;
+
+    case preg_match('/^(\/api)?\/debug-db/', $requestUri):
+        require_once __DIR__ . '/api/debug-db.php';
+        break;
+
+    case preg_match('/^(\/api)?\/sync-osm-routes/', $requestUri):
+        require_once __DIR__ . '/api/sync-osm-routes.php';
+        break;
+
     default:
         http_response_code(404);
         echo json_encode([
