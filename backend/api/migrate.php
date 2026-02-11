@@ -29,8 +29,8 @@ try {
         $output[] = " - Added osm_id to stops";
     }
 
-    // 2. Create Route Segments Table
-    $output[] = "Creating route_segments table...";
+    // 2. Create/Repair Route Segments Table
+    $output[] = "Checking route_segments table...";
     $pdo->exec("CREATE TABLE IF NOT EXISTS route_segments (
         segment_id INT PRIMARY KEY AUTO_INCREMENT,
         route_id INT NOT NULL,
@@ -39,12 +39,29 @@ try {
         distance_km DECIMAL(10,2) NOT NULL,
         default_speed_kmh DECIMAL(5,1) NOT NULL DEFAULT 15.0,
         road_type ENUM('urban_arterial', 'residential', 'highway', 'congested') DEFAULT 'urban_arterial',
-        sequence_order INT NOT NULL,
-        FOREIGN KEY (route_id) REFERENCES routes(id),
-        FOREIGN KEY (from_stop_id) REFERENCES stops(id),
-        FOREIGN KEY (to_stop_id) REFERENCES stops(id),
-        INDEX idx_route (route_id, sequence_order)
+        sequence_order INT NOT NULL
     )");
+
+    // Repair segment_id if table was created with 'id' or without primary key
+    $check = $pdo->query("SHOW COLUMNS FROM route_segments LIKE 'segment_id'")->fetch();
+    if (!$check) {
+        $checkId = $pdo->query("SHOW COLUMNS FROM route_segments LIKE 'id'")->fetch();
+        if ($checkId) {
+            $pdo->exec("ALTER TABLE route_segments CHANGE id segment_id INT AUTO_INCREMENT");
+            $output[] = " - Renamed 'id' to 'segment_id' in route_segments";
+        } else {
+            $pdo->exec("ALTER TABLE route_segments ADD COLUMN segment_id INT PRIMARY KEY AUTO_INCREMENT FIRST");
+            $output[] = " - Added missing 'segment_id' to route_segments";
+        }
+    }
+
+    // Ensure Foreign Keys exist
+    try {
+        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (route_id) REFERENCES routes(id)");
+        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (from_stop_id) REFERENCES stops(id)");
+        $pdo->exec("ALTER TABLE route_segments ADD FOREIGN KEY (to_stop_id) REFERENCES stops(id)");
+    } catch (Exception $e) { /* Keys probably already exist */ }
+
 
     // 3. Create Journey Plans Table
     $output[] = "Creating journey_plans table...";
