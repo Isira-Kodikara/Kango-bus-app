@@ -1,10 +1,11 @@
 <?php
-require_once '../includes/Response.php';
-require_once '../includes/Database.php';
-require_once '../includes/JWT.php';
+require_once __DIR__ . '/../includes/Response.php';
+require_once __DIR__ . '/../includes/Database.php';
+require_once __DIR__ . '/../includes/JWT.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    Response::send(200, ['message' => 'OK']);
+    http_response_code(200);
+    echo json_encode(['message' => 'OK']);
     exit;
 }
 
@@ -14,8 +15,7 @@ $token = str_replace('Bearer ', '', $authHeader);
 
 $decoded = JWT::decode($token);
 if (!$decoded) {
-    Response::send(401, ['error' => 'Unauthorized']);
-    exit;
+    Response::error('Unauthorized', 401);
 }
 
 $userId = $decoded['data']->id;
@@ -26,18 +26,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $db->prepare("SELECT * FROM saved_places WHERE user_id = ? ORDER BY created_at DESC");
         $stmt->execute([$userId]);
         $places = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::send(200, ['status' => 'success', 'data' => $places]);
-    }
-    catch (Exception $e) {
-        Response::send(500, ['status' => 'error', 'message' => $e->getMessage()]);
+
+        // Cast numeric fields
+        foreach ($places as &$place) {
+            $place['id'] = (int) $place['id'];
+            $place['user_id'] = (int) $place['user_id'];
+            if ($place['latitude'] !== null) $place['latitude'] = (float) $place['latitude'];
+            if ($place['longitude'] !== null) $place['longitude'] = (float) $place['longitude'];
+        }
+
+        Response::success($places, 'Saved places retrieved');
+    } catch (Exception $e) {
+        Response::error('Failed to fetch saved places: ' . $e->getMessage(), 500);
     }
 }
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (!isset($data['name']) || !isset($data['address'])) {
-        Response::send(400, ['status' => 'error', 'message' => 'Name and address are required']);
-        exit;
+        Response::error('Name and address are required', 400);
     }
 
     try {
@@ -53,15 +60,19 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $placeId = $db->lastInsertId();
 
-        // Fetch the newly created place
         $stmt = $db->prepare("SELECT * FROM saved_places WHERE id = ?");
         $stmt->execute([$placeId]);
         $newPlace = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        Response::send(201, ['status' => 'success', 'data' => $newPlace]);
-    }
-    catch (Exception $e) {
-        Response::send(500, ['status' => 'error', 'message' => $e->getMessage()]);
+        // Cast numeric fields
+        $newPlace['id'] = (int) $newPlace['id'];
+        $newPlace['user_id'] = (int) $newPlace['user_id'];
+        if ($newPlace['latitude'] !== null) $newPlace['latitude'] = (float) $newPlace['latitude'];
+        if ($newPlace['longitude'] !== null) $newPlace['longitude'] = (float) $newPlace['longitude'];
+
+        Response::success($newPlace, 'Place saved successfully', 201);
+    } catch (Exception $e) {
+        Response::error('Failed to save place: ' . $e->getMessage(), 500);
     }
 }
 elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
@@ -71,8 +82,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $placeId = isset($_GET['id']) ? $_GET['id'] : (isset($data['id']) ? $data['id'] : null);
 
     if (!$placeId) {
-        Response::send(400, ['status' => 'error', 'message' => 'Place ID is required']);
-        exit;
+        Response::error('Place ID is required', 400);
     }
 
     try {
@@ -80,16 +90,14 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         $stmt->execute([$placeId, $userId]);
 
         if ($stmt->rowCount() > 0) {
-            Response::send(200, ['status' => 'success', 'message' => 'Place deleted successfully']);
+            Response::success(null, 'Place deleted successfully');
+        } else {
+            Response::error('Place not found or access denied', 404);
         }
-        else {
-            Response::send(404, ['status' => 'error', 'message' => 'Place not found or access denied']);
-        }
-    }
-    catch (Exception $e) {
-        Response::send(500, ['status' => 'error', 'message' => $e->getMessage()]);
+    } catch (Exception $e) {
+        Response::error('Failed to delete place: ' . $e->getMessage(), 500);
     }
 }
 else {
-    Response::send(405, ['status' => 'error', 'message' => 'Method not allowed']);
+    Response::error('Method not allowed', 405);
 }
