@@ -268,12 +268,17 @@ try {
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS emergency_contacts (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT,
+        user_id INT NULL,
         name VARCHAR(100),
         phone_number VARCHAR(20),
         relationship VARCHAR(50),
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
+
+    // Repair emergency_contacts: Make user_id nullable for global contacts
+    $pdo->exec("ALTER TABLE emergency_contacts MODIFY user_id INT NULL");
+    $output[] = " - Guaranteed user_id is nullable in emergency_contacts";
+
 
     // Repair emergency_contacts if needed
     $checkEC = $pdo->query("SHOW COLUMNS FROM emergency_contacts LIKE 'phone_number'")->fetch();
