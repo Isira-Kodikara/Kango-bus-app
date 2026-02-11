@@ -111,12 +111,26 @@ try {
         FOREIGN KEY (route_id) REFERENCES routes(id)
     )");
 
-    // Add route_id if it's missing from existing buses table
+    // Repair buses table if columns are missing or named differently
+    $checkBusPlate = $pdo->query("SHOW COLUMNS FROM buses LIKE 'plate_number'")->fetch();
+    if (!$checkBusPlate) {
+        $checkBusCode = $pdo->query("SHOW COLUMNS FROM buses LIKE 'code'")->fetch();
+        if ($checkBusCode) {
+            $pdo->exec("ALTER TABLE buses CHANGE code plate_number VARCHAR(20) UNIQUE NOT NULL");
+            $output[] = " - Renamed 'code' to 'plate_number' in buses";
+        } else {
+            $pdo->exec("ALTER TABLE buses ADD COLUMN plate_number VARCHAR(20) UNIQUE NOT NULL AFTER id");
+            $output[] = " - Added 'plate_number' to buses";
+        }
+    }
+
     $checkBusRoute = $pdo->query("SHOW COLUMNS FROM buses LIKE 'route_id'")->fetch();
     if (!$checkBusRoute) {
         $pdo->exec("ALTER TABLE buses ADD COLUMN route_id INT, ADD FOREIGN KEY (route_id) REFERENCES routes(id)");
         $output[] = " - Added route_id to buses";
     }
+
+
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS trips (
         trip_id INT PRIMARY KEY AUTO_INCREMENT,
