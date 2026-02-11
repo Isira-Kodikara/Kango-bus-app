@@ -10,10 +10,9 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100),
+    full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     profile_image VARCHAR(255),
     average_rating DECIMAL(3,2) DEFAULT 5.00,
