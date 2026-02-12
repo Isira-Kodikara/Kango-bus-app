@@ -89,13 +89,7 @@ export function AdminAuth() {
                         error.includes('not found') ? 'Account Not Found' : 'Login Error'}
                   </h3>
                   <p className="text-sm text-red-700 mt-1">{error}</p>
-                  {(error.includes('Invalid') || error.includes('password')) && (
-                    <div className="mt-2 p-2 bg-purple-50 rounded-lg">
-                      <p className="text-xs text-purple-800 font-medium">💡 Admin credentials:</p>
-                      <p className="text-xs text-purple-600 mt-1">Email: admin@kango.com</p>
-                      <p className="text-xs text-purple-600">Password: password</p>
-                    </div>
-                  )}
+
                   {error.includes('connect') && (
                     <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
                       <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>

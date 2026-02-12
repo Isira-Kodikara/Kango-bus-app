@@ -374,6 +374,16 @@ export const adminApi = {
   },
 
   /**
+   * Reject a pending crew member
+   */
+  rejectCrew: async (crewId: number): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/reject-crew', {
+      method: 'POST',
+      body: JSON.stringify({ crew_id: crewId })
+    });
+  },
+
+  /**
    * Get all live buses
    */
   getBuses: async (): Promise<ApiResponse<any[]>> => {

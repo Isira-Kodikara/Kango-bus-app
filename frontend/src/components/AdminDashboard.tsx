@@ -126,8 +126,10 @@ export function AdminDashboard() {
       }
     }
   };
+
   /* Route State */
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+  const [isRouteEditMode, setIsRouteEditMode] = useState(false);
   const [routeFormData, setRouteFormData] = useState({
     id: 0,
     route_number: '',
@@ -140,7 +142,7 @@ export function AdminDashboard() {
   });
 
   const handleOpenAddRoute = () => {
-    setIsEditMode(false);
+    setIsRouteEditMode(false);
     setRouteFormData({
       id: 0,
       route_number: '',
@@ -155,7 +157,7 @@ export function AdminDashboard() {
   };
 
   const handleOpenEditRoute = (route: any) => {
-    setIsEditMode(true);
+    setIsRouteEditMode(true);
     setRouteFormData({
       id: route.id,
       route_number: route.route_number,
@@ -172,7 +174,7 @@ export function AdminDashboard() {
   const handleSaveRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (isEditMode) {
+      if (isRouteEditMode) {
         await adminApi.updateRoute(routeFormData);
       } else {
         await adminApi.createRoute(routeFormData);
@@ -191,6 +193,17 @@ export function AdminDashboard() {
         fetchData();
       } catch (err) {
         alert('Failed to delete route');
+      }
+    }
+  };
+
+  const handleRejectCrew = async (crewId: number, name: string) => {
+    if (confirm(`Reject ${name}?`)) {
+      try {
+        const response = await adminApi.rejectCrew(crewId);
+        if (response.success) fetchData();
+      } catch (err) {
+        alert('Failed to reject crew member');
       }
     }
   };
@@ -440,9 +453,7 @@ export function AdminDashboard() {
                   <div className="text-5xl font-black text-slate-900 tracking-tighter mb-2">
                     {analytics.totalTrips.toLocaleString()}
                   </div>
-                  <div className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-bold">
-                    <TrendingUp className="w-3 h-3" /> +12.4% vs last week
-                  </div>
+                  {/* Dynamic growth stats can be added when available from API */}
                 </div>
 
                 <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-200">
@@ -459,7 +470,7 @@ export function AdminDashboard() {
                     {analytics.totalPassengers.toLocaleString()}
                   </div>
                   <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold">
-                    Peak: 07:45 AM
+                    Peak: {analytics.peakHour}
                   </div>
                 </div>
               </div>
@@ -474,7 +485,7 @@ export function AdminDashboard() {
                         <Star key={i} className={`w-6 h-6 ${i < Math.floor(analytics.avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
                       ))}
                     </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Based on 8.4k reviews</p>
+                    {/* Review count can be added when available from API */}
                   </div>
                 </div>
               </div>
@@ -512,7 +523,10 @@ export function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                          <button
+                            onClick={() => handleRejectCrew(crew.id, crew.full_name)}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                          >
                             Reject
                           </button>
                           <button
@@ -629,7 +643,7 @@ export function AdminDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-slate-900">{isEditMode ? 'Edit Route' : 'Add New Route'}</h3>
+              <h3 className="text-xl font-black text-slate-900">{isRouteEditMode ? 'Edit Route' : 'Add New Route'}</h3>
               <button onClick={() => setIsRouteModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -726,7 +740,7 @@ export function AdminDashboard() {
                   type="submit"
                   className="flex-1 py-3 bg-[#9333ea] hover:bg-[#7e22ce] text-white rounded-xl font-bold transition-colors shadow-lg shadow-purple-200"
                 >
-                  {isEditMode ? 'Save Changes' : 'Create Route'}
+                  {isRouteEditMode ? 'Save Changes' : 'Create Route'}
                 </button>
               </div>
             </form>
