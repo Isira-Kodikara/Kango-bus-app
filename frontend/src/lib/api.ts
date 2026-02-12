@@ -398,6 +398,48 @@ export const adminApi = {
     return apiFetch<{ totalTrips: number; totalPassengers: number; avgRating: number; peakHour: string }>('/auth/admin/analytics', {
       method: 'GET'
     });
+  },
+
+  // Bus Management
+  createBus: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/buses', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateBus: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/buses', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteBus: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/auth/admin/buses?id=${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Route Management
+  createRoute: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/routes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateRoute: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/routes', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteRoute: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/auth/admin/routes?id=${id}`, {
+      method: 'DELETE'
+    });
   }
 };
 

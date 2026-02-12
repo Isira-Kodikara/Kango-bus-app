@@ -43,6 +43,14 @@ switch (true) {
         require_once __DIR__ . '/api/auth/crew.php';
         break;
 
+    case strpos($requestUri, '/auth/admin/buses') !== false:
+        require_once __DIR__ . '/api/admin-buses.php';
+        break;
+
+    case strpos($requestUri, '/auth/admin/routes') !== false:
+        require_once __DIR__ . '/api/admin-routes.php';
+        break;
+
     case strpos($requestUri, '/auth/admin') !== false:
         require_once __DIR__ . '/api/auth/admin.php';
         break;
