@@ -26,6 +26,16 @@ import { useAuth } from '../contexts/AuthContext';
 
 
 import { useToast } from '../contexts/ToastContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 // --- CONSTANTS ---
 const COLOMBO_CENTER: [number, number] = [6.9271, 79.8612];
@@ -131,6 +141,8 @@ export function UserHome() {
   const [walkingGuidanceData, setWalkingGuidanceData] = useState<WalkingGuidanceData | null>(null);
   const [distanceRemaining, setDistanceRemaining] = useState<number>(0);
   const [activeBuses, setActiveBuses] = useState<any[]>([]);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [pendingBus, setPendingBus] = useState<any>(null);
 
 
 
@@ -240,7 +252,9 @@ export function UserHome() {
           capacity: bus.capacity,
           // Calculate ETA based on distance to user (simplified linear distance)
           // In production, this should come from the backend or OSRM
-          eta: Math.ceil(calculateDistance(userLocation[0], userLocation[1], bus.latitude, bus.longitude) / 1000 * 3) + 2, // Approx 3 mins per km + buffer
+          eta: userLocation
+            ? Math.ceil(calculateDistance(userLocation[0], userLocation[1], bus.latitude, bus.longitude) / 1000 * 3) + 2
+            : 0, // Fallback if location not yet available
           route: route?.route_name || 'Generic Route',
           routeNumber: route?.route_number || bus.route_id,
           color: route?.color || '#3b82f6',
@@ -286,8 +300,21 @@ export function UserHome() {
     return { level: 'High', color: 'bg-red-500', text: 'text-red-700' };
   };
 
-  const handleBoardBus = (bus: any) => {
-    navigate('/trip-active', { state: { bus, destination } });
+  const handleBoardBus = (bus: any, canCatch: boolean = true) => {
+    if (canCatch) {
+      navigate('/trip-active', { state: { bus, destination } });
+    } else {
+      setPendingBus(bus);
+      setShowWarningDialog(true);
+    }
+  };
+
+  const confirmBoarding = () => {
+    if (pendingBus) {
+      navigate('/trip-active', { state: { bus: pendingBus, destination } });
+      setShowWarningDialog(false);
+      setPendingBus(null);
+    }
   };
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -490,20 +517,35 @@ export function UserHome() {
 
   const filterSuggestions = (value: string, isFrom: boolean = false) => {
     let results: any[] = [];
-    if (value.length > 0) {
-      results = allStops
-        .filter(stop => stop.stop_name.toLowerCase().includes(value.toLowerCase()))
-        .map(stop => ({
+    const normalizedValue = value.trim().toLowerCase();
+
+    // If value is empty or the default placeholder, show default suggestions
+    if (normalizedValue === '' || (isFrom && normalizedValue === 'current location')) {
+      if (isFrom) {
+        results.push({ id: 'current', name: 'My Location', lat: 0, lng: 0 });
+      }
+      // Add some default suggestions (e.g., first 5 stops) if available
+      if (allStops.length > 0) {
+        const defaults = allStops.slice(0, 5).map(stop => ({
           id: stop.id,
           name: stop.stop_name,
           lat: stop.latitude,
           lng: stop.longitude
         }));
+        results = [...results, ...defaults];
+      }
+      return results;
     }
 
-    if (isFrom && value.length === 0) {
-      return [{ id: 'current', name: 'My Location', lat: 0, lng: 0 }];
-    }
+    // Filter using startsWith instead of includes
+    results = allStops
+      .filter(stop => stop.stop_name.toLowerCase().startsWith(normalizedValue))
+      .map(stop => ({
+        id: stop.id,
+        name: stop.stop_name,
+        lat: stop.latitude,
+        lng: stop.longitude
+      }));
 
     return results;
   };
@@ -774,21 +816,23 @@ export function UserHome() {
               </button>
             </div>
 
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
-              <div className="flex items-start">
-                <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold text-blue-900">Walk to {nearestStop.name}</div>
-                  <div className="text-sm text-blue-700">{nearestStop.walkTime} minutes • {nearestStop.distance} km</div>
+            {nearestStop && (
+              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
+                <div className="flex items-start">
+                  <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-blue-900">Walk to {nearestStop.name}</div>
+                    <div className="text-sm text-blue-700">{nearestStop.walkTime} minutes • {nearestStop.distance} km</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <h3 className="font-semibold text-gray-700 mb-3">Upcoming Buses</h3>
             <div className="space-y-3">
               {activeBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
-                const canCatch = nearestStop.walkTime <= bus.eta + 2;
+                const canCatch = nearestStop ? (nearestStop.walkTime <= bus.eta + 2) : false;
 
                 return (
                   <div
@@ -824,26 +868,20 @@ export function UserHome() {
                       </div>
                     </div>
 
-                    {canCatch ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-                        <span className="text-sm text-green-700 font-medium">✓ You can catch this bus</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBoardBus(bus);
-                          }}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 shadow-md"
-                        >
-                          Board
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <span className="text-sm text-yellow-700 font-medium">
-                          ⏱ Next bus recommended
-                        </span>
-                      </div>
-                    )}
+                    <div className={`${canCatch ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-3 flex items-center justify-between`}>
+                      <span className={`text-sm font-medium ${canCatch ? 'text-green-700' : 'text-yellow-700'}`}>
+                        {canCatch ? '✓ You can catch this bus' : '⏱ Next bus recommended'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBoardBus(bus, canCatch);
+                        }}
+                        className={`${canCatch ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md`}
+                      >
+                        Board
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -915,6 +953,24 @@ export function UserHome() {
           </button>
         </div>
       )}
+
+      <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You might miss this bus!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Based on your current location, the bus is estimated to arrive before you can reach the stop.
+              Do you still want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingBus(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBoarding} className="bg-yellow-600 hover:bg-yellow-700">
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -59,6 +59,17 @@ body {
   z-index: 400 !important;
 }
 
+/* Hide the top-left Leaflet controls to avoid clashing with header UI */
+.leaflet-top.leaflet-left {
+  display: none !important;
+}
+
+/* Hide attribution prefix button (small ⓘ icon) */
+.leaflet-control-attribution a[title="Leaflet"],
+.leaflet-control-attribution .leaflet-attribution-flag {
+  display: none !important;
+}
+
 .custom-bus-marker,
 .custom-stop-marker,
 .custom-user-marker,

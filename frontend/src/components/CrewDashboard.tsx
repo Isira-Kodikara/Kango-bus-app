@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { 
-  Bus, 
-  Users, 
-  Navigation, 
-  AlertCircle, 
+import {
+  Bus,
+  Users,
+  Navigation,
+  AlertCircle,
   Clock,
   MapPin,
   Timer,
@@ -14,47 +14,89 @@ import {
   LogOut
 } from 'lucide-react';
 
-const mockRoute = {
-  name: 'Downtown Express',
-  busId: 'BUS-45',
-  stops: [
-    { name: 'Main Street Station', status: 'completed' },
-    { name: 'Park Avenue', status: 'completed' },
-    { name: 'Central Plaza', status: 'current' },
-    { name: 'Business District', status: 'upcoming' },
-    { name: 'Harbor Terminal', status: 'upcoming' },
-  ]
-};
-
-const mockWaitRequests = [
-  { id: 1, passenger: 'User #4521', location: 'Central Plaza', timeLeft: 8 },
-  { id: 2, passenger: 'User #7823', location: 'Business District', timeLeft: 10 },
-];
+// Removed mock data
+const API_BASE = 'http://localhost/kango-backend/api'; // Use full URL to avoid proxy issues in dev
 
 export function CrewDashboard() {
   const navigate = useNavigate();
   const [isLive, setIsLive] = useState(false);
-  const [passengerCount, setPassengerCount] = useState(12);
-  const [waitRequests, setWaitRequests] = useState(mockWaitRequests);
+  const [passengerCount, setPassengerCount] = useState(0);
+  const [busId, setBusId] = useState<string | null>(null);
+  const [plateNumber, setPlateNumber] = useState<string | null>(null);
+  const [routeName, setRouteName] = useState<string | null>(null);
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (waitRequests.length > 0) {
-      const interval = setInterval(() => {
-        setWaitRequests(prev => 
-          prev.map(req => ({
-            ...req,
-            timeLeft: req.timeLeft - 1
-          })).filter(req => req.timeLeft > 0)
-        );
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [waitRequests]);
+    // Load initial state
+    const storedBusId = localStorage.getItem('bus_id');
+    const storedPlate = localStorage.getItem('bus_plate');
+    const storedRoute = localStorage.getItem('route_name');
 
-  const handleExtendWait = (id: number) => {
-    setWaitRequests(prev =>
-      prev.map(req => req.id === id ? { ...req, timeLeft: req.timeLeft + 10 } : req)
-    );
+    if (storedBusId) setBusId(storedBusId);
+    if (storedPlate) setPlateNumber(storedPlate);
+    if (storedRoute) setRouteName(storedRoute);
+
+    // Fetch current bus status if needed (e.g. current passengers)
+    // For now starts at 0 or persists if we add local storage for session
+  }, []);
+
+  const updateLocation = async (position: GeolocationPosition) => {
+    if (!busId) return;
+
+    try {
+      await fetch(`${API_BASE}/update-bus-location.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bus_id: busId,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          heading: position.coords.heading || 0,
+          current_passengers: passengerCount
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update location', error);
+    }
+  };
+
+  const toggleLiveBroadcast = () => {
+    if (isLive) {
+      // Stop broadcasting
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        setWatchId(null);
+      }
+      setIsLive(false);
+    } else {
+      // Start broadcasting
+      if (!navigator.geolocation) {
+        setLocationError('Geolocation is not supported by your browser');
+        return;
+      }
+
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          updateLocation(position);
+          setLocationError(null);
+        },
+        (error) => {
+          setLocationError('Unable to retrieve location: ' + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+      setWatchId(id);
+      setIsLive(true);
+    }
+  };
+
+  const handlePassengerChange = (change: number) => {
+    const newCount = Math.max(0, passengerCount + change);
+    setPassengerCount(newCount);
+    // Ideally send immediate update if broadcasting, but the next location update will pick it up
+    // For better UX, we could force a location update if we had valid coords, 
+    // but without storing last coords, we just wait for next tick or rely on state.
   };
 
   return (
@@ -66,10 +108,12 @@ export function CrewDashboard() {
             <Bus className="w-8 h-8 mr-3" />
             <div>
               <h1 className="text-xl font-bold">Bus Crew Portal</h1>
-              <p className="text-orange-100 text-sm">{mockRoute.busId}</p>
+              <p className="text-orange-100 text-sm">
+                {plateNumber ? `${plateNumber} • ${routeName}` : 'No Bus Assigned'}
+              </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/')}
             className="p-2 hover:bg-white/20 rounded-full"
           >
@@ -89,120 +133,102 @@ export function CrewDashboard() {
             </div>
           </div>
           <button
-            onClick={() => setIsLive(!isLive)}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              isLive 
-                ? 'bg-red-500 hover:bg-red-600' 
-                : 'bg-green-500 hover:bg-green-600'
-            }`}
+            onClick={toggleLiveBroadcast}
+            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${isLive
+              ? 'bg-red-500 hover:bg-red-600'
+              : 'bg-green-500 hover:bg-green-600'
+              }`}
           >
-            {isLive ? 'Stop' : 'Start'}
+            {isLive ? 'Stop Broadcast' : 'Start Broadcast'}
           </button>
         </div>
+
+        {locationError && (
+          <div className="mt-4 bg-red-500/20 text-red-100 p-3 rounded-xl flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            {locationError}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Current Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl shadow-md p-5">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-6 h-6 text-blue-600" />
-              <span className="text-xs text-gray-500">Current</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Passenger Counter */}
+          <div className="bg-white rounded-2xl shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Users className="w-6 h-6 text-blue-600 mr-2" />
+                <span className="text-gray-500 font-medium">Passengers</span>
+              </div>
+              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                Capacity: 60
+              </span>
             </div>
-            <div className="text-3xl font-bold text-gray-800">{passengerCount}</div>
-            <div className="text-sm text-gray-600">Passengers</div>
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-md p-5">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-6 h-6 text-green-600" />
-              <span className="text-xs text-gray-500">Status</span>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => handlePassengerChange(-1)}
+                className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-600 transition-colors"
+                disabled={passengerCount <= 0}
+              >
+                -
+              </button>
+
+              <div className="text-center">
+                <div className="text-4xl font-bold text-gray-800">{passengerCount}</div>
+                <div className="text-sm text-gray-500">On Board</div>
+              </div>
+
+              <button
+                onClick={() => handlePassengerChange(1)}
+                className="w-12 h-12 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center text-2xl font-bold text-blue-600 transition-colors"
+              >
+                +
+              </button>
             </div>
-            <div className="text-lg font-bold text-green-600">On Time</div>
-            <div className="text-sm text-gray-600">Route Status</div>
-          </div>
-        </div>
-
-        {/* Current Route */}
-        <div className="bg-white rounded-2xl shadow-md p-5">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Current Route</h2>
-          <div className="bg-orange-50 border-l-4 border-orange-600 p-3 rounded-lg mb-4">
-            <div className="font-semibold text-orange-900">{mockRoute.name}</div>
-            <div className="text-sm text-orange-700">Route ID: {mockRoute.busId}</div>
           </div>
 
-          <div className="space-y-3">
-            {mockRoute.stops.map((stop, index) => (
-              <div key={index} className="flex items-start">
-                <div className="mr-4 mt-1">
-                  {stop.status === 'completed' ? (
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                  ) : stop.status === 'current' ? (
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
-                      <div className="w-3 h-3 bg-white rounded-full" />
-                    </div>
-                  ) : (
-                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className={`font-medium ${
-                    stop.status === 'current' ? 'text-blue-600' : 'text-gray-800'
-                  }`}>
-                    {stop.name}
+          {/* Route Status */}
+          <div className="bg-white rounded-2xl shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Clock className="w-6 h-6 text-green-600 mr-2" />
+                <span className="text-gray-500 font-medium">Status</span>
+              </div>
+              {isLive && (
+                <span className="flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+              )}
+            </div>
+
+            <div className="mb-2">
+              <div className={`text-2xl font-bold ${isLive ? 'text-green-600' : 'text-gray-400'}`}>
+                {isLive ? 'Active' : 'Offline'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {isLive ? 'Broadcasting location' : 'Start broadcast to go live'}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-start">
+                <MapPin className="w-5 h-5 text-gray-400 mr-2 mt-0.5" />
+                <div>
+                  <div className="font-medium text-gray-800">
+                    {routeName || 'No Route Assigned'}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {stop.status === 'completed' && '✓ Completed'}
-                    {stop.status === 'current' && '→ Current Stop'}
-                    {stop.status === 'upcoming' && 'Upcoming'}
+                    {plateNumber || 'Bus details unavailable'}
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-
-        {/* Wait Requests */}
-        {waitRequests.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-md p-5">
-            <div className="flex items-center mb-4">
-              <Timer className="w-6 h-6 text-orange-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-800">Wait Requests</h2>
-            </div>
-
-            <div className="space-y-3">
-              {waitRequests.map((request) => (
-                <div key={request.id} className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-semibold text-gray-800">{request.passenger}</div>
-                      <div className="text-sm text-gray-600 flex items-center mt-1">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {request.location}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-600">{request.timeLeft}s</div>
-                      <div className="text-xs text-gray-600">remaining</div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleExtendWait(request.id)}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 rounded-lg transition-colors text-sm"
-                  >
-                    + Extend 10 seconds
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-md p-5">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
@@ -222,22 +248,6 @@ export function CrewDashboard() {
                 <div className="text-sm text-gray-600">Mark scheduled break</div>
               </div>
             </button>
-          </div>
-        </div>
-
-        {/* Status indicators */}
-        <div className="grid grid-cols-3 gap-2 pb-4">
-          <div className="bg-white rounded-xl p-3 text-center shadow">
-            <div className="text-xs text-gray-500 mb-1">Capacity</div>
-            <div className="font-bold text-gray-800">40</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 text-center shadow">
-            <div className="text-xs text-gray-500 mb-1">On Board</div>
-            <div className="font-bold text-blue-600">{passengerCount}</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 text-center shadow">
-            <div className="text-xs text-gray-500 mb-1">Available</div>
-            <div className="font-bold text-green-600">{40 - passengerCount}</div>
           </div>
         </div>
       </div>

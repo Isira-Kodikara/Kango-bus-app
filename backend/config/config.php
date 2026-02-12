@@ -52,7 +52,7 @@ if ($dbUrl) {
     define('DB_PORT', $urlParts['port'] ?? '3306');
 } else {
     // Fallback to individual variables (Railway provides these by default in production)
-    define('DB_HOST', getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost');
+    define('DB_HOST', getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: '127.0.0.1');
     define('DB_NAME', getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'kango_bus');
     define('DB_USER', getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root');
     define('DB_PASS', getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '');

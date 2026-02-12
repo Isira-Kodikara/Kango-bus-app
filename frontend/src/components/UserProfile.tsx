@@ -25,41 +25,7 @@ import { authApi, userApi, SavedPlace, User as ApiUser } from '../lib/api';
 
 import { AddSavedPlaceModal } from './AddSavedPlaceModal';
 
-const mockTripHistory = [
-  {
-    id: 1,
-    date: '2026-01-30',
-    time: '08:45 AM',
-    bus: 'BUS-45',
-    route: 'Downtown Express',
-    from: 'Main Street Station',
-    to: 'Central Plaza',
-    fare: '$3.70',
-    rating: 5
-  },
-  {
-    id: 2,
-    date: '2026-01-29',
-    time: '06:30 PM',
-    bus: 'BUS-12',
-    route: 'City Circle',
-    from: 'Central Plaza',
-    to: 'Harbor Terminal',
-    fare: '$4.20',
-    rating: 4
-  },
-  {
-    id: 3,
-    date: '2026-01-28',
-    time: '09:15 AM',
-    bus: 'BUS-89',
-    route: 'Harbor Line',
-    from: 'Park Avenue',
-    to: 'Business District',
-    fare: '$3.50',
-    rating: 5
-  },
-];
+
 
 
 
@@ -262,41 +228,11 @@ export function UserProfile() {
         {activeTab === 'history' && (
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Trips</h3>
-            {mockTripHistory.map((trip) => (
-              <div key={trip.id} className="bg-white rounded-2xl shadow-md p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-bold text-gray-800">{trip.bus}</div>
-                    <div className="text-sm text-gray-600">{trip.route}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-blue-600">{trip.fare}</div>
-                    <div className="flex items-center mt-1">
-                      {Array.from({ length: trip.rating }).map((_, i) => (
-                        <Star key={i} className="w-3 h-3 text-yellow-400 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-green-600" />
-                    <span className="font-medium">From:</span>
-                    <span className="ml-2">{trip.from}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                    <span className="font-medium">To:</span>
-                    <span className="ml-2">{trip.to}</span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>{trip.date} at {trip.time}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <div className="text-center p-8 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-300">
+              <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p>No recent trips yet.</p>
+              <p className="text-sm mt-1">Your trip history will appear here once you start travelling.</p>
+            </div>
           </div>
         )}
 

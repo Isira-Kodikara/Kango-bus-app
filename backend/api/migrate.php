@@ -217,6 +217,23 @@ try {
         $output[] = " - Added status to buses";
     }
 
+    // Add Live Tracking Columns to buses
+    $trackingCols = [
+        'latitude' => "DECIMAL(10, 8) NULL",
+        'longitude' => "DECIMAL(11, 8) NULL",
+        'heading' => "INT DEFAULT 0",
+        'current_passengers' => "INT DEFAULT 0",
+        'last_updated' => "TIMESTAMP NULL"
+    ];
+
+    foreach ($trackingCols as $col => $def) {
+        $check = $pdo->query("SHOW COLUMNS FROM buses LIKE '$col'")->fetch();
+        if (!$check) {
+            $pdo->exec("ALTER TABLE buses ADD COLUMN $col $def");
+            $output[] = " - Added $col to buses";
+        }
+    }
+
     // Check for is_active, stop_code, and address in stops
     $stopCols = [
         'is_active' => "BOOLEAN DEFAULT TRUE",

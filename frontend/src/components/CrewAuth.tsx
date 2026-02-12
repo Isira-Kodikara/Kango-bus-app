@@ -50,6 +50,12 @@ export function CrewAuth() {
         if (data.data?.token) {
           localStorage.setItem('auth_token', data.data.token);
           localStorage.setItem('user_type', 'crew');
+          if (data.data.crew?.bus) {
+            localStorage.setItem('bus_id', data.data.crew.bus.id);
+            localStorage.setItem('bus_plate', data.data.crew.bus.plate_number);
+            localStorage.setItem('route_name', data.data.crew.bus.route_name || '');
+            localStorage.setItem('route_id', data.data.crew.bus.route_id || '');
+          }
           navigate('/crew-dashboard');
         } else if (data.data?.requires_approval) {
           setSuccessMessage(data.message || 'Registration request sent! Please wait for admin approval.');
