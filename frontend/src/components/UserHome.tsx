@@ -194,6 +194,44 @@ export function UserHome() {
 
     // 2. Fetch Data from API
     const fetchData = async () => {
+      const FAKE_BUSES = [
+        {
+          plate_number: 'ABC-0001',
+          route_id: 1,
+          latitude: 6.9344,
+          longitude: 79.8428, // Fort
+          current_passengers: 45,
+          capacity: 60,
+          status: 'active',
+          heading: 90
+        },
+        {
+          plate_number: 'ABC-0002',
+          route_id: 1,
+          latitude: 6.9271,
+          longitude: 79.8612, // Maradana
+          current_passengers: 12,
+          capacity: 50,
+          status: 'active',
+          heading: 180
+        },
+        {
+          plate_number: 'ABC-0003',
+          route_id: 2,
+          latitude: 6.9000,
+          longitude: 79.8550, // Around Bambalapitiya
+          current_passengers: 55,
+          capacity: 60,
+          status: 'partially_full',
+          heading: 270
+        }
+      ];
+
+      const FAKE_ROUTES = [
+        { id: 1, route_number: '138', route_name: 'Pettah - Homagama', color: '#EF4444' },
+        { id: 2, route_number: '120', route_name: 'Pettah - Horana', color: '#10B981' }
+      ];
+
       try {
         const [busRes, routeRes, stopRes] = await Promise.all([
           fetch(ENDPOINTS.GET_LIVE_BUSES),
@@ -204,8 +242,12 @@ export function UserHome() {
         const routeData = await routeRes.json();
         const stopData = await stopRes.json();
 
-        if (busData.success) setBuses(busData.buses || []);
-        if (routeData.success) setRoutes(routeData.data || []);
+        if (busData.success) {
+          setBuses([...(busData.buses || []), ...FAKE_BUSES]);
+        }
+        if (routeData.success) {
+          setRoutes([...(routeData.data || []), ...FAKE_ROUTES]);
+        }
         if (stopData.success) setAllStops(stopData.stops || []);
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -765,29 +807,33 @@ export function UserHome() {
                   </div>
                 </div>
 
-                {/* Search Button */}
-                <button
-                  onClick={handleSearch}
-                  disabled={!destination}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 rounded-xl flex items-center justify-center text-white font-bold shadow-lg transition-all active:scale-[0.98] mt-4 group"
-                  style={{ pointerEvents: 'auto' }}
-                >
-                  <Search className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  <span>Find Best Route</span>
-                </button>
+                <div className="flex gap-3 mt-4">
+                  {/* Locate Me Button */}
+                  <button
+                    onClick={handleLocateMe}
+                    className="w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center text-gray-700 transition-colors pointer-events-auto"
+                    title="Locate Me"
+                  >
+                    <Locate className="w-5 h-5 text-blue-600" />
+                  </button>
+
+                  {/* Search Button */}
+                  <button
+                    onClick={handleSearch}
+                    disabled={!destination}
+                    className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 rounded-xl flex items-center justify-center text-white font-bold shadow-lg transition-all active:scale-[0.98] group pointer-events-auto"
+                  >
+                    <Search className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                    <span>Find Best Route</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Locate Me Button */}
-      <button
-        onClick={handleLocateMe}
-        className="fixed bottom-24 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-      >
-        <Locate className="w-6 h-6 text-blue-600" />
-      </button>
+
 
       {/* Bottom Sheet with Routes */}
       {showRoutes && showBottomSheet && (
