@@ -974,7 +974,7 @@ export function UserHome() {
                           e.stopPropagation();
                           handleBoardBus(bus, canCatch);
                         }}
-                        className={`${canCatch ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap w-full sm:w-auto`}
+                        className={`${canCatch ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-600 hover:bg-orange-700'} text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap w-full sm:w-auto`}
                       >
                         Board Bus
                       </button>
