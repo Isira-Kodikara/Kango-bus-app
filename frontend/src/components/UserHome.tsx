@@ -1107,7 +1107,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Notifications settings coming soon!');
+                    navigate('/notifications');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1119,7 +1119,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Appearance settings coming soon!');
+                    navigate('/appearance');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1131,7 +1131,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Privacy & security settings coming soon!');
+                    navigate('/privacy');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1148,7 +1148,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Favorite routes feature coming soon!');
+                    navigate('/favorite-routes');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1184,7 +1184,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Payment methods coming soon!');
+                    navigate('/payment-methods');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1201,7 +1201,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Emergency contacts feature coming soon!');
+                    navigate('/emergency-contacts');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-red-50 transition-colors text-gray-700 font-medium group"
@@ -1216,7 +1216,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Safety features coming soon!');
+                    toast.info('Location sharing setup available in Privacy settings');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1233,7 +1233,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Help center coming soon!');
+                    navigate('/help');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1245,7 +1245,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.success('Contact support: support@kango.app');
+                    toast.info('Email: support@kango.app');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1257,7 +1257,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.info('KANGO v1.3 • © 2026');
+                    toast.info('KANGO v1.3 • © 2026 Smart Bus Navigation');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1269,7 +1269,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.info('Terms of Service & Privacy Policy available on web');
+                    navigate('/terms');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
