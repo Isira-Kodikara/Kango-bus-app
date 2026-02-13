@@ -929,12 +929,12 @@ export function UserHome() {
       {showRoutes && showBottomSheet && (
         <div className="fixed inset-x-0 bottom-0 z-[1001] flex flex-col pointer-events-auto" style={{ maxHeight: '65vh' }}>
           {/* Handle */}
-          <div className="flex justify-center py-2 bg-white rounded-t-3xl">
+          <div className="flex justify-center py-2 bg-white rounded-t-3xl flex-shrink-0">
             <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
           </div>
 
-          <div className="bg-white flex-1 overflow-y-auto px-5 pb-6">
-            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3">
+          <div className="bg-white flex-1 overflow-y-auto px-5 pb-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3 flex-shrink-0">
               <h2 className="text-xl font-bold text-gray-800">{destination ? 'Available Routes' : 'Upcoming Buses'}</h2>
               <button
                 onClick={() => {
@@ -953,7 +953,7 @@ export function UserHome() {
             </div>
 
             {destination && nearestStop && (
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
+              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4 flex-shrink-0">
                 <div className="flex items-start">
                   <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
                   <div>
@@ -964,8 +964,8 @@ export function UserHome() {
               </div>
             )}
 
-            <h3 className="font-semibold text-gray-700 mb-3">Upcoming Buses</h3>
-            <div className="space-y-3 max-h-[calc(65vh-320px)] overflow-y-auto pr-2 custom-scrollbar">
+            <h3 className="font-semibold text-gray-700 mb-3 flex-shrink-0">Upcoming Buses</h3>
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {activeBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
                 const canCatch = nearestStop ? (nearestStop.walkTime <= bus.eta + 2) : false;
