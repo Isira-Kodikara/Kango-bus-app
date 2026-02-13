@@ -369,17 +369,44 @@ export function UserHome() {
   };
 
   const handleBoardBus = (bus: any, canCatch: boolean = true) => {
+    // Ensure bus has all required data
+    const busData = {
+      id: bus.id,
+      route: bus.route,
+      routeNumber: bus.routeNumber,
+      color: bus.color,
+      eta: bus.eta,
+      passengers: bus.passengers,
+      capacity: bus.capacity,
+      lat: bus.lat,
+      lng: bus.lng
+    };
+
     if (canCatch) {
-      navigate('/trip-active', { state: { bus, destination } });
+      // Navigate directly if user can catch the bus
+      navigate('/trip-active', { 
+        state: { 
+          bus: busData, 
+          destination: destination || 'Unknown Destination'
+        },
+        replace: false
+      });
     } else {
-      setPendingBus(bus);
+      // Show warning dialog if user needs to hurry
+      setPendingBus(busData);
       setShowWarningDialog(true);
     }
   };
 
   const confirmBoarding = () => {
     if (pendingBus) {
-      navigate('/trip-active', { state: { bus: pendingBus, destination } });
+      navigate('/trip-active', { 
+        state: { 
+          bus: pendingBus, 
+          destination: destination || 'Unknown Destination'
+        },
+        replace: false
+      });
       setShowWarningDialog(false);
       setPendingBus(null);
     }
