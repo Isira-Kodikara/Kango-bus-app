@@ -926,7 +926,7 @@ export function UserHome() {
             )}
 
             <h3 className="font-semibold text-gray-700 mb-3">Upcoming Buses</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[calc(65vh-320px)] overflow-y-auto pr-2 custom-scrollbar">
               {activeBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
                 const canCatch = nearestStop ? (nearestStop.walkTime <= bus.eta + 2) : false;
@@ -934,7 +934,7 @@ export function UserHome() {
                 return (
                   <div
                     key={bus.id}
-                    className="bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-blue-400 transition-all shadow-md"
+                    className="bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-blue-400 transition-all shadow-md cursor-pointer hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
