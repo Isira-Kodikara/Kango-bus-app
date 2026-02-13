@@ -965,7 +965,7 @@ export function UserHome() {
                       </div>
                     </div>
 
-                    <div className={`${canCatch ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-3 flex items-center justify-between`}>
+                    <div className={`${canCatch ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
                       <span className={`text-sm font-medium ${canCatch ? 'text-green-700' : 'text-yellow-700'}`}>
                         {canCatch ? '✓ You can catch this bus' : '⏱ Next bus recommended'}
                       </span>
@@ -974,9 +974,9 @@ export function UserHome() {
                           e.stopPropagation();
                           handleBoardBus(bus, canCatch);
                         }}
-                        className={`${canCatch ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md`}
+                        className={`${canCatch ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap w-full sm:w-auto`}
                       >
-                        Board
+                        Board Bus
                       </button>
                     </div>
                   </div>
