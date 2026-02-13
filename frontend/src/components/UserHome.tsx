@@ -17,7 +17,21 @@ import {
   ChevronUp,
   Locate,
   Map as MapIcon,
-  ArrowUpDown
+  ArrowUpDown,
+  Bookmark,
+  Settings,
+  LogOut,
+  HelpCircle,
+  AlertCircle,
+  Info,
+  Phone,
+  Bell,
+  Moon,
+  Lock,
+  Share2,
+  CreditCard,
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 import { Map } from './Map';
 import { ENDPOINTS } from '../lib/api-config';
@@ -86,13 +100,14 @@ interface StopData {
 
 export function UserHome() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const toast = useToast();
   const [buses, setBuses] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   const [nearbyStops, setNearbyStops] = useState<any[]>([]);
   const [nearestStop, setNearestStop] = useState<any>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [fromLocationCoords, setFromLocationCoords] = useState<[number, number] | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
@@ -234,23 +249,30 @@ export function UserHome() {
 
       try {
         const [busRes, routeRes, stopRes] = await Promise.all([
-          fetch(ENDPOINTS.GET_LIVE_BUSES),
-          fetch(ENDPOINTS.GET_ROUTES),
-          fetch(ENDPOINTS.GET_STOPS)
+          fetch(ENDPOINTS.GET_LIVE_BUSES).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any)),
+          fetch(ENDPOINTS.GET_ROUTES).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any)),
+          fetch(ENDPOINTS.GET_STOPS).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any))
         ]);
+
         const busData = await busRes.json();
         const routeData = await routeRes.json();
         const stopData = await stopRes.json();
 
-        if (busData.success) {
-          setBuses([...(busData.buses || []), ...FAKE_BUSES]);
-        }
+        // Always merge with FAKE_BUSES for demo purposes, even if API fails or returns empty
+        setBuses([...(busData.buses || []), ...FAKE_BUSES]);
+
         if (routeData.success) {
           setRoutes([...(routeData.data || []), ...FAKE_ROUTES]);
+        } else {
+          setRoutes(FAKE_ROUTES);
         }
+
         if (stopData.success) setAllStops(stopData.stops || []);
       } catch (err) {
         console.error('Failed to fetch data:', err);
+        // Fallback to fake data on catastrophic failure
+        setBuses(FAKE_BUSES);
+        setRoutes(FAKE_ROUTES);
       }
     };
 
@@ -284,18 +306,22 @@ export function UserHome() {
       if (stops.length > 0 && !nearestStop) setNearestStop(stops[0]);
     }
 
+    // Determine the reference location for ETA (Manual start or Current Location)
+    const referenceLocation = fromLocationCoords || userLocation;
+
     if (buses.length > 0) {
       const mappedBuses = buses.map(bus => {
         const route = routes.find(r => r.id === bus.route_id);
+        const refLoc = referenceLocation;
+
         return {
           id: bus.plate_number,
           // Use real passengers if available, else 0
           passengers: bus.current_passengers || 0,
           capacity: bus.capacity,
-          // Calculate ETA based on distance to user (simplified linear distance)
-          // In production, this should come from the backend or OSRM
-          eta: userLocation
-            ? Math.ceil(calculateDistance(userLocation[0], userLocation[1], bus.latitude, bus.longitude) / 1000 * 3) + 2
+          // Calculate ETA based on distance to REFERENCE location (simplified linear distance)
+          eta: refLoc
+            ? Math.ceil(calculateDistance(refLoc[0], refLoc[1], bus.latitude, bus.longitude) / 1000 * 3) + 2
             : 0, // Fallback if location not yet available
           route: route?.route_name || 'Generic Route',
           routeNumber: route?.route_number || bus.route_id,
@@ -306,7 +332,7 @@ export function UserHome() {
       });
       setActiveBuses(mappedBuses);
     }
-  }, [userLocation, buses, routes, allStops]);
+  }, [userLocation, fromLocationCoords, buses, routes, allStops]);
 
   const handleLocateMe = () => {
     if (userLocation) {
@@ -478,6 +504,8 @@ export function UserHome() {
       return;
     }
 
+    const isManualLocation = !!fromLocationCoords; // If coords are set manually, it's manual. If null, it's user location.
+
     try {
       const response = await fetch(ENDPOINTS.TRIP_GUIDANCE, {
         method: 'POST',
@@ -501,10 +529,26 @@ export function UserHome() {
         return;
       }
 
-      // Always activate guidance, even if at stop (distance ~0)
+      // If user selected a manual location (e.g. "Fort Station") and that location IS the boarding stop,
+      // the distance will be very small (< 50m). In this case, we should SKIP walking guidance entirely
+      // and show them the bus options immediately.
+      // Additionally, if it's a manual location, we should NOT track live GPS as it will be wrong.
+
+      const distanceToStop = data.distance_to_stop;
+
+      if (distanceToStop < ARRIVAL_THRESHOLD_M) {
+        // Already at the stop (or manually selected the stop)
+        // Skip walking guidance, show routes
+        handleArrivedAtStop(data);
+        return;
+      }
+
+      // If it's a manual location but they are NOT at the stop (e.g. selected "Pettah" but stop is "Fort"),
+      // we show the static walking guidance but DO NOT auto-update with GPS.
+
       setWalkingGuidanceActive(true);
       setWalkingGuidanceData(data);
-      setDistanceRemaining(data.distance_to_stop);
+      setDistanceRemaining(distanceToStop);
 
       // Clear the route preview since we now have detailed segments
       setRoutePath([]);
@@ -543,12 +587,16 @@ export function UserHome() {
         }
       }
 
-      startLocationTracking(data);
+      // Only start live tracking if using Current Location
+      if (!isManualLocation) {
+        startLocationTracking(data);
+      } else {
+        toast.info("Showing static guidance for selected location.");
+      }
 
-      if (!data.needs_walking_guidance) {
-        // Just started and already there? Great!
-        // Maybe auto-trigger "arrived" logic or just show "You are here"
-        // For now, let the UI handle the "0m" display
+      if (!data.needs_walking_guidance && !isManualLocation) {
+        // Double check: if API says no guidance needed, arrival logic might have triggered above already
+        // but just in case
       }
 
     } catch (error) {
@@ -687,7 +735,10 @@ export function UserHome() {
               </button>
               <h1 className="text-xl font-black text-blue-600 absolute left-1/2 -translate-x-1/2 uppercase tracking-tighter">KANGO</h1>
               <div className="flex items-center z-10">
-                <button className="p-2 hover:bg-gray-100 rounded-full">
+                <button 
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
                   <Menu className="w-6 h-6 text-gray-700" />
                 </button>
               </div>
@@ -998,6 +1049,261 @@ export function UserHome() {
             I'm at the stop
           </button>
         </div>
+      )}
+
+      {/* Hamburger Menu Drawer */}
+      {showMenu && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/30 z-[990]"
+            onClick={() => setShowMenu(false)}
+          />
+          
+          {/* Menu Drawer */}
+          <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[999] animate-in slide-in-from-right overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-b from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Menu</h2>
+              <button
+                onClick={() => setShowMenu(false)}
+                className="p-1 hover:bg-white/20 rounded-full"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-2">
+              {/* User Info Section */}
+              {user && (
+                <div className="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-200">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                      {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-800 truncate">{user.full_name}</div>
+                      <div className="text-xs text-gray-600 truncate">{user.email}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ACCOUNT Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase text-gray-500 px-3 mb-3 tracking-wider">Account</h3>
+                
+                <button
+                  onClick={() => {
+                    navigate('/user-profile');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <User className="w-5 h-5 mr-3 text-blue-600" />
+                  Profile
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Notifications settings coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Bell className="w-5 h-5 mr-3 text-orange-500" />
+                  Notifications
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Appearance settings coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Moon className="w-5 h-5 mr-3 text-purple-600" />
+                  Appearance
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Privacy & security settings coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Lock className="w-5 h-5 mr-3 text-red-600" />
+                  Privacy & Security
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+              </div>
+
+              {/* TRAVEL Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase text-gray-500 px-3 mb-3 tracking-wider">Travel</h3>
+
+                <button
+                  onClick={() => {
+                    toast.success('Favorite routes feature coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Star className="w-5 h-5 mr-3 text-yellow-500" />
+                  Favorite Routes
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigate('/user-profile');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Bookmark className="w-5 h-5 mr-3 text-orange-500" />
+                  Saved Places
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigate('/user-profile');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Clock className="w-5 h-5 mr-3 text-green-600" />
+                  Trip History
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Payment methods coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <CreditCard className="w-5 h-5 mr-3 text-blue-600" />
+                  Payment Methods
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+              </div>
+
+              {/* SAFETY Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase text-gray-500 px-3 mb-3 tracking-wider">Safety</h3>
+
+                <button
+                  onClick={() => {
+                    toast.success('Emergency contacts feature coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-red-50 transition-colors text-gray-700 font-medium group"
+                >
+                  <div className="relative">
+                    <AlertCircle className="w-5 h-5 mr-3 text-red-600 group-hover:animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                  </div>
+                  Emergency Contacts
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Safety features coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Share2 className="w-5 h-5 mr-3 text-pink-600" />
+                  Share Location with Contacts
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+              </div>
+
+              {/* HELP & INFO Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase text-gray-500 px-3 mb-3 tracking-wider">Help & Info</h3>
+
+                <button
+                  onClick={() => {
+                    toast.success('Help center coming soon!');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <HelpCircle className="w-5 h-5 mr-3 text-blue-600" />
+                  Help Center
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.success('Contact support: support@kango.app');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Phone className="w-5 h-5 mr-3 text-green-600" />
+                  Contact Support
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.info('KANGO v1.3 • © 2026');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Zap className="w-5 h-5 mr-3 text-yellow-500" />
+                  About KANGO
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.info('Terms of Service & Privacy Policy available on web');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  <Info className="w-5 h-5 mr-3 text-gray-600" />
+                  Terms & Privacy
+                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+                </button>
+              </div>
+
+              {/* SESSION Section */}
+              <div className="border-t pt-6">
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-xl hover:bg-red-50 transition-colors text-red-600 font-bold text-center justify-center"
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Logout
+                </button>
+              </div>
+
+              {/* Footer Info */}
+              <div className="mt-8 pt-4 border-t text-center text-xs text-gray-500">
+                <p className="font-semibold mb-1">KANGO</p>
+                <p>Smart Bus Navigation</p>
+                <p>Version 1.3 • © 2026</p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
