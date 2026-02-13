@@ -895,6 +895,18 @@ export function UserHome() {
                     <Locate className="w-5 h-5 text-blue-600" />
                   </button>
 
+                  {/* View Buses Button */}
+                  <button
+                    onClick={() => {
+                      setShowRoutes(true);
+                      setShowBottomSheet(true);
+                    }}
+                    className="w-12 h-12 bg-purple-100 hover:bg-purple-200 rounded-xl flex items-center justify-center text-purple-600 transition-colors pointer-events-auto"
+                    title="View Upcoming Buses"
+                  >
+                    <Bus className="w-5 h-5" />
+                  </button>
+
                   {/* Search Button */}
                   <button
                     onClick={handleSearch}
@@ -923,7 +935,7 @@ export function UserHome() {
 
           <div className="bg-white flex-1 overflow-y-auto px-5 pb-6">
             <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3">
-              <h2 className="text-xl font-bold text-gray-800">Available Routes</h2>
+              <h2 className="text-xl font-bold text-gray-800">{destination ? 'Available Routes' : 'Upcoming Buses'}</h2>
               <button
                 onClick={() => {
                   setShowRoutes(false);
@@ -940,7 +952,7 @@ export function UserHome() {
               </button>
             </div>
 
-            {nearestStop && (
+            {destination && nearestStop && (
               <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">
                 <div className="flex items-start">
                   <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
