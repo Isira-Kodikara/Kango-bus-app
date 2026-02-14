@@ -36,6 +36,24 @@ export function PrivacySettings() {
     }
   };
 
+  const handleDownloadData = () => {
+    const userData = {
+      privacySettings: privacy,
+      timestamp: new Date().toISOString(),
+    };
+    const dataStr = JSON.stringify(userData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `personal-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Your data has been downloaded');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -186,7 +204,10 @@ export function PrivacySettings() {
                 You can request to download or delete all your personal data stored in our system.
               </p>
               <div className="flex gap-2">
-                <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm">
+                <button
+                  onClick={handleDownloadData}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm transition-colors"
+                >
                   Download Data
                 </button>
                 <button

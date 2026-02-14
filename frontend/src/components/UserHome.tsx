@@ -1255,7 +1255,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.info('Location sharing setup available in Privacy settings');
+                    navigate('/emergency-contacts');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1284,7 +1284,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.info('Email: support@kango.app');
+                    navigate('/help');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"
@@ -1296,7 +1296,7 @@ export function UserHome() {
 
                 <button
                   onClick={() => {
-                    toast.info('KANGO v1.3 • © 2026 Smart Bus Navigation');
+                    window.open('https://www.kango.app', '_blank');
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center p-3 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 font-medium"

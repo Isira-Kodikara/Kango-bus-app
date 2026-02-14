@@ -321,7 +321,7 @@ export function UserProfile() {
             {/* Payment Methods */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Payment Methods integration coming soon!")}
+              onClick={() => navigate('/payment-methods')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -338,7 +338,7 @@ export function UserProfile() {
             {/* Emergency Contacts */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Emergency Contacts feature coming soon!")}
+              onClick={() => navigate('/emergency-contacts')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -355,7 +355,7 @@ export function UserProfile() {
             {/* Notifications */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Notification settings coming soon!")}
+              onClick={() => navigate('/notifications')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -372,7 +372,7 @@ export function UserProfile() {
             {/* Privacy */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Privacy Settings coming soon!")}
+              onClick={() => navigate('/privacy')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">

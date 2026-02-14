@@ -17,6 +17,9 @@ export function PaymentMethods() {
   const toast = useToast();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('paymentMethods');
@@ -41,6 +44,47 @@ export function PaymentMethods() {
     setMethods(updated);
     localStorage.setItem('paymentMethods', JSON.stringify(updated));
     toast.success('Payment method removed');
+  };
+
+  const handleAddCard = () => {
+    // Validate inputs
+    if (!cardNumber.trim()) {
+      toast.error('Card number is required');
+      return;
+    }
+    if (!expiry.trim()) {
+      toast.error('Expiry date is required');
+      return;
+    }
+    if (!cvv.trim()) {
+      toast.error('CVV is required');
+      return;
+    }
+
+    // Extract last 4 digits from card number
+    const lastFour = cardNumber.slice(-4);
+    const cardName = 'Visa'; // Default name, could be detected from card number
+
+    // Create new payment method
+    const newMethod: PaymentMethod = {
+      id: Date.now(),
+      type: 'card',
+      name: cardName,
+      lastFour: lastFour,
+      expiry: expiry,
+    };
+
+    // Add to methods and save
+    const updated = [...methods, newMethod];
+    setMethods(updated);
+    localStorage.setItem('paymentMethods', JSON.stringify(updated));
+    
+    // Clear form and close
+    setCardNumber('');
+    setExpiry('');
+    setCvv('');
+    setShowAddForm(false);
+    toast.success('Card added successfully');
   };
 
   return (
@@ -87,6 +131,8 @@ export function PaymentMethods() {
                 <input
                   type="text"
                   placeholder="1234 5678 9012 3456"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -96,6 +142,8 @@ export function PaymentMethods() {
                   <input
                     type="text"
                     placeholder="12/25"
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -104,6 +152,8 @@ export function PaymentMethods() {
                   <input
                     type="text"
                     placeholder="123"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -111,10 +161,7 @@ export function PaymentMethods() {
             </div>
             <div className="flex gap-2 mt-4">
               <button
-                onClick={() => {
-                  toast.success('Card added successfully');
-                  setShowAddForm(false);
-                }}
+                onClick={handleAddCard}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm transition-colors"
               >
                 Add Card

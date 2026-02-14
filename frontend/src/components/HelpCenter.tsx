@@ -45,6 +45,7 @@ export function HelpCenter() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const filtered = FAQs.filter(
     (faq) =>
@@ -134,7 +135,10 @@ export function HelpCenter() {
           <MessageSquare className="w-8 h-8 text-blue-600 mx-auto mb-3" />
           <h3 className="font-semibold text-gray-800 mb-2">Didn't find an answer?</h3>
           <p className="text-sm text-gray-600 mb-4">Contact our support team for immediate assistance</p>
-          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors">
+          <button
+            onClick={() => navigate('/user-home')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+          >
             Contact Support
           </button>
         </div>
