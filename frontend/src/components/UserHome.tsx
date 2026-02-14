@@ -723,7 +723,7 @@ export function UserHome() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
       {/* Real Map Background - z-index 0 */}
       <div className="absolute inset-0 z-0">
         <Map
@@ -752,42 +752,44 @@ export function UserHome() {
       <div className="absolute inset-x-0 top-0 z-[1000] pointer-events-none">
         <div className="pointer-events-auto" style={{ pointerEvents: 'auto' }}>
           {/* Floating Top Bar */}
-          <div className="mx-4 mt-4 mb-0 max-w-xl md:mx-auto">
-            <div className="bg-white rounded-[24px] shadow-2xl p-4 flex items-center justify-between relative border border-gray-100">
+          <div className="mx-4 mt-4 mb-0 max-w-xl md:mx-auto animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 flex items-center justify-between relative border border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => navigate('/user-profile')}
-                className="p-2 hover:bg-gray-100 rounded-full z-10"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg z-10 transition-colors duration-fast"
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </button>
-              <h1 className="text-xl font-black text-blue-600 absolute left-1/2 -translate-x-1/2 uppercase tracking-tighter">KANGO</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 absolute left-1/2 -translate-x-1/2">
+                KANGO
+              </h1>
               <div className="flex items-center z-10">
                 <button 
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-fast"
                 >
-                  <Menu className="w-6 h-6 text-gray-700" />
+                  <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                 </button>
               </div>
             </div>
           </div>
 
           {!showRoutes && (
-            <div className="mx-4 mt-2 max-w-xl md:mx-auto">
-              <div className="bg-white rounded-[24px] shadow-2xl p-5 border border-gray-100 relative">
+            <div className="mx-4 mt-3 max-w-xl md:mx-auto animate-slideInDown">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5 border border-gray-200 dark:border-gray-700 relative">
                 <div className="flex items-center space-x-2">
                   <div className="flex-1 space-y-3">
                     {/* From Input Group */}
                     <div className="relative z-[1010]">
-                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
-                        <MapPin className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
+                      <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 border border-gray-300 dark:border-gray-600 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:bg-white dark:focus-within:bg-gray-800 transition-all shadow-sm">
+                        <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0" />
                         <input
                           type="text"
                           value={currentLocation}
                           onChange={(e) => handleFromChange(e.target.value)}
                           onFocus={() => handleFromChange(currentLocation)}
                           onBlur={handleBlur}
-                          className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
+                          className="w-full py-2 text-sm font-medium text-gray-900 dark:text-white outline-none bg-transparent placeholder:text-gray-500 dark:placeholder:text-gray-400"
                           placeholder="Current Location"
                           style={{ pointerEvents: 'auto' }}
                         />
@@ -797,27 +799,27 @@ export function UserHome() {
                               setCurrentLocation('');
                               setFromLocationCoords(null);
                             }}
-                            className="p-1 hover:bg-gray-200 rounded-full ml-1"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md ml-1 transition-colors duration-fast"
                           >
-                            <X className="w-4 h-4 text-gray-400" />
+                            <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                           </button>
                         )}
                       </div>
 
                       {showFromSuggestions && fromSuggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 mt-2 max-h-60 overflow-y-auto">
+                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 mt-2 max-h-60 overflow-y-auto">
                           {fromSuggestions.map((stop) => (
                             <div
                               key={stop.id}
                               onClick={() => selectFromSuggestion(stop)}
-                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer flex items-center border-b border-gray-50 last:border-0"
+                              className="px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer flex items-center border-b border-gray-200 dark:border-gray-700 last:border-0 transition-colors duration-fast"
                             >
                               {String(stop.id) === 'current' ? (
-                                <Navigation className="w-4 h-4 text-blue-600 mr-3" />
+                                <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-3" />
                               ) : (
-                                <MapPin className="w-4 h-4 text-gray-400 mr-3" />
+                                <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-3" />
                               )}
-                              <span className="text-sm font-medium text-gray-700">{stop.name}</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{stop.name}</span>
                             </div>
                           ))}
                         </div>
@@ -826,15 +828,15 @@ export function UserHome() {
 
                     {/* To Input Group */}
                     <div className="relative z-[1000]">
-                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
-                        <MapPin className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+                      <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 border border-gray-300 dark:border-gray-600 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20 focus-within:bg-white dark:focus-within:bg-gray-800 transition-all shadow-sm">
+                        <MapPin className="w-5 h-5 text-red-600 dark:text-red-400 mr-2 flex-shrink-0" />
                         <input
                           type="text"
                           value={destination}
                           onChange={(e) => handleToChange(e.target.value)}
                           onFocus={() => handleToChange(destination)}
                           onBlur={handleBlur}
-                          className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
+                          className="w-full py-2 text-sm font-medium text-gray-900 dark:text-white outline-none bg-transparent placeholder:text-gray-500 dark:placeholder:text-gray-400"
                           placeholder="Where to?"
                           style={{ pointerEvents: 'auto' }}
                         />
@@ -848,23 +850,23 @@ export function UserHome() {
                               setBusPath([]);
                               setDestWalkPath([]);
                             }}
-                            className="p-1 hover:bg-gray-200 rounded-full ml-1"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md ml-1 transition-colors duration-fast"
                           >
-                            <X className="w-4 h-4 text-gray-400" />
+                            <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                           </button>
                         )}
                       </div>
 
                       {showToSuggestions && toSuggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white rounded-xl shadow-[0_10px_40_rgba(0,0,0,0.1)] border border-gray-100 mt-2 max-h-60 overflow-y-auto">
+                        <div className="absolute left-0 right-0 top-full z-[1100] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 mt-2 max-h-60 overflow-y-auto">
                           {toSuggestions.map((stop) => (
                             <div
                               key={stop.id}
                               onClick={() => selectToSuggestion(stop)}
-                              className="px-4 py-3 hover:bg-red-50 cursor-pointer flex items-center border-b border-gray-50 last:border-0"
+                              className="px-4 py-3 hover:bg-red-50 dark:hover:bg-gray-700 cursor-pointer flex items-center border-b border-gray-200 dark:border-gray-700 last:border-0 transition-colors duration-fast"
                             >
-                              <MapPin className="w-4 h-4 text-red-500 mr-3" />
-                              <span className="text-sm font-medium text-gray-700">{stop.name}</span>
+                              <MapPin className="w-4 h-4 text-red-600 dark:text-red-400 mr-3" />
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{stop.name}</span>
                             </div>
                           ))}
                         </div>
@@ -876,11 +878,11 @@ export function UserHome() {
                   <div className="absolute right-[-10px] top-[50%] -translate-y-[50%] z-[1015]">
                     <button
                       onClick={swapLocations}
-                      className="bg-white border border-gray-200 p-2.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-90 hover:bg-blue-50 group"
+                      className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-2 rounded-lg shadow-lg hover:shadow-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-fast active:scale-90 group"
                       title="Swap locations"
                       style={{ pointerEvents: 'auto' }}
                     >
-                      <ArrowUpDown className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <ArrowUpDown className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                     </button>
                   </div>
                 </div>
@@ -889,20 +891,21 @@ export function UserHome() {
                   {/* Locate Me Button */}
                   <button
                     onClick={handleLocateMe}
-                    className="w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center text-gray-700 transition-colors pointer-events-auto"
+                    className="w-12 h-12 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg flex items-center justify-center text-gray-700 dark:text-gray-300 transition-colors duration-fast pointer-events-auto shadow-md hover:shadow-lg"
                     title="Locate Me"
                   >
-                    <Locate className="w-5 h-5 text-blue-600" />
+                    <Locate className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </button>
 
                   {/* Search Button */}
                   <button
                     onClick={handleSearch}
                     disabled={!destination}
-                    className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 rounded-xl flex items-center justify-center text-white font-bold shadow-lg transition-all active:scale-[0.98] group pointer-events-auto"
+                    className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 rounded-lg flex items-center justify-center text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-fast active:scale-[0.98] group pointer-events-auto"
                   >
                     <Search className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                    <span>Find Best Route</span>
+                    <span className="hidden sm:inline">Find Best Route</span>
+                    <span className="sm:hidden">Search</span>
                   </button>
                 </div>
               </div>
@@ -915,15 +918,17 @@ export function UserHome() {
 
       {/* Bottom Sheet with Routes */}
       {showRoutes && showBottomSheet && (
-        <div className="fixed inset-x-0 bottom-0 z-[1001] flex flex-col pointer-events-auto" style={{ maxHeight: '65vh' }}>
+        <div className="fixed inset-x-0 bottom-0 z-[1001] flex flex-col pointer-events-auto animate-slideInUp" style={{ maxHeight: '65vh' }}>
           {/* Handle */}
-          <div className="flex justify-center py-2 bg-white rounded-t-3xl flex-shrink-0">
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+          <div className="flex justify-center py-3 bg-white dark:bg-gray-800 rounded-t-2xl flex-shrink-0">
+            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
           </div>
 
-          <div className="bg-white flex-1 overflow-y-auto px-5 pb-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pt-2 pb-3 flex-shrink-0">
-              <h2 className="text-xl font-bold text-gray-800">{destination ? 'Available Routes' : 'Upcoming Buses'}</h2>
+          <div className="bg-white dark:bg-gray-800 flex-1 overflow-y-auto px-5 pb-6 flex flex-col">
+            <div className="flex items-center justify-between mb-5 sticky top-0 bg-white dark:bg-gray-800 pt-2 pb-3 flex-shrink-0 z-10 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {destination ? 'Available Routes' : 'Upcoming Buses'}
+              </h2>
               <button
                 onClick={() => {
                   setShowRoutes(false);
@@ -934,25 +939,25 @@ export function UserHome() {
                   setBusPath([]);
                   setDestWalkPath([]);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-full"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-fast"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
             {destination && nearestStop && (
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4 flex-shrink-0">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600 dark:border-blue-400 p-4 rounded-lg mb-4 flex-shrink-0">
                 <div className="flex items-start">
-                  <Footprints className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <Footprints className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold text-blue-900">Walk to {nearestStop.name}</div>
-                    <div className="text-sm text-blue-700">{nearestStop.walkTime} minutes • {nearestStop.distance} km</div>
+                    <div className="font-semibold text-blue-900 dark:text-blue-300">Walk to {nearestStop.name}</div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">{nearestStop.walkTime} minutes • {nearestStop.distance} km</div>
                   </div>
                 </div>
               </div>
             )}
 
-            <h3 className="font-semibold text-gray-700 mb-3 flex-shrink-0">Upcoming Buses</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex-shrink-0">Upcoming Buses</h3>
             <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {activeBuses.map((bus) => {
                 const crowd = getCrowdLevel(bus.passengers, bus.capacity);
@@ -961,7 +966,7 @@ export function UserHome() {
                 return (
                   <div
                     key={bus.id}
-                    className="bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-blue-400 transition-all shadow-md cursor-pointer hover:shadow-lg"
+                    className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-fast shadow-sm hover:shadow-md cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">

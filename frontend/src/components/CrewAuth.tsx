@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { authApi, API_BASE_URL } from '../lib/api';
-import { ArrowLeft, Mail, Lock, User, CreditCard, Bus } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, CreditCard, Bus, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 // Direct API call to avoid TypeScript caching issues
 const API_BASE = API_BASE_URL;
@@ -110,188 +114,197 @@ export function CrewAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-500 to-orange-600 flex flex-col">
-      <div className="p-6 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-orange-600 to-orange-700 dark:from-gray-900 dark:to-orange-900 flex flex-col">
+      {/* Header */}
+      <div className="p-4 sm:p-6 flex items-center border-b border-orange-500/50 dark:border-gray-700">
         <button
           onClick={() => navigate('/')}
-          className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+          className="text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-lg p-2 transition-colors duration-fast"
+          aria-label="Go back"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-white text-xl font-semibold ml-4">Bus Crew {isLogin ? 'Login' : 'Registration'}</h1>
+        <h1 className="text-white text-2xl sm:text-3xl font-bold ml-4">
+          Bus Crew {isLogin ? 'Login' : 'Registration'}
+        </h1>
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {isLogin ? 'Crew Login' : 'Register as Crew'}
-            </h2>
-
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl">
-                <div className="flex items-start">
-                  <svg className="h-5 w-5 text-red-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <div className="ml-3 flex-1">
-                    <h3 className="text-sm font-semibold text-red-800">
-                      {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                        error.includes('connect') ? 'Connection Error' :
-                          error.includes('not found') ? 'Account Not Found' : 'Login Error'}
-                    </h3>
-                    <p className="text-sm text-red-700 mt-1">{error}</p>
-
-                    {error.includes('connect') && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
-                        <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
-                      </div>
-                    )}
-                  </div>
+      {/* Content */}
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+        <div className="max-w-md mx-auto animate-fadeIn">
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 p-4 sm:p-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow-md">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-red-900 dark:text-red-300">
+                    {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
+                      error.includes('connect') ? 'Connection Error' :
+                        error.includes('not found') ? 'Account Not Found' : 'Error'}
+                  </h3>
+                  <p className="mt-1 text-sm text-red-800 dark:text-red-300">{error}</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {successMessage && (
-              <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-xl">
-                <div className="flex items-start">
-                  <svg className="h-5 w-5 text-green-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <div className="ml-3 flex-1">
-                    <h3 className="text-sm font-semibold text-green-800">Request Sent</h3>
-                    <p className="text-sm text-green-700 mt-1">{successMessage}</p>
-                  </div>
+          {/* Success Alert */}
+          {successMessage && (
+            <div className="mb-6 p-4 sm:p-5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg shadow-md">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-green-900 dark:text-green-300">
+                    Request Sent Successfully
+                  </h3>
+                  <p className="mt-1 text-sm text-green-800 dark:text-green-300">{successMessage}</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {!isLogin && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
+          {/* Form Card */}
+          <Card className="animate-slideInUp">
+            <CardHeader>
+              <CardTitle className="text-2xl">
+                {isLogin ? 'Crew Login' : 'Register as Crew'}
+              </CardTitle>
+              <CardDescription>
+                {isLogin 
+                  ? 'Sign in to manage your bus operations' 
+                  : 'Apply to join as a bus crew member'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {!isLogin && (
+                  <>
+                    <div>
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
                         type="text"
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
                         placeholder="John Doe"
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none"
                         required
                         disabled={isLoading}
+                        className="mt-2"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      NIC Number
-                    </label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
+                    <div>
+                      <Label htmlFor="nic">NIC Number</Label>
+                      <Input
+                        id="nic"
                         type="text"
                         name="nic"
                         value={formData.nic}
                         onChange={handleChange}
                         placeholder="123456789V"
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none"
                         required
                         disabled={isLoading}
+                        className="mt-2"
                       />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
+                        Your national identification number
+                      </p>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assigned Bus ID
-                    </label>
-                    <div className="relative">
-                      <Bus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
+                    <div>
+                      <Label htmlFor="busId">Assigned Bus ID</Label>
+                      <Input
+                        id="busId"
                         type="text"
                         name="busId"
                         value={formData.busId}
                         onChange={handleChange}
                         placeholder="BUS-001"
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none"
                         required
                         disabled={isLoading}
+                        className="mt-2"
                       />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
+                        The bus you will be operating
+                      </p>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="crew@kango.com"
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none"
                     required
                     disabled={isLoading}
+                    className="mt-2"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none"
                     required
                     disabled={isLoading}
+                    className="mt-2"
                   />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
+                    At least 6 characters
+                  </p>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50"
-              >
-                {isLoading ? 'Please wait...' : (isLogin ? 'Log In' : 'Request Signup')}
-              </button>
-              {!isLogin && (
-                <p className="text-xs text-center text-gray-500 mt-2">
-                  * New registrations require approval from a system administrator.
-                </p>
-              )}
-            </form>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  variant="primary"
+                  size="lg"
+                  className="w-full mt-6"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    isLogin ? 'Log In' : 'Request Signup'
+                  )}
+                </Button>
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-gray-600"
-              >
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <span className="text-orange-600 font-semibold">
-                  {isLogin ? 'Sign Up' : 'Log In'}
-                </span>
-              </button>
-            </div>
-          </div>
+                {!isLogin && (
+                  <p className="text-xs text-center text-gray-600 dark:text-gray-400 px-2">
+                    New registrations require approval from a system administrator.
+                  </p>
+                )}
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="w-full text-center text-gray-700 dark:text-gray-300 transition-colors duration-fast hover:text-gray-900 dark:hover:text-white"
+                    disabled={isLoading}
+                  >
+                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                    <span className="font-semibold text-orange-600 dark:text-orange-400">
+                      {isLogin ? 'Sign Up' : 'Log In'}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
