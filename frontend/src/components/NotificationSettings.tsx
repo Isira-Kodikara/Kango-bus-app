@@ -57,7 +57,7 @@ export function NotificationSettings() {
             </div>
             <button
               onClick={() => handleToggle('push')}
-              className={`w-14 h-7 rounded-full transition-colors ${
+              className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                 notifications.push ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
@@ -84,7 +84,7 @@ export function NotificationSettings() {
             </div>
             <button
               onClick={() => handleToggle('sms')}
-              className={`w-14 h-7 rounded-full transition-colors ${
+              className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                 notifications.sms ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
@@ -111,7 +111,7 @@ export function NotificationSettings() {
             </div>
             <button
               onClick={() => handleToggle('email')}
-              className={`w-14 h-7 rounded-full transition-colors ${
+              className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                 notifications.email ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
@@ -136,7 +136,7 @@ export function NotificationSettings() {
               </div>
               <button
                 onClick={() => handleToggle('busArrival')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   notifications.busArrival ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -155,7 +155,7 @@ export function NotificationSettings() {
               </div>
               <button
                 onClick={() => handleToggle('tripReminders')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   notifications.tripReminders ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -174,7 +174,7 @@ export function NotificationSettings() {
               </div>
               <button
                 onClick={() => handleToggle('promotions')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   notifications.promotions ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >

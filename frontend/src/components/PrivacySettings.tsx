@@ -86,7 +86,7 @@ export function PrivacySettings() {
               </div>
               <button
                 onClick={() => handleToggle('shareLocation')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   privacy.shareLocation ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -113,7 +113,7 @@ export function PrivacySettings() {
               </div>
               <button
                 onClick={() => handleToggle('showProfile')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   privacy.showProfile ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -140,7 +140,7 @@ export function PrivacySettings() {
               </div>
               <button
                 onClick={() => handleToggle('allowMessaging')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   privacy.allowMessaging ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -162,7 +162,7 @@ export function PrivacySettings() {
               </div>
               <button
                 onClick={() => handleToggle('dataCollection')}
-                className={`w-14 h-7 rounded-full transition-colors ${
+                className={`w-14 h-7 rounded-full transition-colors cursor-pointer ${
                   privacy.dataCollection ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
