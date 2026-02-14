@@ -895,18 +895,6 @@ export function UserHome() {
                     <Locate className="w-5 h-5 text-blue-600" />
                   </button>
 
-                  {/* View Buses Button */}
-                  <button
-                    onClick={() => {
-                      setShowRoutes(true);
-                      setShowBottomSheet(true);
-                    }}
-                    className="w-12 h-12 bg-purple-100 hover:bg-purple-200 rounded-xl flex items-center justify-center text-purple-600 transition-colors pointer-events-auto"
-                    title="View Upcoming Buses"
-                  >
-                    <Bus className="w-5 h-5" />
-                  </button>
-
                   {/* Search Button */}
                   <button
                     onClick={handleSearch}
