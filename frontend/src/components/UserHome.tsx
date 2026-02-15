@@ -1326,7 +1326,7 @@ export function UserHome() {
               <div className="mt-8 pt-4 border-t text-center text-xs text-gray-500">
                 <p className="font-semibold mb-1">KANGO</p>
                 <p>Smart Bus Navigation</p>
-                <p>Version 1.3 • © 2026</p>
+                <p>Version 1.0 • © 2026</p>
               </div>
             </div>
           </div>

@@ -126,7 +126,7 @@ export function TermsAndPrivacy() {
 
           {/* Version Info */}
           <div className="bg-gray-100 rounded-2xl p-4 text-center text-xs text-gray-600 mb-6">
-            <p>KANGO Version 1.3</p>
+            <p>KANGO Version 1.0</p>
             <p>© 2026 KANGO. All rights reserved.</p>
           </div>
         </div>
