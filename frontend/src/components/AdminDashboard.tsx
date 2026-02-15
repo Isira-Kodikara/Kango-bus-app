@@ -306,57 +306,54 @@ export function AdminDashboard() {
                 {buses.map((bus) => (
                   <div
                     key={bus.id}
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all group"
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Left - Bus Info */}
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
                           <Bus className="w-6 h-6" />
                         </div>
-                        <div>
-                          <div className="font-black text-lg text-slate-900">{bus.plate_number || bus.id}</div>
-                          <div className="text-sm font-bold text-slate-500">{bus.route_name || 'Unassigned'}</div>
-                          <div className="text-xs text-slate-400 font-medium mt-0.5 max-w-[200px] truncate">
-                            <MapPin className="w-3 h-3 inline mr-1" />
+                        <div className="flex-1">
+                          <div className="font-black text-base text-slate-900">{bus.plate_number || 'BUS-' + bus.id}</div>
+                          <div className="text-sm font-bold text-slate-600">{bus.route_name || 'Unassigned'}</div>
+                          <div className="text-xs text-slate-500 font-medium mt-1.5 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
                             {bus.current_location || 'Depot'}
                           </div>
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${bus.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                        {bus.status}
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Driver</div>
-                        <div className="font-bold text-slate-900">{bus.driver_name || 'Not assigned'}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Passengers</div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-500" />
-                          <span className="font-bold text-slate-900">{bus.passengers || 0}/{bus.capacity}</span>
+                      {/* Middle - Driver & Passengers */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Driver</div>
+                          <div className="font-bold text-slate-900 text-sm">{bus.driver_name || 'Not assigned'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Passengers</div>
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-blue-500" />
+                            <span className="font-bold text-slate-900 text-sm">{bus.passengers || 0}/{bus.capacity}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex gap-3 border-t border-gray-100 pt-4">
-                      <button
-                        onClick={() => handleOpenEditBus(bus)}
-                        className="flex-1 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteBus(bus.id)}
-                        className="flex-1 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
+                      {/* Right - Actions */}
+                      <div className="flex items-center justify-end gap-6">
+                        <button
+                          onClick={() => handleOpenEditBus(bus)}
+                          className="text-blue-600 hover:text-blue-700 font-bold text-sm transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/bus/${bus.id}/live`)}
+                          className="text-purple-600 hover:text-purple-700 font-bold text-sm transition-colors"
+                        >
+                          View Live
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
