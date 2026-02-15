@@ -1,13 +1,9 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { authApi, User as ApiUser } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Button } from './ui/button';
 
 export function UserAuth() {
   const navigate = useNavigate();
@@ -199,43 +195,25 @@ export function UserAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-700 dark:from-gray-900 dark:to-blue-900 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-600 flex flex-col">
       {/* Header */}
-      <div className="p-4 sm:p-6 flex items-center border-b border-blue-500/50 dark:border-gray-700">
+      <div className="p-6 flex items-center">
         <button
           onClick={() => navigate('/')}
-          className="text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-lg p-2 transition-colors duration-fast"
-          aria-label="Go back"
+          className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-white text-2xl sm:text-3xl font-bold ml-4">
+        <h1 className="text-white text-xl font-semibold ml-4">
           {showForgotPassword ? 'Reset Password' : (isLogin ? 'Login' : 'Sign Up')}
         </h1>
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md mx-auto animate-fadeIn">
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-md mx-auto">
           {/* Error Alert */}
           {error && (
-            <div className="mb-6 p-4 sm:p-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow-md">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-red-900 dark:text-red-300">
-                    {error.includes('connect') || error.includes('server') ? 'Connection Error' :
-                      error.includes('not found') ? 'Account Not Found' :
-                        error.includes('already') || error.includes('taken') ? 'Account Exists' :
-                          error.includes('required') || error.includes('fill') ? 'Validation Error' :
-                            showForgotPassword ? 'Reset Error' :
-                              isLogin ? 'Login Error' : 'Registration Error'}
-                  </h3>
-                  <p className="mt-1 text-sm text-red-800 dark:text-red-300">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
             <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
@@ -276,289 +254,272 @@ export function UserAuth() {
 
           {showOTP ? (
             // OTP Verification Screen
-            <Card className="animate-slideInUp">
-              <CardHeader>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
-                    <Mail className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle className="text-2xl">Verify Your Email</CardTitle>
-                  <CardDescription className="mt-2">
-                    We've sent a code to <span className="font-semibold text-gray-900 dark:text-white">{formData.email}</span>
-                  </CardDescription>
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <Mail className="w-8 h-8 text-blue-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <Label htmlFor="otp">Enter OTP</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      name="otp"
-                      value={formData.otp}
-                      onChange={handleChange}
-                      placeholder="000000"
-                      maxLength={6}
-                      disabled={isLoading}
-                      className="text-center text-2xl tracking-widest font-mono mt-2"
-                    />
-                  </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Verify Your Email</h2>
+                <p className="text-gray-600">
+                  We've sent a code to <span className="font-semibold">{formData.email}</span>
+                </p>
+              </div>
 
-                  <Button
-                    type="submit"
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter OTP
+                  </label>
+                  <input
+                    type="text"
+                    name="otp"
+                    value={formData.otp}
+                    onChange={handleChange}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none text-center text-2xl tracking-widest"
                     disabled={isLoading}
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify & Continue'
-                    )}
-                  </Button>
+                  />
+                </div>
 
-                  <Button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={isLoading}
-                    variant="ghost"
-                    size="lg"
-                    className="w-full"
-                  >
-                    Resend Code
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify & Continue'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={isLoading}
+                  className="w-full text-blue-600 font-medium disabled:opacity-50"
+                >
+                  Resend Code
+                </button>
+              </form>
+            </div>
           ) : showForgotPassword ? (
             // Forgot Password Screen
-            <Card className="animate-slideInUp">
-              <CardHeader>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full mb-4">
-                    <Lock className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <CardTitle className="text-2xl">Reset Password</CardTitle>
-                  <CardDescription className="mt-2">
-                    {resetStep === 0
-                      ? "Enter your email to receive a reset code"
-                      : "Enter the code sent to your email and your new password"}
-                  </CardDescription>
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <Lock className="w-8 h-8 text-blue-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={resetStep === 0 ? handleForgotPassword : handleResetPasswordSubmit} className="space-y-6">
-                  {resetStep === 0 ? (
-                    <div>
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Reset Password</h2>
+                <p className="text-gray-600">
+                  {resetStep === 0
+                    ? "Enter your email to receive a reset code"
+                    : "Enter the code sent to your email and your new password"}
+                </p>
+              </div>
+
+              <form onSubmit={resetStep === 0 ? handleForgotPassword : handleResetPasswordSubmit} className="space-y-6">
+                {resetStep === 0 ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="you@example.com"
+                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                         required
                         disabled={isLoading}
-                        className="mt-2"
                       />
                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <Label htmlFor="reset-otp">Reset Code (OTP)</Label>
-                        <Input
-                          id="reset-otp"
-                          type="text"
-                          name="otp"
-                          value={formData.otp}
-                          onChange={handleChange}
-                          placeholder="000000"
-                          maxLength={6}
-                          required
-                          disabled={isLoading}
-                          className="text-center text-2xl tracking-widest font-mono mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="new-password">New Password</Label>
-                        <Input
-                          id="new-password"
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Reset Code (OTP)</label>
+                      <input
+                        type="text"
+                        name="otp"
+                        value={formData.otp}
+                        onChange={handleChange}
+                        placeholder="000000"
+                        maxLength={6}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none text-center text-xl tracking-widest"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
                           type="password"
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
                           placeholder="New secure password"
+                          className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                           required
                           disabled={isLoading}
                           minLength={6}
-                          className="mt-2"
                         />
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
-                          At least 6 characters
-                        </p>
                       </div>
+                    </div>
+                  </>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processing...
                     </>
+                  ) : (
+                    resetStep === 0 ? 'Send Reset Code' : 'Reset Password'
                   )}
+                </button>
 
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      resetStep === 0 ? 'Send Reset Code' : 'Reset Password'
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setShowForgotPassword(false);
-                      setResetStep(0);
-                      setError(null);
-                    }}
-                    disabled={isLoading}
-                    variant="ghost"
-                    size="lg"
-                    className="w-full"
-                  >
-                    Back to Login
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setResetStep(0);
+                    setError(null);
+                  }}
+                  disabled={isLoading}
+                  className="w-full text-blue-600 font-medium disabled:opacity-50"
+                >
+                  Back to Login
+                </button>
+              </form>
+            </div>
           ) : (
             // Login/Signup Form
-            <Card className="animate-slideInUp">
-              <CardHeader>
-                <CardTitle className="text-2xl">
-                  {isLogin ? 'Welcome Back' : 'Create Account'}
-                </CardTitle>
-                <CardDescription>
-                  {isLogin 
-                    ? 'Sign in to continue to KANGO' 
-                    : 'Join KANGO to start your journey'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {!isLogin && (
-                    <div>
-                      <Label htmlFor="full_name">Full Name</Label>
-                      <Input
-                        id="full_name"
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                {isLogin ? 'Welcome Back' : 'Create Account'}
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
                         type="text"
                         name="full_name"
                         value={formData.full_name}
                         onChange={handleChange}
                         placeholder="John Doe"
+
+                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                         required
                         disabled={isLoading}
-                        className="mt-2"
                       />
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
-                        At least 3 characters
-                      </p>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="you@example.com"
+                      className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                       required
                       disabled={isLoading}
-                      className="mt-2"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
                       type="password"
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="••••••••"
+                      className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                       required
                       disabled={isLoading}
-                      className="mt-2"
                     />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">
-                      At least 6 characters
-                    </p>
                   </div>
+                </div>
 
-                  {isLogin && (
-                    <div className="text-right -mt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowForgotPassword(true);
-                          setError(null);
-                        }}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline transition-colors duration-fast"
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    variant="primary"
-                    size="lg"
-                    className="w-full mt-6"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        {isLogin ? 'Logging in...' : 'Signing up...'}
-                      </>
-                    ) : (
-                      isLogin ? 'Log In' : 'Sign Up'
-                    )}
-                  </Button>
-
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                {isLogin && (
+                  <div className="text-right">
                     <button
                       type="button"
                       onClick={() => {
-                        setIsLogin(!isLogin);
+                        setShowForgotPassword(true);
                         setError(null);
                       }}
-                      className="w-full text-center text-gray-700 dark:text-gray-300 transition-colors duration-fast hover:text-gray-900 dark:hover:text-white"
-                      disabled={isLoading}
+                      className="text-sm text-blue-600 hover:underline"
                     >
-                      {isLogin ? "Don't have an account? " : "Already have an account? "}
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">
-                        {isLogin ? 'Sign Up' : 'Log In'}
-                      </span>
+                      Forgot Password?
                     </button>
                   </div>
-                </form>
-              </CardContent>
-            </Card>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {isLogin ? 'Logging in...' : 'Signing up...'}
+                    </>
+                  ) : (
+                    isLogin ? 'Log In' : 'Sign Up'
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError(null);
+                  }}
+                  className="text-gray-600"
+                  disabled={isLoading}
+                >
+                  {isLogin ? "Don't have an account? " : "Already have an account? "}
+                  <span className="text-blue-600 font-semibold">
+                    {isLogin ? 'Sign Up' : 'Log In'}
+                  </span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
