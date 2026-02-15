@@ -257,7 +257,7 @@ export function AdminDashboard() {
       <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
 
         {/* Tabs */}
-        <div className="bg-white rounded-t-3xl shadow-sm border-b border-gray-100 mb-6">
+        <div className="bg-white border-b border-gray-200 mt-4">
           <div className="flex overflow-x-auto scrollbar-hide">
             {[
               { id: 'buses', label: 'Buses' },
@@ -268,7 +268,7 @@ export function AdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 min-w-[100px] py-4 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
+                className={`flex-1 min-w-[100px] py-3 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
                   ? 'text-purple-600 border-purple-600'
                   : 'text-slate-400 border-transparent hover:text-slate-600'
                   }`}
