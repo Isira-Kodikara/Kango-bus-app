@@ -214,7 +214,7 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 pb-20 md:pb-0">
       {/* Header - Purple */}
-      <div className="bg-[#9333ea] text-white pt-6 pb-24 px-4 sm:px-6 lg:px-8">
+      <div className="bg-purple-600 text-white pt-6 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-start mb-8">
             <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ export function AdminDashboard() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex-1 min-w-[100px] py-4 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
-                  ? 'text-[#9333ea] border-[#9333ea]'
+                  ? 'text-purple-600 border-purple-600'
                   : 'text-slate-400 border-transparent hover:text-slate-600'
                   }`}
               >
@@ -288,7 +288,7 @@ export function AdminDashboard() {
                 <h2 className="text-xl font-bold text-slate-800">Live Bus Tracking</h2>
                 <button
                   onClick={handleOpenAddBus}
-                  className="bg-[#9333ea] hover:bg-[#7e22ce] text-white px-4 py-2 rounded-full font-bold transition-all shadow-lg shadow-purple-200 flex items-center gap-2"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full font-bold transition-all shadow-lg shadow-purple-200 flex items-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
                   Add Bus
@@ -573,7 +573,7 @@ export function AdminDashboard() {
                   required
                   value={busFormData.plate_number}
                   onChange={(e) => setBusFormData({ ...busFormData, plate_number: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                   placeholder="NB-1234"
                 />
               </div>
@@ -583,7 +583,7 @@ export function AdminDashboard() {
                 <select
                   value={busFormData.route_id}
                   onChange={(e) => setBusFormData({ ...busFormData, route_id: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                 >
                   <option value="">Select Route (Optional)</option>
                   {routes.map(r => (
@@ -601,7 +601,7 @@ export function AdminDashboard() {
                     min="1"
                     value={busFormData.capacity}
                     onChange={(e) => setBusFormData({ ...busFormData, capacity: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                   />
                 </div>
                 <div>
@@ -609,7 +609,7 @@ export function AdminDashboard() {
                   <select
                     value={busFormData.status}
                     onChange={(e) => setBusFormData({ ...busFormData, status: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                   >
                     <option value="active">Active</option>
                     <option value="maintenance">Maintenance</option>
@@ -628,9 +628,10 @@ export function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#9333ea] hover:bg-[#7e22ce] text-white rounded-xl font-bold transition-colors shadow-lg shadow-purple-200"
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-purple-200"
                 >
                   {isEditMode ? 'Save Changes' : 'Create Bus'}
+                </button>
                 </button>
               </div>
             </form>
@@ -658,7 +659,7 @@ export function AdminDashboard() {
                     required
                     value={routeFormData.route_number}
                     onChange={(e) => setRouteFormData({ ...routeFormData, route_number: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                     placeholder="138"
                   />
                 </div>
@@ -669,7 +670,7 @@ export function AdminDashboard() {
                     required
                     value={routeFormData.avg_time_minutes}
                     onChange={(e) => setRouteFormData({ ...routeFormData, avg_time_minutes: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                   />
                 </div>
               </div>
@@ -680,7 +681,7 @@ export function AdminDashboard() {
                   type="text"
                   value={routeFormData.route_name}
                   onChange={(e) => setRouteFormData({ ...routeFormData, route_name: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                   placeholder="Colombo - Homagama"
                 />
               </div>
@@ -693,7 +694,7 @@ export function AdminDashboard() {
                     required
                     value={routeFormData.start_point}
                     onChange={(e) => setRouteFormData({ ...routeFormData, start_point: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                     placeholder="Pettah"
                   />
                 </div>
@@ -704,7 +705,7 @@ export function AdminDashboard() {
                     required
                     value={routeFormData.end_point}
                     onChange={(e) => setRouteFormData({ ...routeFormData, end_point: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#9333ea]/20 focus:border-[#9333ea]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
                     placeholder="Homagama"
                   />
                 </div>
