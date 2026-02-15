@@ -99,6 +99,19 @@ export function CrewDashboard() {
     // but without storing last coords, we just wait for next tick or rely on state.
   };
 
+  const handleReportIssue = () => {
+    const issue = prompt('Report an issue:\n- traffic\n- delay\n- maintenance\n\nDescription:');
+    if (issue) {
+      console.log('Issue reported:', issue);
+      // In a real app, would send to API
+      alert('Issue reported: ' + issue + '\nOur team will look into it shortly.');
+    }
+  };
+
+  const handleBreakTime = () => {
+    alert('Break time marked. Your status has been updated.\nPlease resume broadcasting when you return.');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -233,7 +246,10 @@ export function CrewDashboard() {
         <div className="bg-white rounded-2xl shadow-md p-5">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <button className="w-full bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl p-4 flex items-center transition-colors">
+            <button
+              onClick={handleReportIssue}
+              className="w-full bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl p-4 flex items-center transition-colors"
+            >
               <AlertCircle className="w-6 h-6 text-blue-600 mr-3" />
               <div className="flex-1 text-left">
                 <div className="font-semibold text-gray-800">Report Issue</div>
@@ -241,7 +257,10 @@ export function CrewDashboard() {
               </div>
             </button>
 
-            <button className="w-full bg-green-50 hover:bg-green-100 border-2 border-green-200 rounded-xl p-4 flex items-center transition-colors">
+            <button
+              onClick={handleBreakTime}
+              className="w-full bg-green-50 hover:bg-green-100 border-2 border-green-200 rounded-xl p-4 flex items-center transition-colors"
+            >
               <Clock className="w-6 h-6 text-green-600 mr-3" />
               <div className="flex-1 text-left">
                 <div className="font-semibold text-gray-800">Break Time</div>

@@ -45,6 +45,9 @@ export function AdminDashboard() {
     peakHour: '--'
   });
   const [isLoading, setIsLoading] = useState(false);
+  const handleViewLiveBus = (bus: any) => {
+    navigate('/demo-mode');
+  };
 
   useEffect(() => {
     fetchData();
@@ -348,7 +351,7 @@ export function AdminDashboard() {
                           Edit
                         </button>
                         <button
-                          onClick={() => navigate(`/admin/bus/${bus.id}/live`)}
+                            onClick={() => handleViewLiveBus(bus)}
                           className="text-purple-600 hover:text-purple-700 font-bold text-sm transition-colors"
                         >
                           View Live
