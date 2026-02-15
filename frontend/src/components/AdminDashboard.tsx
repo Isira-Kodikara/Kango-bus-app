@@ -632,7 +632,6 @@ export function AdminDashboard() {
                 >
                   {isEditMode ? 'Save Changes' : 'Create Bus'}
                 </button>
-                </button>
               </div>
             </form>
           </div>
