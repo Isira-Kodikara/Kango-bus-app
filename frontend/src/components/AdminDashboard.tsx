@@ -214,7 +214,7 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 pb-20 md:pb-0">
       {/* Header - Purple */}
-      <div className="bg-purple-600 text-white pt-6 pb-24 px-4 sm:px-6 lg:px-8">
+      <div className="bg-purple-600 text-white pt-4 pb-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-start mb-8">
             <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function AdminDashboard() {
                 <Settings className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-white leading-none">Admin Portal</h1>
+                <h1 className="text-xl font-black text-white leading-none">Admin Portal</h1>
                 <p className="text-xs font-medium text-white/80">System Management</p>
               </div>
             </div>
@@ -236,25 +236,25 @@ export function AdminDashboard() {
           </div>
 
           {/* Metrics Banner */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <div className="text-4xl font-black text-white mb-1">{buses.filter(b => b.status === 'active').length}</div>
-              <div className="text-xs font-bold text-white/70 uppercase tracking-wider">Active Buses</div>
+          <div className="grid grid-cols-3 gap-8 py-4">
+            <div>
+              <div className="text-3xl font-black text-white mb-0">{buses.filter(b => b.status === 'active').length}</div>
+              <div className="text-xs font-medium text-white/70">Active Buses</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <div className="text-4xl font-black text-white mb-1">{analytics.totalPassengers}</div>
-              <div className="text-xs font-bold text-white/70 uppercase tracking-wider">Total Passengers</div>
+            <div>
+              <div className="text-3xl font-black text-white mb-0">{analytics.totalPassengers}</div>
+              <div className="text-xs font-medium text-white/70">Total Passengers</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <div className="text-4xl font-black text-white mb-1">{routes.length}</div>
-              <div className="text-xs font-bold text-white/70 uppercase tracking-wider">Active Routes</div>
+            <div>
+              <div className="text-3xl font-black text-white mb-0">{routes.length}</div>
+              <div className="text-xs font-medium text-white/70">Active Routes</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 -mt-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
 
         {/* Tabs */}
         <div className="bg-white rounded-t-3xl shadow-sm border-b border-gray-100 mb-6">
