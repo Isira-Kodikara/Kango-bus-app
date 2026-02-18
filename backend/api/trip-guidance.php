@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $data = json_decode(file_get_contents('php://input'), true);
-    
+
     // Validate input
     $requiredFields = ['origin_lat', 'origin_lng', 'destination_lat', 'destination_lng', 'user_id'];
     foreach ($requiredFields as $field) {
@@ -27,28 +27,28 @@ try {
             throw new Exception("Missing required field: $field");
         }
     }
-    
+
     $originLat = floatval($data['origin_lat']);
     $originLng = floatval($data['origin_lng']);
     $destLat = floatval($data['destination_lat']);
     $destLng = floatval($data['destination_lng']);
     $userId = intval($data['user_id']);
-    
+
     // Initialize services
     $routeFinder = new RouteFinderService($pdo);
     $etaService = new BusETAService($pdo);
     $openrouteKey = getenv('OPENROUTE_API_KEY') ?: '5b3ce3597851110001cf6248abc123def456';
     $walkingService = new WalkingDirectionsService($openrouteKey);
-    
+
     // Find best bus route
     $bestRoute = $routeFinder->findBestRoute($originLat, $originLng, $destLat, $destLng);
-    
+
     if (!$bestRoute) {
         // FALLBACK: When no graph-based route found, use nearest stops directly
         // Use wider search (50km) to find ANY stops in the database
         $originStops = $routeFinder->findNearestStops($originLat, $originLng, 3, 50);
         $destStops = $routeFinder->findNearestStops($destLat, $destLng, 3, 50);
-        
+
         if (empty($originStops) || empty($destStops)) {
             // Count total stops in database for debugging
             $totalStops = $pdo->query("SELECT COUNT(*) FROM stops")->fetchColumn();
@@ -57,26 +57,26 @@ try {
 
         $boardingStop = $originStops[0];
         $alightingStop = $destStops[0];
-        
+
         // Calculate straight-line estimates
         $busDistKm = GeoUtils::haversineDistance(
             $boardingStop['latitude'], $boardingStop['longitude'],
             $alightingStop['latitude'], $alightingStop['longitude']
         );
         $estimatedBusTimeMin = ($busDistKm / 15) * 60; // 15 km/h avg speed
-        
+
         $walkToStop = GeoUtils::haversineDistance(
             $originLat, $originLng,
             $boardingStop['latitude'], $boardingStop['longitude']
         ) * 1000;
         $walkingTimeToStop = ($walkToStop / 1.4) / 60;
-        
+
         $walkFromStop = GeoUtils::haversineDistance(
             $alightingStop['latitude'], $alightingStop['longitude'],
             $destLat, $destLng
         ) * 1000;
         $walkingTimeFromStop = ($walkFromStop / 1.4) / 60;
-        
+
         $bestRoute = [
             'boarding_stop' => $boardingStop,
             'alighting_stop' => $alightingStop,
@@ -90,16 +90,16 @@ try {
             'is_estimate' => true
         ];
     }
-    
+
     // Check if user at boarding stop (within 50 meters)
     $distanceToStop = GeoUtils::haversineDistance(
         $originLat, $originLng,
         $bestRoute['boarding_stop']['latitude'],
         $bestRoute['boarding_stop']['longitude']
     ) * 1000;
-    
+
     $needsGuidance = $distanceToStop > 50;
-    
+
     $response = [
         'success' => true,
         'needs_walking_guidance' => $needsGuidance,
@@ -110,43 +110,51 @@ try {
         'total_time' => round($bestRoute['total_time'] * 60),
         'is_estimate' => $bestRoute['is_estimate'] ?? false
     ];
-    
+
+    // 1. Walking Path To Stop (Origin -> Boarding Stop)
+    $walkingPathToStop = null;
     if ($needsGuidance) {
-        // Get walking path from OpenRouteService
-        $walkingPath = $walkingService->getWalkingPath(
-            $originLat, $originLng,
-            $bestRoute['boarding_stop']['latitude'],
-            $bestRoute['boarding_stop']['longitude']
-        );
-        
-        // Get next bus ETA
-        $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id']);
-        
-        // Check if can catch bus
-        $canCatch = false;
-        if ($nextBus) {
-            $canCatch = $etaService->canCatchBus(
-                $walkingPath['duration_seconds'] / 60,
-                $nextBus['eta_minutes']
-            );
-        }
-        
-        $response['walking_path'] = $walkingPath;
-        $response['next_bus'] = $nextBus;
-        $response['can_catch_next_bus'] = $canCatch;
-    } else {
-        $response['message'] = 'You are already at the boarding stop!';
-        $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id']);
-        $response['next_bus'] = $nextBus;
-        
-        // Provide a simple walking path if already at stop
-        $response['walking_path'] = $walkingService->getStraightLinePath(
+        $walkingPathToStop = $walkingService->getWalkingPath(
             $originLat, $originLng,
             $bestRoute['boarding_stop']['latitude'],
             $bestRoute['boarding_stop']['longitude']
         );
     }
-    
+    else {
+        $walkingPathToStop = $walkingService->getStraightLinePath(
+            $originLat, $originLng,
+            $bestRoute['boarding_stop']['latitude'],
+            $bestRoute['boarding_stop']['longitude']
+        );
+    }
+
+    // 2. Walking Path From Stop (Alighting Stop -> Destination)
+    $walkingPathFromStop = $walkingService->getWalkingPath(
+        $bestRoute['alighting_stop']['latitude'],
+        $bestRoute['alighting_stop']['longitude'],
+        $destLat, $destLng
+    );
+
+    // Get next bus ETA
+    $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id']);
+
+    // Check if can catch bus
+    $canCatch = false;
+    if ($nextBus && $walkingPathToStop) {
+        $canCatch = $etaService->canCatchBus(
+            $walkingPathToStop['duration_seconds'] / 60,
+            $nextBus['eta_minutes']
+        );
+    }
+
+    $response['walking_path_to_stop'] = $walkingPathToStop;
+    $response['walking_path_from_stop'] = $walkingPathFromStop;
+    $response['next_bus'] = $nextBus;
+    $response['can_catch_next_bus'] = $canCatch;
+
+    // Legacy support for older frontend code (optional, can be removed if frontend is fully updated)
+    $response['walking_path'] = $walkingPathToStop;
+
     // Save journey plan (wrapped in try-catch so it doesn't break the response)
     try {
         $stmt = $pdo->prepare("
@@ -157,7 +165,7 @@ try {
              can_catch_next_bus)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        
+
         $stmt->execute([
             $userId,
             $originLat, $originLng, $destLat, $destLng,
@@ -169,14 +177,17 @@ try {
             $response['total_time'],
             $response['can_catch_next_bus'] ?? false
         ]);
-    } catch (Exception $saveErr) {
+    }
+    catch (Exception $saveErr) {
         // Don't fail the response just because saving the plan failed
         error_log("Failed to save journey plan: " . $saveErr->getMessage());
     }
-    
+
     echo json_encode($response);
-    
-} catch (Exception $e) {
+
+
+}
+catch (Exception $e) {
     http_response_code(400);
     echo json_encode([
         'success' => false,

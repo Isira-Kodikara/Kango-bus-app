@@ -67,6 +67,8 @@ export function UserHome() {
   const [mapCenter, setMapCenter] = useState<[number, number]>(COLOMBO_CENTER);
   const [mapZoom, setMapZoom] = useState(13);
   const [walkingPath, setWalkingPath] = useState<[number, number][]>([]);
+  const [walkingPathToStop, setWalkingPathToStop] = useState<[number, number][]>([]);
+  const [walkingPathFromStop, setWalkingPathFromStop] = useState<[number, number][]>([]);
 
   // Autocomplete state
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
@@ -81,7 +83,20 @@ export function UserHome() {
       latitude: number;
       longitude: number;
     };
-    walking_path: {
+    // Legacy support
+    walking_path?: {
+      coordinates: [number, number][];
+      distance_meters: number;
+      duration_seconds: number;
+      steps: Array<{ instruction: string; distance: number }>;
+    };
+    walking_path_to_stop?: {
+      coordinates: [number, number][];
+      distance_meters: number;
+      duration_seconds: number;
+      steps: Array<{ instruction: string; distance: number }>;
+    };
+    walking_path_from_stop?: {
       coordinates: [number, number][];
       distance_meters: number;
       duration_seconds: number;
@@ -143,7 +158,7 @@ export function UserHome() {
   const handleMapClick = (latlng: [number, number]) => {
     setDestinationCoords(latlng);
     setDestination(`Selected Position`);
-    setMapCenter(latlng);
+    // Do NOT center map here to let user look around
   };
 
   const handleBusClick = (bus: any) => {
@@ -313,16 +328,27 @@ export function UserHome() {
         return;
       }
 
+      setWalkingGuidanceActive(true);
+      setWalkingGuidanceData(data);
+      setDistanceRemaining(data.distance_to_stop);
+
+      // CLEAR previous single path
+      setWalkingPath([]);
+
+      // Update NEW map paths
+      if (data.walking_path_to_stop && data.walking_path_to_stop.coordinates) {
+        setWalkingPathToStop(data.walking_path_to_stop.coordinates.map((coord: any) => [coord[1], coord[0]]));
+      } else {
+        setWalkingPathToStop([]);
+      }
+
+      if (data.walking_path_from_stop && data.walking_path_from_stop.coordinates) {
+        setWalkingPathFromStop(data.walking_path_from_stop.coordinates.map((coord: any) => [coord[1], coord[0]]));
+      } else {
+        setWalkingPathFromStop([]);
+      }
+
       if (data.needs_walking_guidance) {
-        setWalkingGuidanceActive(true);
-        setWalkingGuidanceData(data);
-        setDistanceRemaining(data.distance_to_stop);
-
-        // Update map path
-        if (data.walking_path && data.walking_path.coordinates) {
-          setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
-        }
-
         startLocationTracking(data);
       } else {
         alert(data.message || 'You are already at the stop!');
@@ -423,6 +449,8 @@ export function UserHome() {
           center={mapCenter}
           zoom={mapZoom}
           walkingPath={walkingPath}
+          walkingPathToStop={walkingPathToStop}
+          walkingPathFromStop={walkingPathFromStop}
         />
       </div>
 
@@ -763,7 +791,8 @@ export function UserHome() {
               Turn-by-Turn Directions
             </summary>
             <div className="mt-3 space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-              {walkingGuidanceData.walking_path.steps.map((step: any, idx: number) => (
+              {/* Use walking_path_to_stop if available, or fallback to walking_path */}
+              {(walkingGuidanceData.walking_path_to_stop?.steps || walkingGuidanceData.walking_path?.steps || []).map((step: any, idx: number) => (
                 <div key={idx} className="flex gap-3">
                   <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600 flex-shrink-0">
                     {idx + 1}

@@ -224,6 +224,8 @@ interface MapProps {
   center?: [number, number];
   zoom?: number;
   walkingPath?: [number, number][];
+  walkingPathToStop?: [number, number][];
+  walkingPathFromStop?: [number, number][];
   routePolylines?: Record<number, [number, number][]>;
   buses?: any[];
   onMapClick?: (latlng: [number, number]) => void;
@@ -253,10 +255,14 @@ export function Map({
   onMapClick,
   center = COLOMBO_CENTER,
   zoom = 13,
+  zoom = 13,
   walkingPath = [],
   routePolylines,
   buses,
-}: MapProps) {
+}: MapProps & {
+  walkingPathToStop?: [number, number][];
+  walkingPathFromStop?: [number, number][];
+}) {
   const mapRef = useRef<L.Map>(null);
 
   // Filter routes to show
@@ -295,19 +301,48 @@ export function Map({
         <MapBoundsController points={[fromLocation, destination]} />
       )}
 
-      {/* Journey Path (Walking or Direct Connection) */}
-      {(walkingPath && walkingPath.length > 0) ? (
+      {/* Journey Path: Walking To Stop */}
+      {(walkingPathToStop && walkingPathToStop.length > 0) ? (
         <Polyline
-          positions={walkingPath}
+          positions={walkingPathToStop}
           pathOptions={{
-            color: '#3b82f6', // Blue
+            color: '#3b82f6', // Blue (To Stop)
             weight: 6,
             dashArray: '10, 15', // Dashed line
             opacity: 0.9,
             lineCap: 'round'
           }}
         />
-      ) : (fromLocation && destination && (
+      ) : (walkingPath && walkingPath.length > 0) && (
+        // Fallback for older interface
+        <Polyline
+          positions={walkingPath}
+          pathOptions={{
+            color: '#3b82f6',
+            weight: 6,
+            dashArray: '10, 15',
+            opacity: 0.9,
+            lineCap: 'round'
+          }}
+        />
+      )}
+
+      {/* Journey Path: Walking From Stop */}
+      {(walkingPathFromStop && walkingPathFromStop.length > 0) && (
+        <Polyline
+          positions={walkingPathFromStop}
+          pathOptions={{
+            color: '#ef4444', // Red (From Stop)
+            weight: 6,
+            dashArray: '10, 15', // Dashed line
+            opacity: 0.9,
+            lineCap: 'round'
+          }}
+        />
+      )}
+
+      {/* Direct Connection (if no walking path but locations set) */}
+      {!((walkingPathToStop && walkingPathToStop.length > 0) || (walkingPath && walkingPath.length > 0)) && fromLocation && destination && (
         <Polyline
           positions={[fromLocation, destination]}
           pathOptions={{
@@ -318,7 +353,7 @@ export function Map({
             lineCap: 'round'
           }}
         />
-      ))}
+      )}
 
       {/* Route polylines */}
       {showRoutes && (
