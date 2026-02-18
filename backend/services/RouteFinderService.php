@@ -78,6 +78,48 @@ class RouteFinderService
             ];
         }
 
+        // --- NEW: Add Walking Transfer Edges ---
+        // Get all stops to find nearby ones
+        // In a real large-scale app, use PostGIS or spatial index. Here, simple distance check.
+        $stops = $this->db->query("SELECT id, latitude, longitude FROM stops")->fetchAll(PDO::FETCH_ASSOC);
+        $transferSpeed = 1.4 * 60; // m/min (approx 84 m/min) ~ 5 km/h
+        $maxTransferDist = 0.2; // 200 meters max walking transfer
+
+        // Very naive O(N^2) - okay for small number of stops (< 500)
+        // For production, this should be pre-calculated or spatially optimized
+        foreach ($stops as $stopA) {
+            foreach ($stops as $stopB) {
+                if ($stopA['id'] == $stopB['id'])
+                    continue;
+
+                $distKm = GeoUtils::haversineDistance(
+                    $stopA['latitude'], $stopA['longitude'],
+                    $stopB['latitude'], $stopB['longitude']
+                );
+
+                if ($distKm <= $maxTransferDist) {
+                    $walkTime = ($distKm * 1000) / $transferSpeed; // minutes
+
+                    // Add penalty for transfer (e.g. 5 mins) to prefer direct bus
+                    $transferPenalty = 5;
+                    $totalTransferCost = $walkTime + $transferPenalty;
+
+                    if (!isset($graph[$stopA['id']]))
+                        $graph[$stopA['id']] = [];
+
+                    // Only add if faster than existing edge (unlikely for bus vs walk, but good practice)
+                    if (!isset($graph[$stopA['id']][$stopB['id']]) || $totalTransferCost < $graph[$stopA['id']][$stopB['id']]['time']) {
+                        $graph[$stopA['id']][$stopB['id']] = [
+                            'time' => $totalTransferCost,
+                            'segment_id' => null, // Walking transfer
+                            'route_id' => null // Walking transfer
+                        ];
+                    }
+                }
+            }
+        }
+        // ---------------------------------------
+
         return $graph;
     }
 
