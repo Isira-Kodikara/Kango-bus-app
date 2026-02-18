@@ -262,7 +262,7 @@ export function Map({
         <Polyline
           positions={busPath}
           pathOptions={{
-            color: '#10b981',
+            color: '#16a34a', // Standard Green
             weight: 6,
             opacity: 0.85,
             lineCap: 'round',
