@@ -158,8 +158,7 @@ export function UserHome() {
   const [activeBuses, setActiveBuses] = useState<any[]>([]);
   const [showWarningDialog, setShowWarningDialog] = useState(false);
   const [pendingBus, setPendingBus] = useState<any>(null);
-
-
+  const [activeInput, setActiveInput] = useState<'from' | 'to' | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
 
@@ -194,7 +193,9 @@ export function UserHome() {
           const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
           setUserLocation(coords);
           setMapCenter(coords);
-          setCurrentLocation('My Location');
+          if (!fromLocationCoords && currentLocation === 'Current Location') {
+            // Keep "Current Location" as text but don't set manual coords yet using userLocation implicitly
+          }
         },
         (error) => {
           console.warn('Geolocation access denied or failed:', error.message);
@@ -344,9 +345,18 @@ export function UserHome() {
   };
 
   const handleMapClick = (latlng: [number, number]) => {
-    setDestinationCoords(latlng);
-    setDestination(`Selected Position`);
-    setMapCenter(latlng);
+    if (activeInput === 'from') {
+      setFromLocationCoords(latlng);
+      setCurrentLocation('Pinned Location');
+      setMapCenter(latlng);
+      setActiveInput(null);
+    } else {
+      // Default behavior (or if 'to' is active)
+      setDestinationCoords(latlng);
+      setDestination(`Selected Position`);
+      setMapCenter(latlng);
+      setActiveInput(null);
+    }
   };
 
   const handleBusClick = (bus: any) => {
@@ -384,9 +394,9 @@ export function UserHome() {
 
     if (canCatch) {
       // Navigate directly if user can catch the bus
-      navigate('/trip-active', { 
-        state: { 
-          bus: busData, 
+      navigate('/trip-active', {
+        state: {
+          bus: busData,
           destination: destination || 'Unknown Destination'
         },
         replace: false
@@ -400,9 +410,9 @@ export function UserHome() {
 
   const confirmBoarding = () => {
     if (pendingBus) {
-      navigate('/trip-active', { 
-        state: { 
-          bus: pendingBus, 
+      navigate('/trip-active', {
+        state: {
+          bus: pendingBus,
           destination: destination || 'Unknown Destination'
         },
         replace: false
@@ -581,7 +591,10 @@ export function UserHome() {
       setRoutePath([]);
 
       // Update walking path to boarding stop
-      if (data.walking_path && data.walking_path.coordinates) {
+      if (data.walking_path_to_stop && data.walking_path_to_stop.coordinates) {
+        setWalkingPath(data.walking_path_to_stop.coordinates.map((coord: any) => [coord[1], coord[0]]));
+      } else if (data.walking_path && data.walking_path.coordinates) {
+        // Fallback for older API response if needed
         setWalkingPath(data.walking_path.coordinates.map((coord: any) => [coord[1], coord[0]]));
       }
 
@@ -703,6 +716,7 @@ export function UserHome() {
     setTimeout(() => {
       setShowFromSuggestions(false);
       setShowToSuggestions(false);
+      // Don't clear active input here to allow for map clicking right after focus
     }, 200);
   };
 
@@ -762,7 +776,7 @@ export function UserHome() {
               </button>
               <h1 className="text-xl font-black text-blue-600 absolute left-1/2 -translate-x-1/2 uppercase tracking-tighter">KANGO</h1>
               <div className="flex items-center z-10">
-                <button 
+                <button
                   onClick={() => setShowMenu(!showMenu)}
                   className="p-2 hover:bg-gray-100 rounded-full"
                 >
@@ -779,13 +793,16 @@ export function UserHome() {
                   <div className="flex-1 space-y-3">
                     {/* From Input Group */}
                     <div className="relative z-[1010]">
-                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                      <div className={`flex items-center bg-gray-50 rounded-full px-3 py-1 border transition-all shadow-sm ${activeInput === 'from' ? 'border-blue-500 bg-white ring-2 ring-blue-100' : 'border-transparent focus-within:border-blue-200 focus-within:bg-white'}`}>
                         <MapPin className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
                         <input
                           type="text"
                           value={currentLocation}
                           onChange={(e) => handleFromChange(e.target.value)}
-                          onFocus={() => handleFromChange(currentLocation)}
+                          onFocus={() => {
+                            handleFromChange(currentLocation);
+                            setActiveInput('from');
+                          }}
                           onBlur={handleBlur}
                           className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
                           placeholder="Current Location"
@@ -826,13 +843,16 @@ export function UserHome() {
 
                     {/* To Input Group */}
                     <div className="relative z-[1000]">
-                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-1 border border-transparent focus-within:border-blue-200 focus-within:bg-white transition-all shadow-sm">
+                      <div className={`flex items-center bg-gray-50 rounded-full px-3 py-1 border transition-all shadow-sm ${activeInput === 'to' ? 'border-red-500 bg-white ring-2 ring-red-100' : 'border-transparent focus-within:border-blue-200 focus-within:bg-white'}`}>
                         <MapPin className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
                         <input
                           type="text"
                           value={destination}
                           onChange={(e) => handleToChange(e.target.value)}
-                          onFocus={() => handleToChange(destination)}
+                          onFocus={() => {
+                            handleToChange(destination);
+                            setActiveInput('to');
+                          }}
                           onBlur={handleBlur}
                           className="w-full py-2.5 text-sm font-semibold text-gray-800 outline-none bg-transparent"
                           placeholder="Where to?"
@@ -854,6 +874,7 @@ export function UserHome() {
                           </button>
                         )}
                       </div>
+
 
                       {showToSuggestions && toSuggestions.length > 0 && (
                         <div className="absolute left-0 right-0 top-full z-[1100] bg-white rounded-xl shadow-[0_10px_40_rgba(0,0,0,0.1)] border border-gray-100 mt-2 max-h-60 overflow-y-auto">
@@ -1082,11 +1103,11 @@ export function UserHome() {
       {showMenu && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 bg-black/30 z-[990]"
             onClick={() => setShowMenu(false)}
           />
-          
+
           {/* Menu Drawer */}
           <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-[999] animate-in slide-in-from-right overflow-y-auto">
             {/* Header */}
@@ -1119,7 +1140,7 @@ export function UserHome() {
               {/* ACCOUNT Section */}
               <div className="mb-6">
                 <h3 className="text-xs font-bold uppercase text-gray-500 px-3 mb-3 tracking-wider">Account</h3>
-                
+
                 <button
                   onClick={() => {
                     navigate('/user-profile');
