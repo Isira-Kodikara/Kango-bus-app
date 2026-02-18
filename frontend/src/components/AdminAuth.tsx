@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
 export function AdminAuth() {
@@ -54,10 +54,12 @@ export function AdminAuth() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError('');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-700 flex flex-col">
+      {/* Header */}
       <div className="p-6 flex items-center">
         <button
           onClick={() => navigate('/')}
@@ -68,48 +70,40 @@ export function AdminAuth() {
         <h1 className="text-white text-xl font-semibold ml-4">Admin {isLogin ? 'Login' : 'Sign Up'}</h1>
       </div>
 
+      {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl p-8">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <ShieldCheck className="w-8 h-8 text-purple-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {isLogin ? 'Admin Login' : 'Admin Registration'}
-              </h2>
-              <p className="text-sm text-gray-600">Secure access to system management</p>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl">
-                <div className="flex items-start">
-                  <svg className="h-5 w-5 text-red-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          {/* Error Alert - Moved outside card */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <div className="ml-3 flex-1">
-                    <h3 className="text-sm font-semibold text-red-800">
-                      {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
-                        error.includes('connect') ? 'Connection Error' :
-                          error.includes('not found') ? 'Account Not Found' : 'Login Error'}
-                    </h3>
-                    <p className="text-sm text-red-700 mt-1">{error}</p>
-                    {(error.includes('Invalid') || error.includes('password')) && (
-                      <div className="mt-2 p-2 bg-purple-50 rounded-lg">
-                        <p className="text-xs text-purple-800 font-medium">💡 Admin credentials:</p>
-                        <p className="text-xs text-purple-600 mt-1">Email: admin@kango.com</p>
-                        <p className="text-xs text-purple-600">Password: password</p>
-                      </div>
-                    )}
-                    {error.includes('connect') && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
-                        <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-semibold text-red-800">
+                    {error.includes('Invalid') || error.includes('password') ? 'Invalid Credentials' :
+                      error.includes('connect') ? 'Connection Error' :
+                        error.includes('not found') ? 'Account Not Found' : 'Login Error'}
+                  </h3>
+                  <p className="text-sm text-red-700 mt-1">{error}</p>
+
+                  {error.includes('connect') && (
+                    <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
+                      <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="bg-white rounded-3xl shadow-2xl p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              {isLogin ? 'Admin Login' : 'Admin Registration'}
+            </h2>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -153,9 +147,16 @@ export function AdminAuth() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center"
               >
-                {isLoading ? 'Logging in...' : (isLogin ? 'Log In' : 'Sign Up')}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  isLogin ? 'Log In' : 'Sign Up'
+                )}
               </button>
             </form>
 

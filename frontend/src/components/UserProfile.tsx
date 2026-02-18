@@ -21,45 +21,11 @@ import {
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
-import { authApi, userApi, SavedPlace } from '../lib/api';
-import { AddSavedPlaceModal } from './AddSavedPlaceModal';
-import { PaymentSettings } from './PaymentSettings';
+import { authApi, userApi, SavedPlace, User as ApiUser } from '../lib/api';
 
-const mockTripHistory = [
-  {
-    id: 1,
-    date: '2026-01-30',
-    time: '08:45 AM',
-    bus: 'BUS-45',
-    route: 'Downtown Express',
-    from: 'Main Street Station',
-    to: 'Central Plaza',
-    fare: '$3.70',
-    rating: 5
-  },
-  {
-    id: 2,
-    date: '2026-01-29',
-    time: '06:30 PM',
-    bus: 'BUS-12',
-    route: 'City Circle',
-    from: 'Central Plaza',
-    to: 'Harbor Terminal',
-    fare: '$4.20',
-    rating: 4
-  },
-  {
-    id: 3,
-    date: '2026-01-28',
-    time: '09:15 AM',
-    bus: 'BUS-89',
-    route: 'Harbor Line',
-    from: 'Park Avenue',
-    to: 'Business District',
-    fare: '$3.50',
-    rating: 5
-  },
-];
+import { AddSavedPlaceModal } from './AddSavedPlaceModal';
+
+
 
 
 
@@ -68,8 +34,9 @@ export function UserProfile() {
   const { user, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'locations' | 'settings'>('history');
   const [isEditing, setIsEditing] = useState(false);
-  const [editUsername, setEditUsername] = useState('');
+  const [editFullName, setEditFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
 
   // Saved Places State
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
@@ -115,43 +82,46 @@ export function UserProfile() {
   };
 
   const startEditing = () => {
-    setEditUsername(user?.username || '');
+    setEditFullName(user?.full_name || '');
     setIsEditing(true);
   };
 
   const cancelEditing = () => {
     setIsEditing(false);
-    setEditUsername('');
+    setEditFullName('');
   };
 
-  const saveUsername = async () => {
-    if (!editUsername.trim()) {
-      toast.error('Username cannot be empty');
+  const saveFullName = async () => {
+    if (!editFullName.trim()) {
+      toast.error('Name cannot be empty');
       return;
     }
 
-    if (editUsername === user?.username) {
+    if (editFullName === user?.full_name) {
       setIsEditing(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await authApi.updateProfile({ username: editUsername });
+      const response = await authApi.updateProfile({ full_name: editFullName });
       if (response.success && response.data) {
         // Use login to update both user and token (since token is regenerated)
-        login(response.data.token, response.data.user);
-        toast.success('Username updated successfully');
+        // Check if user is returned properly
+        const updatedUser = response.data.user as ApiUser; // Cast if needed or use type assertion
+        login(response.data.token, updatedUser);
+        toast.success('Name updated successfully');
         setIsEditing(false);
       } else {
-        toast.error(response.message || 'Failed to update username');
+        toast.error(response.message || 'Failed to update name');
       }
     } catch (error) {
-      toast.error('An error occurred while updating username');
+      toast.error('An error occurred while updating profile');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -178,14 +148,14 @@ export function UserProfile() {
               <div className="flex items-center gap-2 mb-1">
                 <input
                   type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
                   className="bg-white/10 border border-white/30 text-white rounded px-2 py-1 text-xl font-bold focus:outline-none focus:border-white w-full max-w-[200px]"
-                  placeholder="Username"
+                  placeholder="Full Name"
                   autoFocus
                 />
                 <button
-                  onClick={saveUsername}
+                  onClick={saveFullName}
                   disabled={isLoading}
                   className="p-1 hover:bg-white/20 rounded-full text-green-300 disabled:opacity-50"
                 >
@@ -201,14 +171,15 @@ export function UserProfile() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold">{user?.username || 'Guest User'}</h2>
+                <h2 className="text-2xl font-bold">{user?.full_name || 'Guest User'}</h2>
                 <button
                   onClick={startEditing}
                   className="p-1 hover:bg-white/20 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                  title="Edit Username"
+                  title="Edit Name"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
+
               </div>
             )}
             <p className="text-blue-100">{user?.email || 'No email registered'}</p>
@@ -257,41 +228,11 @@ export function UserProfile() {
         {activeTab === 'history' && (
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Trips</h3>
-            {mockTripHistory.map((trip) => (
-              <div key={trip.id} className="bg-white rounded-2xl shadow-md p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-bold text-gray-800">{trip.bus}</div>
-                    <div className="text-sm text-gray-600">{trip.route}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-blue-600">{trip.fare}</div>
-                    <div className="flex items-center mt-1">
-                      {Array.from({ length: trip.rating }).map((_, i) => (
-                        <Star key={i} className="w-3 h-3 text-yellow-400 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-green-600" />
-                    <span className="font-medium">From:</span>
-                    <span className="ml-2">{trip.from}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                    <span className="font-medium">To:</span>
-                    <span className="ml-2">{trip.to}</span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>{trip.date} at {trip.time}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <div className="text-center p-8 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-300">
+              <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p>No recent trips yet.</p>
+              <p className="text-sm mt-1">Your trip history will appear here once you start travelling.</p>
+            </div>
           </div>
         )}
 
@@ -378,14 +319,26 @@ export function UserProfile() {
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Account Settings</h3>
 
             {/* Payment Methods */}
-            <div className="mb-6">
-              <PaymentSettings />
+            <div
+              className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => navigate('/payment-methods')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCard className="w-6 h-6 text-blue-600 mr-3" />
+                  <div>
+                    <div className="font-semibold text-gray-800">Payment Methods</div>
+                    <div className="text-sm text-gray-600">Manage cards & wallets</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
             </div>
 
             {/* Emergency Contacts */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Emergency Contacts feature coming soon!")}
+              onClick={() => navigate('/emergency-contacts')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -402,7 +355,7 @@ export function UserProfile() {
             {/* Notifications */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Notification settings coming soon!")}
+              onClick={() => navigate('/notifications')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -419,7 +372,7 @@ export function UserProfile() {
             {/* Privacy */}
             <div
               className="bg-white rounded-2xl shadow-md p-5 cursor-pointer active:scale-95 transition-transform"
-              onClick={() => toast.info("Privacy Settings coming soon!")}
+              onClick={() => navigate('/privacy')}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">

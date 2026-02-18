@@ -40,6 +40,9 @@ switch ($action) {
     case 'approve-crew':
         handleApproveCrew($db);
         break;
+    case 'analytics':
+        handleGetAnalytics($db);
+        break;
     default:
         Response::error('Invalid action', 400);
 }
@@ -62,6 +65,54 @@ function handleGetPendingCrew(PDO $db): void {
     $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     Response::success($pending, 'Pending crew members retrieved');
+}
+
+/**
+ * Get analytics data (Admin only)
+ */
+function handleGetAnalytics(PDO $db): void {
+    $authUser = JWT::requireAuth();
+    if ($authUser['user_type'] !== 'admin') {
+        Response::forbidden();
+    }
+
+    try {
+        // Total Trips
+        $stmt = $db->query("SELECT COUNT(*) as count FROM trips");
+        $totalTrips = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+        // Total Passengers (using trips count as proxy for now, or sum of passengers if available)
+        // If we want total registered users:
+        //$stmt = $db->query("SELECT COUNT(*) as count FROM users");
+        //$totalUsers = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        
+        // Let's use trips as passengers for traffic
+        $totalPassengers = $totalTrips;
+
+        // Avg Rating
+        $stmt = $db->query("SELECT AVG(rating) as avg FROM trips WHERE rating IS NOT NULL");
+        $avgRating = $stmt->fetch(PDO::FETCH_ASSOC)['avg'];
+
+        // Peak Hour
+        $stmt = $db->query("
+            SELECT HOUR(created_at) as hour, COUNT(*) as count 
+            FROM trips 
+            GROUP BY hour 
+            ORDER BY count DESC 
+            LIMIT 1
+        ");
+        $peakHourData = $stmt->fetch(PDO::FETCH_ASSOC);
+        $peakHour = $peakHourData ? str_pad($peakHourData['hour'], 2, '0', STR_PAD_LEFT) . ':00' : '--';
+
+        Response::success([
+            'totalTrips' => (int)$totalTrips,
+            'totalPassengers' => (int)$totalPassengers,
+            'avgRating' => $avgRating ? round((float)$avgRating, 1) : 5.0,
+            'peakHour' => $peakHour
+        ], 'Analytics retrieved');
+    } catch (Exception $e) {
+        Response::error('Failed to calculate analytics: ' . $e->getMessage(), 500);
+    }
 }
 
 /**

@@ -9,6 +9,14 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { UserProfile } from "./components/UserProfile";
 import { TripActive } from "./components/TripActive";
 import { EmergencyAlert } from "./components/EmergencyAlert";
+import { NotificationSettings } from "./components/NotificationSettings";
+import { AppearanceSettings } from "./components/AppearanceSettings";
+import { PrivacySettings } from "./components/PrivacySettings";
+import { EmergencyContacts } from "./components/EmergencyContactsPage";
+import { FavoriteRoutes } from "./components/FavoriteRoutes";
+import { PaymentMethods } from "./components/PaymentMethods";
+import { HelpCenter } from "./components/HelpCenter";
+import { TermsAndPrivacy } from "./components/TermsAndPrivacy";
 import DemoModePage from "./pages/DemoModePage";
 
 export const router = createBrowserRouter([
@@ -55,5 +63,37 @@ export const router = createBrowserRouter([
   {
     path: "/admin-dashboard",
     Component: AdminDashboard,
+  },
+  {
+    path: "/notifications",
+    Component: NotificationSettings,
+  },
+  {
+    path: "/appearance",
+    Component: AppearanceSettings,
+  },
+  {
+    path: "/privacy",
+    Component: PrivacySettings,
+  },
+  {
+    path: "/emergency-contacts",
+    Component: EmergencyContacts,
+  },
+  {
+    path: "/favorite-routes",
+    Component: FavoriteRoutes,
+  },
+  {
+    path: "/payment-methods",
+    Component: PaymentMethods,
+  },
+  {
+    path: "/help",
+    Component: HelpCenter,
+  },
+  {
+    path: "/terms",
+    Component: TermsAndPrivacy,
   },
 ]);

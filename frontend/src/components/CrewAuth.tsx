@@ -50,6 +50,12 @@ export function CrewAuth() {
         if (data.data?.token) {
           localStorage.setItem('auth_token', data.data.token);
           localStorage.setItem('user_type', 'crew');
+          if (data.data.crew?.bus) {
+            localStorage.setItem('bus_id', data.data.crew.bus.id);
+            localStorage.setItem('bus_plate', data.data.crew.bus.plate_number);
+            localStorage.setItem('route_name', data.data.crew.bus.route_name || '');
+            localStorage.setItem('route_id', data.data.crew.bus.route_id || '');
+          }
           navigate('/crew-dashboard');
         } else if (data.data?.requires_approval) {
           setSuccessMessage(data.message || 'Registration request sent! Please wait for admin approval.');
@@ -135,13 +141,7 @@ export function CrewAuth() {
                           error.includes('not found') ? 'Account Not Found' : 'Login Error'}
                     </h3>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
-                    {isLogin && (error.includes('Invalid') || error.includes('password')) && (
-                      <div className="mt-2 p-2 bg-orange-50 rounded-lg">
-                        <p className="text-xs text-orange-800 font-medium">💡 Test credentials:</p>
-                        <p className="text-xs text-orange-600 mt-1">Email: john.smith@kango.com</p>
-                        <p className="text-xs text-orange-600">Password: password</p>
-                      </div>
-                    )}
+
                     {error.includes('connect') && (
                       <div className="mt-2 p-2 bg-yellow-50 rounded-lg">
                         <p className="text-xs text-yellow-800">Please check your internet connection and try again.</p>

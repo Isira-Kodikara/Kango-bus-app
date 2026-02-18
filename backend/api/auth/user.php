@@ -41,6 +41,10 @@ switch ($action) {
     case 'reset-password':
         handleResetPassword($db);
         break;
+    case 'update-profile':
+        handleUpdateProfile($db);
+        break;
+
     default:
         Response::error('Invalid action', 400);
 }
@@ -56,11 +60,12 @@ function handleRegister(PDO $db): void {
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $validator = new Validator($data);
-    $validator->required(['username', 'email', 'password'])
+    $validator->required(['full_name', 'email', 'password'])
               ->email('email')
-              ->minLength('username', 3)
-              ->maxLength('username', 50)
+              ->minLength('full_name', 3)
+              ->maxLength('full_name', 100)
               ->minLength('password', 6);
+
 
     if ($validator->fails()) {
         Response::validationError($validator->getErrors());
@@ -73,12 +78,8 @@ function handleRegister(PDO $db): void {
         Response::error('Email already registered', 409);
     }
 
-    // Check if username already exists
-    $stmt = $db->prepare("SELECT id FROM users WHERE username = ?");
-    $stmt->execute([$validator->get('username')]);
-    if ($stmt->fetch()) {
-        Response::error('Username already taken', 409);
-    }
+    // No more username check (using email as unique key)
+
 
     // Generate OTP
     $otp = OTP::generate();
@@ -89,16 +90,17 @@ function handleRegister(PDO $db): void {
 
     // Insert user - AUTO-VERIFIED FOR DEVELOPMENT
     $stmt = $db->prepare("
-        INSERT INTO users (username, email, password, otp_code, otp_expires_at, is_verified)
+        INSERT INTO users (full_name, email, password, otp_code, otp_expires_at, is_verified)
         VALUES (?, ?, ?, ?, ?, TRUE)
     ");
     $stmt->execute([
-        $validator->get('username'),
+        $validator->get('full_name'),
         $validator->get('email'),
         $hashedPassword,
         $otp,
         $otpExpiry
     ]);
+
 
     $userId = $db->lastInsertId();
 
@@ -108,10 +110,11 @@ function handleRegister(PDO $db): void {
     // DEV MODE: Auto-generate token since user is auto-verified
     $user = [
         'id' => (int)$userId,
-        'username' => $validator->get('username'),
+        'full_name' => $validator->get('full_name'),
         'email' => $validator->get('email'),
         'is_verified' => true
     ];
+
     $token = JWT::generate($user);
 
     Response::success([
@@ -175,8 +178,9 @@ function handleLogin(PDO $db): void {
         'user_id' => $user['id'],
         'user_type' => 'user',
         'email' => $user['email'],
-        'username' => $user['username']
+        'full_name' => $user['full_name']
     ]);
+
 
     // Save session
     $stmt = $db->prepare("
@@ -193,7 +197,8 @@ function handleLogin(PDO $db): void {
         'token' => $token,
         'user' => [
             'id' => (int)$user['id'],
-            'username' => $user['username'],
+            'full_name' => $user['full_name'],
+
             'email' => $user['email'],
             'full_name' => $user['full_name'],
             'average_rating' => (float)$user['average_rating']
@@ -247,8 +252,9 @@ function handleVerifyOTP(PDO $db): void {
         'user_id' => $user['id'],
         'user_type' => 'user',
         'email' => $user['email'],
-        'username' => $user['username']
+        'full_name' => $user['full_name']
     ]);
+
 
     // Save session
     $stmt = $db->prepare("
@@ -265,7 +271,8 @@ function handleVerifyOTP(PDO $db): void {
         'token' => $token,
         'user' => [
             'id' => (int)$user['id'],
-            'username' => $user['username'],
+            'full_name' => $user['full_name'],
+
             'email' => $user['email'],
             'full_name' => $user['full_name']
         ]
@@ -400,3 +407,46 @@ function handleResetPassword(PDO $db): void {
 
     Response::success(null, 'Password reset successful');
 }
+
+/**
+ * Handle profile update
+ */
+function handleUpdateProfile(PDO $db): void {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        Response::methodNotAllowed();
+    }
+
+    $authUser = JWT::requireAuth();
+    $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    if (empty($data['full_name'])) {
+        Response::error('Full Name is required', 400);
+    }
+
+    // Update user
+    $stmt = $db->prepare("UPDATE users SET full_name = ? WHERE id = ?");
+    $stmt->execute([$data['full_name'], $authUser['user_id']]);
+
+    // Fetch updated user
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$authUser['user_id']]);
+    $user = $stmt->fetch();
+
+    // Generate new token
+    $token = JWT::generate([
+        'user_id' => $user['id'],
+        'user_type' => 'user',
+        'email' => $user['email'],
+        'full_name' => $user['full_name']
+    ]);
+
+    Response::success([
+        'token' => $token,
+        'user' => [
+            'id' => (int)$user['id'],
+            'full_name' => $user['full_name'],
+            'email' => $user['email']
+        ]
+    ], 'Profile updated successfully');
+}
+

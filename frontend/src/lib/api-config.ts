@@ -1,26 +1,25 @@
 /**
  * API Configuration
- * 
- * In development, this points to localhost:8000.
- * In production, it should be set via environment variable VITE_API_BASE_URL.
+ * Last Updated: Force Deploy Trigger
  */
 
-// Detect if we are running in a production-like environment (Vercel, Railway, etc.)
-const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+// Priority: VITE_API_URL -> VITE_API_BASE_URL -> Domestic production check -> Localhost fallback
+// Priority: VITE_API_URL -> VITE_API_BASE_URL -> Production URL (default)
+const rawBaseUrl = import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    `https://kango-bus-app-production.up.railway.app`;
 
-// Base URL for backend API
-// Priority:
-// 1. VITE_API_BASE_URL environment variable (stripped of trailing slash)
-// 2. Production guess based on window.location
-// 3. Localhost fallback
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ||
-    (isProduction
-        ? `https://${window.location.hostname}/api` // Guessing standard subdirectory
-        : 'http://localhost:8000/api');
 
-export const API_BASE_URL = rawBaseUrl.replace(/\/$/, '');
+// Ensure base URL has /api suffix if not present
+export const API_BASE_URL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl}/api`;
 
 // Specific endpoints
 export const ENDPOINTS = {
-    TRIP_GUIDANCE: `${API_BASE_URL}/trip-guidance.php`,
+    TRIP_GUIDANCE: `${API_BASE_URL}/trip-guidance`,
+    GET_LIVE_BUSES: `${API_BASE_URL}/get-live-buses`,
+    GET_ROUTES: `${API_BASE_URL}/get-routes`,
+    GET_STOPS: `${API_BASE_URL}/get-stops`,
+    GET_ROUTE_DETAILS: `${API_BASE_URL}/get-route-details`,
+    AUTH_USER: `${API_BASE_URL}/auth/user`,
+    SAVED_PLACES: `${API_BASE_URL}/saved-places`,
 };

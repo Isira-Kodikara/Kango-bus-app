@@ -3,9 +3,12 @@
  * Handles all communication between React frontend and Backend
  */
 
-// API Base URL - uses environment variable in production, proxy in development
-export const API_BASE_URL = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '/api';
+import { API_BASE_URL as CONFIG_API_BASE_URL } from './api-config';
+
+// Unified API Base URL
+export const API_BASE_URL = CONFIG_API_BASE_URL;
 console.log('🔌 Connected to API at:', API_BASE_URL);
+
 
 
 // Types
@@ -18,8 +21,9 @@ export interface ApiResponse<T = unknown> {
 
 export interface User {
   id: number;
-  username: string;
+  full_name: string;
   email: string;
+
   phone?: string;
   is_verified: boolean;
   created_at: string;
@@ -37,8 +41,9 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  username: string;
+  full_name: string;
   email: string;
+
   password: string;
   phone?: string;
 }
@@ -258,11 +263,12 @@ export const authApi = {
   /**
    * Update user profile
    */
-  updateProfile: async (data: { username: string }): Promise<ApiResponse<AuthTokens>> => {
-    const response = await apiFetch<AuthTokens>('/auth/user/update-profile', {
+  updateProfile: async (data: { full_name: string }): Promise<ApiResponse<{ token: string; user: User }>> => {
+    const response = await apiFetch<{ token: string; user: User }>('/auth/user?action=update-profile', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
 
     if (response.success && response.data) {
       storeAuthData(response.data.token, response.data.user);
@@ -390,6 +396,16 @@ export const adminApi = {
   },
 
   /**
+   * Reject a pending crew member
+   */
+  rejectCrew: async (crewId: number): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/reject-crew', {
+      method: 'POST',
+      body: JSON.stringify({ crew_id: crewId })
+    });
+  },
+
+  /**
    * Get all live buses
    */
   getBuses: async (): Promise<ApiResponse<any[]>> => {
@@ -404,6 +420,57 @@ export const adminApi = {
   getRoutes: async (): Promise<ApiResponse<any[]>> => {
     return apiFetch<any[]>('/get-routes', {
       method: 'GET'
+    });
+  },
+
+  /**
+   * Get analytics data
+   */
+  getAnalytics: async (): Promise<ApiResponse<{ totalTrips: number; totalPassengers: number; avgRating: number; peakHour: string }>> => {
+    return apiFetch<{ totalTrips: number; totalPassengers: number; avgRating: number; peakHour: string }>('/auth/admin/analytics', {
+      method: 'GET'
+    });
+  },
+
+  // Bus Management
+  createBus: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/buses', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateBus: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/buses', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteBus: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/auth/admin/buses?id=${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Route Management
+  createRoute: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/routes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateRoute: async (data: any): Promise<ApiResponse> => {
+    return apiFetch('/auth/admin/routes', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteRoute: async (id: number): Promise<ApiResponse> => {
+    return apiFetch(`/auth/admin/routes?id=${id}`, {
+      method: 'DELETE'
     });
   }
 };

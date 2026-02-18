@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents, AttributionControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -125,88 +125,37 @@ export const createFromIcon = () => L.divIcon({
   popupAnchor: [0, -24],
 });
 
-// Sample Colombo bus stops with real coordinates
-export const COLOMBO_BUS_STOPS = [
-  { id: 1, name: 'Fort Railway Station', lat: 6.9344, lng: 79.8428, code: 'FRT' },
-  { id: 2, name: 'Pettah Bus Stand', lat: 6.9366, lng: 79.8500, code: 'PTH' },
-  { id: 3, name: 'Kollupitiya Junction', lat: 6.9114, lng: 79.8489, code: 'KLP' },
-  { id: 4, name: 'Bambalapitiya', lat: 6.8897, lng: 79.8553, code: 'BBP' },
-  { id: 5, name: 'Wellawatte', lat: 6.8747, lng: 79.8594, code: 'WLW' },
-  { id: 6, name: 'Dehiwala', lat: 6.8564, lng: 79.8650, code: 'DHW' },
-  { id: 7, name: 'Mount Lavinia', lat: 6.8390, lng: 79.8660, code: 'MLV' },
-  { id: 8, name: 'Town Hall', lat: 6.9167, lng: 79.8636, code: 'TWH' },
-  { id: 9, name: 'Borella Junction', lat: 6.9147, lng: 79.8778, code: 'BRL' },
-  { id: 10, name: 'Maradana', lat: 6.9289, lng: 79.8675, code: 'MRD' },
-  { id: 11, name: 'Nugegoda', lat: 6.8722, lng: 79.8883, code: 'NGD' },
-  { id: 12, name: 'Maharagama', lat: 6.8481, lng: 79.9267, code: 'MHR' },
-];
-
-// Sample bus routes
-export const COLOMBO_ROUTES = [
-  {
-    id: 1,
-    name: 'Coastal Line',
-    number: '100',
-    color: '#3b82f6',
-    stops: [1, 2, 3, 4, 5, 6, 7], // Fort to Mount Lavinia
-  },
-  {
-    id: 2,
-    name: 'City Circle',
-    number: '138',
-    color: '#10b981',
-    stops: [1, 2, 10, 9, 8, 3], // Fort - Pettah - Maradana - Borella - Town Hall - Kollupitiya
-  },
-  {
-    id: 3,
-    name: 'Southern Express',
-    number: '155',
-    color: '#f59e0b',
-    stops: [1, 8, 9, 11, 12], // Fort - Town Hall - Borella - Nugegoda - Maharagama
-  },
-];
-
-// Sample active buses
-export const SAMPLE_BUSES = [
-  { id: 'NA-1234', routeId: 1, lat: 6.9200, lng: 79.8520, passengers: 24, capacity: 50, heading: 180 },
-  { id: 'NA-5678', routeId: 1, lat: 6.8750, lng: 79.8590, passengers: 35, capacity: 50, heading: 180 },
-  { id: 'NB-9012', routeId: 2, lat: 6.9250, lng: 79.8650, passengers: 18, capacity: 40, heading: 270 },
-  { id: 'NC-3456', routeId: 3, lat: 6.8900, lng: 79.8800, passengers: 42, capacity: 50, heading: 135 },
-];
-
-// Component to update map view
+// Map Controller Component
 function MapController({ center, zoom }: { center?: [number, number]; zoom?: number }) {
   const map = useMap();
-
   useEffect(() => {
     if (center) {
       map.setView(center, zoom || map.getZoom());
     }
   }, [center, zoom, map]);
-
   return null;
 }
 
-// Component to fit map to bounds
+// Bounds Controller Component
 function MapBoundsController({ points }: { points: [number, number][] }) {
   const map = useMap();
-
   useEffect(() => {
     if (points.length >= 2) {
       const bounds = L.latLngBounds(points);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
     }
   }, [points, map]);
-
   return null;
 }
 
-// Get route coordinates from stop IDs
-function getRouteCoordinates(stopIds: number[]): [number, number][] {
-  return stopIds
-    .map(id => COLOMBO_BUS_STOPS.find(stop => stop.id === id))
-    .filter(Boolean)
-    .map(stop => [stop!.lat, stop!.lng] as [number, number]);
+// Map Events Component
+function MapEvents({ onMapClick }: { onMapClick?: (latlng: [number, number]) => void }) {
+  useMapEvents({
+    click(e: L.LeafletMouseEvent) {
+      onMapClick?.([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return null;
 }
 
 // Props interface
@@ -219,26 +168,18 @@ interface MapProps {
   userLocation?: [number, number] | null;
   fromLocation?: [number, number] | null;
   destination?: [number, number] | null;
-  onBusClick?: (bus: typeof SAMPLE_BUSES[0]) => void;
-  onStopClick?: (stop: typeof COLOMBO_BUS_STOPS[0]) => void;
+  onBusClick?: (bus: any) => void;
+  onStopClick?: (stop: any) => void;
+  onMapClick?: (latlng: [number, number]) => void;
   center?: [number, number];
   zoom?: number;
   walkingPath?: [number, number][];
-  walkingPathToStop?: [number, number][];
-  walkingPathFromStop?: [number, number][];
-  routePolylines?: Record<number, [number, number][]>;
+  routePath?: [number, number][];
+  busPath?: [number, number][];
+  destWalkPath?: [number, number][];
   buses?: any[];
-  onMapClick?: (latlng: [number, number]) => void;
-}
-
-// Component to handle map clicks
-function MapEvents({ onMapClick }: { onMapClick?: (latlng: [number, number]) => void }) {
-  useMapEvents({
-    click(e: L.LeafletMouseEvent) {
-      onMapClick?.([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-  return null;
+  stops?: any[];
+  routes?: any[];
 }
 
 export function Map({
@@ -255,27 +196,15 @@ export function Map({
   onMapClick,
   center = COLOMBO_CENTER,
   zoom = 13,
-  zoom = 13,
   walkingPath = [],
-  routePolylines,
-  buses,
-}: MapProps & {
-  walkingPathToStop?: [number, number][];
-  walkingPathFromStop?: [number, number][];
-}) {
+  routePath = [],
+  busPath = [],
+  destWalkPath = [],
+  buses = [],
+  stops = [],
+  routes = [],
+}: MapProps) {
   const mapRef = useRef<L.Map>(null);
-
-  // Filter routes to show
-  const routesToShow = selectedRoute
-    ? COLOMBO_ROUTES.filter(r => r.id === selectedRoute)
-    : COLOMBO_ROUTES;
-
-  // Filter buses to show
-  // Use passed buses if available, otherwise use sample
-  const sourceBuses = buses || SAMPLE_BUSES;
-  const busesToShow = selectedRoute
-    ? sourceBuses.filter(b => b.routeId === selectedRoute)
-    : sourceBuses;
 
   return (
     <MapContainer
@@ -284,42 +213,43 @@ export function Map({
       className={`w-full h-full ${className}`}
       ref={mapRef}
       zoomControl={false}
+      attributionControl={false}
       style={{ zIndex: 0 }}
     >
-      {/* OpenStreetMap tiles */}
+      <AttributionControl position="bottomright" />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* Map controller for programmatic updates */}
       <MapController center={center} zoom={zoom} />
       <MapEvents onMapClick={onMapClick} />
 
-      {/* Auto-fit bounds when from and to locations are set */}
       {fromLocation && destination && (
         <MapBoundsController points={[fromLocation, destination]} />
       )}
 
-      {/* Journey Path: Walking To Stop */}
-      {(walkingPathToStop && walkingPathToStop.length > 0) ? (
+      {/* Route Preview Path (road-following, shown before/after search) */}
+      {routePath && routePath.length > 1 && !walkingPath.length && !busPath.length && (
         <Polyline
-          positions={walkingPathToStop}
+          positions={routePath}
           pathOptions={{
-            color: '#3b82f6', // Blue (To Stop)
-            weight: 6,
-            dashArray: '10, 15', // Dashed line
-            opacity: 0.9,
+            color: '#3b82f6',
+            weight: 5,
+            dashArray: '12, 8',
+            opacity: 0.7,
             lineCap: 'round'
           }}
         />
-      ) : (walkingPath && walkingPath.length > 0) && (
-        // Fallback for older interface
+      )}
+
+      {/* Walking Path to Boarding Stop */}
+      {walkingPath && walkingPath.length > 0 && (
         <Polyline
           positions={walkingPath}
           pathOptions={{
             color: '#3b82f6',
-            weight: 6,
+            weight: 5,
             dashArray: '10, 15',
             opacity: 0.9,
             lineCap: 'round'
@@ -327,22 +257,36 @@ export function Map({
         />
       )}
 
-      {/* Journey Path: Walking From Stop */}
-      {(walkingPathFromStop && walkingPathFromStop.length > 0) && (
+      {/* Bus Route Path */}
+      {busPath && busPath.length > 1 && (
         <Polyline
-          positions={walkingPathFromStop}
+          positions={busPath}
           pathOptions={{
-            color: '#ef4444', // Red (From Stop)
+            color: '#10b981',
             weight: 6,
-            dashArray: '10, 15', // Dashed line
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }}
+        />
+      )}
+
+      {/* Walking Path from Alighting Stop to Destination */}
+      {destWalkPath && destWalkPath.length > 1 && (
+        <Polyline
+          positions={destWalkPath}
+          pathOptions={{
+            color: '#ef4444',
+            weight: 5,
+            dashArray: '10, 15',
             opacity: 0.9,
             lineCap: 'round'
           }}
         />
       )}
 
-      {/* Direct Connection (if no walking path but locations set) */}
-      {!((walkingPathToStop && walkingPathToStop.length > 0) || (walkingPath && walkingPath.length > 0)) && fromLocation && destination && (
+      {/* Straight line fallback only if nothing else is available */}
+      {!walkingPath.length && !routePath.length && !busPath.length && fromLocation && destination && (
         <Polyline
           positions={[fromLocation, destination]}
           pathOptions={{
@@ -355,52 +299,11 @@ export function Map({
         />
       )}
 
-      {/* Route polylines */}
-      {showRoutes && (
-        <>
-          {/* Render passed polylines if available (Smooth lines) */}
-          {routePolylines && Object.entries(routePolylines).map(([id, path]) => {
-            const routeId = parseInt(id);
-            const route = COLOMBO_ROUTES.find(r => r.id === routeId);
-            if (!route) return null;
-
-            // Only show if selected or no specific selection
-            if (selectedRoute && selectedRoute !== routeId) return null;
-
-            return (
-              <Polyline
-                key={`poly-${id}`}
-                positions={path}
-                pathOptions={{
-                  color: route.color,
-                  weight: 5,
-                  opacity: selectedRoute === routeId ? 1 : 0.6,
-                  lineJoin: 'round'
-                }}
-              />
-            );
-          })}
-
-          {/* Fallback to straight lines if no polylines provided */}
-          {!routePolylines && routesToShow.map(route => (
-            <Polyline
-              key={route.id}
-              positions={getRouteCoordinates(route.stops)}
-              pathOptions={{
-                color: route.color,
-                weight: 4,
-                opacity: selectedRoute === route.id ? 1 : 0.6,
-              }}
-            />
-          ))}
-        </>
-      )}
-
-      {/* Bus stops */}
-      {showStops && COLOMBO_BUS_STOPS.map(stop => (
+      {/* Stops */}
+      {showStops && stops.map(stop => (
         <Marker
-          key={stop.id}
-          position={[stop.lat, stop.lng]}
+          key={`stop-${stop.id || stop.stop_id}`}
+          position={[stop.latitude || stop.lat, stop.longitude || stop.lng]}
           icon={createStopIcon(false)}
           eventHandlers={{
             click: () => onStopClick?.(stop),
@@ -408,67 +311,48 @@ export function Map({
         >
           <Popup>
             <div className="text-center">
-              <strong>{stop.name}</strong>
-              <br />
-              <span className="text-gray-500 text-sm">Stop: {stop.code}</span>
+              <strong>{stop.stop_name || stop.name}</strong>
             </div>
           </Popup>
         </Marker>
       ))}
 
       {/* Buses */}
-      {showBuses && busesToShow.map(bus => {
-        const route = COLOMBO_ROUTES.find(r => r.id === bus.routeId);
-        return (
-          <Marker
-            key={bus.id}
-            position={[bus.lat, bus.lng]}
-            icon={createBusIcon(route?.color)}
-            eventHandlers={{
-              click: () => onBusClick?.(bus),
-            }}
-          >
-            <Popup>
-              <div className="text-center min-w-[120px]">
-                <strong className="text-lg">{bus.id}</strong>
-                <br />
-                <span className="text-sm" style={{ color: route?.color }}>
-                  {route?.number} - {route?.name}
-                </span>
-                <br />
-                <span className="text-gray-600 text-sm">
-                  👥 {bus.passengers}/{bus.capacity}
-                </span>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
+      {showBuses && buses.map(bus => (
+        <Marker
+          key={`bus-${bus.id || bus.plate_number}`}
+          position={[bus.lat || bus.latitude, bus.lng || bus.longitude]}
+          icon={createBusIcon(bus.color || '#3b82f6')}
+          eventHandlers={{
+            click: () => onBusClick?.(bus),
+          }}
+        >
+          <Popup>
+            <div className="text-center min-w-[120px]">
+              <strong className="text-lg">{bus.id || bus.plate_number}</strong>
+              <br />
+              <span className="text-sm">{bus.route_name || bus.route}</span>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
 
-      {/* User location */}
+      {/* Locations */}
       {userLocation && (
         <Marker position={userLocation} icon={createUserIcon()}>
-          <Popup>
-            <strong>You are here</strong>
-          </Popup>
+          <Popup><strong>You are here</strong></Popup>
         </Marker>
       )}
 
-      {/* From Location */}
       {fromLocation && (
         <Marker position={fromLocation} icon={createFromIcon()}>
-          <Popup>
-            <strong>Starting Location</strong>
-          </Popup>
+          <Popup><strong>Starting Location</strong></Popup>
         </Marker>
       )}
 
-      {/* Destination */}
       {destination && (
         <Marker position={destination} icon={createDestinationIcon()}>
-          <Popup>
-            <strong>Destination</strong>
-          </Popup>
+          <Popup><strong>Destination</strong></Popup>
         </Marker>
       )}
     </MapContainer>

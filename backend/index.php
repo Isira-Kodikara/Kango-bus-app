@@ -35,52 +35,73 @@ switch (true) {
         echo json_encode(['success' => true, 'message' => 'KANGO API is running']);
         break;
 
-    case preg_match('/^(\/api)?\/auth\/user/', $requestUri):
+    case strpos($requestUri, '/auth/user') !== false:
         require_once __DIR__ . '/api/auth/user.php';
         break;
 
-    case preg_match('/^(\/api)?\/auth\/crew/', $requestUri):
+    case strpos($requestUri, '/auth/crew') !== false:
         require_once __DIR__ . '/api/auth/crew.php';
         break;
 
-    case preg_match('/^(\/api)?\/auth\/admin/', $requestUri):
+    case strpos($requestUri, '/auth/admin/buses') !== false:
+        require_once __DIR__ . '/api/admin-buses.php';
+        break;
+
+    case strpos($requestUri, '/auth/admin/routes') !== false:
+        require_once __DIR__ . '/api/admin-routes.php';
+        break;
+
+    case strpos($requestUri, '/auth/admin') !== false:
         require_once __DIR__ . '/api/auth/admin.php';
         break;
 
-    case preg_match('/^(\/api)?\/trip-guidance/', $requestUri):
+
+    case strpos($requestUri, '/trip-guidance') !== false:
         require_once __DIR__ . '/api/trip-guidance.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-live-buses/', $requestUri):
+    case strpos($requestUri, '/get-live-buses') !== false:
         require_once __DIR__ . '/api/get-live-buses.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-routes/', $requestUri):
+    case strpos($requestUri, '/get-routes') !== false:
         require_once __DIR__ . '/api/get-routes.php';
         break;
 
-    case preg_match('/^(\/api)?\/get-route-details/', $requestUri):
+    case strpos($requestUri, '/get-route-details') !== false:
         require_once __DIR__ . '/api/get-route-details.php';
         break;
 
-    case preg_match('/^(\/api)?\/saved-places/', $requestUri):
+    case strpos($requestUri, '/saved-places') !== false:
         require_once __DIR__ . '/api/saved-places.php';
         break;
 
-    case preg_match('/^(\/api)?\/migrate/', $requestUri):
+    case strpos($requestUri, '/migrate') !== false:
         require_once __DIR__ . '/api/migrate.php';
         break;
 
-    case preg_match('/^(\/api)?\/seed/', $requestUri):
+    case strpos($requestUri, '/seed') !== false:
         require_once __DIR__ . '/api/seed.php';
         break;
 
-    case preg_match('/^(\/api)?\/debug-db/', $requestUri):
+    case strpos($requestUri, '/debug-db') !== false:
         require_once __DIR__ . '/api/debug-db.php';
         break;
 
-    case preg_match('/^(\/api)?\/sync-osm-routes/', $requestUri):
+    case strpos($requestUri, '/sync-osm-routes') !== false:
         require_once __DIR__ . '/api/sync-osm-routes.php';
+        break;
+
+    case strpos($requestUri, '/get-stops') !== false:
+        require_once __DIR__ . '/api/get-stops.php';
+        break;
+
+    case strpos($requestUri, '/health') !== false:
+        require_once __DIR__ . '/api/health.php';
+        break;
+
+    case strpos($requestUri, '/status') !== false:
+        require_once __DIR__ . '/api/status.php';
         break;
 
     default:
