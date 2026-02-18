@@ -16,6 +16,7 @@ export const API_BASE_URL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBas
 // Specific endpoints
 export const ENDPOINTS = {
     TRIP_GUIDANCE: `${API_BASE_URL}/trip-guidance`,
+    GET_SERVICE_AREA: `${API_BASE_URL}/get-service-area`,
     GET_LIVE_BUSES: `${API_BASE_URL}/get-live-buses`,
     GET_ROUTES: `${API_BASE_URL}/get-routes`,
     GET_STOPS: `${API_BASE_URL}/get-stops`,

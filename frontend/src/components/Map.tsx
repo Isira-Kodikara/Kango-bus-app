@@ -180,6 +180,7 @@ interface MapProps {
   buses?: any[];
   stops?: any[];
   routes?: any[];
+  servicePaths?: [number, number][][];
 }
 
 export function Map({
@@ -203,6 +204,7 @@ export function Map({
   buses = [],
   stops = [],
   routes = [],
+  servicePaths = [],
 }: MapProps) {
   const mapRef = useRef<L.Map>(null);
 
@@ -228,6 +230,22 @@ export function Map({
       {fromLocation && destination && (
         <MapBoundsController points={[fromLocation, destination]} />
       )}
+
+      {/* Service Area / Route Corridors */}
+      {servicePaths && servicePaths.length > 0 && servicePaths.map((path, idx) => (
+        <Polyline
+          key={`service-path-${idx}`}
+          positions={path}
+          pathOptions={{
+            color: '#94a3b8', // Slate-400
+            weight: 30, // Wide corridor
+            opacity: 0.15, // Very low opacity
+            lineCap: 'round',
+            lineJoin: 'round'
+          }}
+        />
+      ))}
+
 
       {/* Route Preview Path (road-following, shown before/after search) */}
       {routePath && routePath.length > 1 && !walkingPath.length && !busPath.length && (

@@ -162,6 +162,8 @@ export function UserHome() {
 
   const watchIdRef = useRef<number | null>(null);
 
+  const [servicePaths, setServicePaths] = useState<[number, number][][]>([]);
+
   // Fetch road-following route from OSRM (free, no API key needed)
   const fetchRouteFromOSRM = async (
     from: [number, number],
@@ -249,15 +251,17 @@ export function UserHome() {
       ];
 
       try {
-        const [busRes, routeRes, stopRes] = await Promise.all([
+        const [busRes, routeRes, stopRes, serviceRes] = await Promise.all([
           fetch(ENDPOINTS.GET_LIVE_BUSES).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any)),
           fetch(ENDPOINTS.GET_ROUTES).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any)),
-          fetch(ENDPOINTS.GET_STOPS).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any))
+          fetch(ENDPOINTS.GET_STOPS).catch(err => ({ ok: false, json: async () => ({ success: false }) } as any)),
+          fetch(ENDPOINTS.GET_SERVICE_AREA || 'http://localhost:8000/api/get-service-area.php').catch(err => ({ ok: false, json: async () => ({ success: false }) } as any))
         ]);
 
         const busData = await busRes.json();
         const routeData = await routeRes.json();
         const stopData = await stopRes.json();
+        const serviceData = await serviceRes.json();
 
         // Always merge with FAKE_BUSES for demo purposes, even if API fails or returns empty
         setBuses([...(busData.buses || []), ...FAKE_BUSES]);
@@ -269,6 +273,7 @@ export function UserHome() {
         }
 
         if (stopData.success) setAllStops(stopData.stops || []);
+        if (serviceData.success) setServicePaths(serviceData.paths || []);
       } catch (err) {
         console.error('Failed to fetch data:', err);
         // Fallback to fake data on catastrophic failure
@@ -759,6 +764,7 @@ export function UserHome() {
           buses={activeBuses}
           stops={allStops}
           routes={routes}
+          servicePaths={servicePaths}
         />
       </div>
 
