@@ -135,8 +135,14 @@ try {
         $destLat, $destLng
     );
 
-    // Get next bus ETA
-    $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id']);
+    // Get next bus ETA (Filter by the specific route we need)
+    $targetRouteId = null;
+    if (isset($bestRoute['detailed_path']) && count($bestRoute['detailed_path']) > 1) {
+        // detailed_path[1] contains the route_id for the segment leaving the boarding stop
+        $targetRouteId = $bestRoute['detailed_path'][1]['route_id'];
+    }
+
+    $nextBus = $etaService->getNextBusETA($bestRoute['boarding_stop']['stop_id'], $targetRouteId);
 
     // Check if can catch bus
     $canCatch = false;
