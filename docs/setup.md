@@ -32,8 +32,8 @@ php -m | grep -E "pdo|json|mbstring"
 ### Step 1: Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd kango-smart-bus
+git clone https://github.com/Isira-Kodikara/Kango-bus-app.git
+cd Kango-bus-app
 ```
 
 ### Step 2: Database Setup
@@ -69,7 +69,7 @@ cd kango-smart-bus
 
 2. **Create environment file**
    ```bash
-   cp .env.example .env
+   cp ../.env.example .env.local
    ```
 
 3. **Configure database connection** (edit `.env`):
@@ -111,7 +111,7 @@ cd kango-smart-bus
 
 ### Step 5: Access the Application
 
-- **Frontend:** http://localhost:3000
+- **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:8000
 
 ---
@@ -140,7 +140,7 @@ Register a new user account through the app, or use prototype mode with demo cre
 
 For UI testing without a backend:
 
-1. Open the app at http://localhost:3000
+1. Open the app at http://localhost:5173
 2. Click **"Enable Prototype Mode"** on the Welcome Screen
 3. Use demo credentials:
    - **User:** `demo@kango.com` / `password123`

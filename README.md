@@ -1,111 +1,107 @@
 # KANGO Smart Bus Navigation
 
-A comprehensive smart bus navigation system featuring a React frontend and a PHP backend. This application helps users find optimal bus routes, track buses, and manage transit data.
+KANGO is a competition prototype for planning bus journeys, viewing live bus
+locations, and managing transit data. It combines a React/TypeScript frontend
+with a PHP/MySQL API and includes separate commuter, crew, and administrator
+experiences.
 
-## 🚀 Features
+> **Project status:** Prototype. The user interface and demo mode are suitable
+> for demonstration, but the application has not been audited or load-tested
+> for production use.
 
-- **Interactive Map Navigation**: Real-time bus tracking and route visualization using Leaflet.
-- **Smart Routing**: Find the best bus routes between destinations.
-- **User Dashboard**: Personalized experience for commuters.
-- **Admin Dashboard**: Management interface for bus operators and administrators.
-- **Responsive Design**: Built with TailwindCSS and Radix UI for a modern, accessible, and mobile-friendly interface.
+## Features
 
-## 🛠️ Tech Stack
+- Interactive Leaflet map and route visualisation
+- Journey planning and estimated arrival information
+- Commuter, crew, and administrator dashboards
+- Saved places, favourite routes, and notification settings
+- Optional Stripe payment-method integration
+- Demo mode for exploring the interface without a backend
 
-### Frontend
-- **Framework**: React (with Vite)
-- **Language**: TypeScript
-- **Styling**: TailwindCSS
-- **UI Components**: Radix UI, Lucide React
-- **Maps**: Leaflet, React Leaflet
-- **charts**: Recharts
+## Technology
 
-### Backend
-- **Language**: PHP
-- **Database**: MySQL
-- **Server**: Native PHP Development Server (for local dev)
+| Area | Stack |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Radix UI |
+| Maps | Leaflet and React Leaflet |
+| Backend | PHP 8 and a JSON API |
+| Database | MySQL 8 |
+| Payments | Stripe PHP and Stripe.js |
 
-## 📂 Project Structure
+## Repository layout
 
-- `frontend/`: The React application source code.
-- `backend/`: The PHP backend API logic.
-- `database/`: SQL scripts for database schema and seeding.
-- `docs/`: Documentation files.
-- `scripts/`: Utility scripts.
+```text
+backend/    PHP API, services, and configuration
+database/   Schema and sample data
+docs/       Architecture, API, setup, and deployment notes
+frontend/   React application
+scripts/    Local development helpers
+tests/      PHP integration and verification scripts
+```
 
-## ⚡ Getting Started
+## Local development
 
-### Prerequisites
-- Node.js (v18+ recommended)
-- PHP (v8.0+ recommended)
-- MySQL Server
+### Requirements
 
-### 1. Database Setup
-1. Create a MySQL database (e.g., `kango_bus_app`).
-2. Run the SQL scripts found in the `database/` directory to create tables and seed initial data.
-3. Configure your database connection in `backend/config/Database.php` or `.env` files if applicable.
+- Node.js 18 or later
+- npm 9 or later
+- PHP 8.0 or later with PDO MySQL and JSON extensions
+- MySQL 8
+- Composer (when using Stripe-backed endpoints)
 
-### 2. Backend Setup
-Navigate to the backend directory and start the server:
+### 1. Configure the database and backend
 
 ```bash
+mysql -u root -p < database/schema/tables.sql
+cp backend/.env.example backend/.env
 cd backend
-php -S localhost:8000
+composer install
+php -S localhost:8000 index.php
 ```
-The API will be available at `http://localhost:8000`.
 
-### 3. Frontend Setup
-Navigate to the frontend directory, install dependencies, and start the development server:
+Update `backend/.env` with your database details and generate a strong
+`JWT_SECRET`. Do not use the example secret outside local development.
+
+### 2. Start the frontend
+
+In a second terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
-The application will be accessible at `http://localhost:5173`.
 
-## 🔐 Default Login Credentials
+Open <http://localhost:5173>. Vite proxies local `/api` requests to the PHP
+server at `http://localhost:8000`.
 
-Use the following credentials to access the protected areas of the application:
+For a hosted API, copy the root `.env.example` values into
+`frontend/.env.local` and set `VITE_API_URL` to the API origin.
 
-### Admin Dashboard
-- **Email**: `admin@kango.com`
-- **Password**: `password`
+## Quality checks
 
-### Crew/Driver Portal
-- **Email**: `john.smith@kango.com`
-- **Password**: `password`
-
-
-## 🌍 Live API
-
-The production backend API is hosted at:  
-**`https://kango-bus-app-production.up.railway.app`**
-
-Ensure your frontend `.env` (or `.env.local`) points to this URL if you wish to use the live backend:
-```env
-VITE_API_URL=https://kango-bus-app-production.up.railway.app
+```bash
+cd frontend
+npm run typecheck
+npm run build
 ```
 
-## 📦 Deployment
+GitHub Actions runs these checks and lints every PHP file for each pull
+request. The PHP scripts in `tests/` require a configured backend and database.
 
-This project comes with a deployment guide for Railway. Please refer to [DEPLOY.md](DEPLOY.md) for detailed instructions on how to deploy both the frontend and backend to production.
+## Documentation
 
-### Production Readiness
+- [Architecture](docs/architecture.md)
+- [Detailed setup](docs/setup.md)
+- [API reference](docs/api-reference.md)
+- [Deployment](docs/deployment.md)
+- [Production-readiness notes](docs/production-readiness.md)
 
-The backend includes production-ready features:
-- **Health Check Endpoint**: `/health` - Comprehensive system health monitoring
-- **Status Endpoint**: `/status` - Quick uptime check
-- **Graceful Shutdown**: Proper cleanup during server restarts
-- **Request Logging**: Automatic request/response logging with rotation
-- **Environment Validation**: Startup validation of required configuration
+## Security
 
-See [docs/production-readiness.md](docs/production-readiness.md) for complete documentation.
+Never commit `.env` files, database credentials, JWT secrets, or Stripe keys.
+The sample accounts and demo credentials are for local demonstration only.
 
-## 🤝 Contributing
+## License
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-[MIT](LICENSE)
+Licensed under the [MIT License](LICENSE).
